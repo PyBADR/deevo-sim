@@ -50,12 +50,7 @@ export interface Scenario {
   strategy?: AnnouncementStrategy
   riskClass?: RiskLevel
   narrative?: BilingualText
-  estimatedImpact?: {
-    financial: 'low' | 'medium' | 'high' | 'critical'
-    customer: 'low' | 'medium' | 'high' | 'critical'
-    regulatory: 'low' | 'medium' | 'high' | 'critical'
-    reputation: 'low' | 'medium' | 'high' | 'critical'
-  }
+  estimatedImpact?: BusinessImpact
 }
 
 // ── Entity (v2) ─────────────────────────────────
