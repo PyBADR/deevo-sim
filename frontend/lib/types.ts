@@ -1,19 +1,36 @@
 /* =================================================
-    Deevo Sim — Core Type Definitions
-    Decision Intelligence Platform
+   Deevo Sim v2 — Core Type Definitions
+   Enterprise Decision Simulation Platform
    ================================================= */
 
-// Base type unions
-export type EntityType = 'person' | 'organization' | 'topic' | 'region' | 'platform' | 'media'
+// ── Base Enums ──────────────────────────────────
+
+export type EntityType = 'person' | 'organization' | 'topic' | 'region' | 'platform' | 'media' | 'sector'
 export type SpreadLevel = 'low' | 'medium' | 'high' | 'critical'
 export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 export type SentimentDirection = 'positive' | 'negative' | 'mixed' | 'neutral'
 export type AgentArchetype = 'reactive' | 'analytical' | 'neutral'
-export type AgentPlatform = 'twitter' | 'whatsapp' | 'news'
+export type AgentPlatform = 'twitter' | 'whatsapp' | 'news' | 'telegram' | 'linkedin'
 export type ActionPriority = 'immediate' | 'short-term' | 'monitoring'
 export type FactorDirection = 'amplifying' | 'dampening' | 'neutral'
 
-/** Scenario seed input */
+// ── v2 Enterprise Enums ─────────────────────────
+
+export type ScenarioDomain = 'energy' | 'telecom' | 'banking' | 'insurance' | 'policy' | 'brand' | 'supply-chain' | 'security'
+export type ScenarioRegion = 'gcc' | 'saudi' | 'kuwait' | 'uae' | 'qatar' | 'bahrain' | 'oman'
+export type TriggerType = 'price-change' | 'leak' | 'announcement' | 'rumor' | 'incident' | 'regulatory' | 'cyberattack' | 'fraud'
+export type SignalType = 'social' | 'media' | 'economic' | 'policy' | 'business'
+export type AnnouncementStrategy = 'aggressive' | 'soft' | 'delayed' | 'silent'
+
+// ── Bilingual Content ───────────────────────────
+
+export interface BilingualText {
+  en: string
+  ar: string
+}
+
+// ── Scenario (v2) ───────────────────────────────
+
 export interface Scenario {
   id: string
   title: string
@@ -23,9 +40,26 @@ export interface Scenario {
   language: 'ar' | 'en'
   country: string
   category: string
+  // v2 enterprise fields
+  domain: ScenarioDomain
+  region: ScenarioRegion
+  trigger: TriggerType
+  actors: string[]
+  signals: SignalType[]
+  constraints?: string[]
+  strategy?: AnnouncementStrategy
+  riskClass?: RiskLevel
+  narrative?: BilingualText
+  estimatedImpact?: {
+    financial: 'low' | 'medium' | 'high' | 'critical'
+    customer: 'low' | 'medium' | 'high' | 'critical'
+    regulatory: 'low' | 'medium' | 'high' | 'critical'
+    reputation: 'low' | 'medium' | 'high' | 'critical'
+  }
 }
 
-/** Extracted entity from scenario parsing */
+// ── Entity (v2) ─────────────────────────────────
+
 export interface Entity {
   id: string
   name: string
@@ -33,9 +67,38 @@ export interface Entity {
   type: EntityType
   weight: number
   description?: string
+  // v2 extended
+  influenceScore?: number
+  trustScore?: number
+  propagationScore?: number
+  stance?: SentimentDirection
+  channels?: AgentPlatform[]
 }
 
-/** Graph node for visualization */
+// ── Signal ──────────────────────────────────────
+
+export interface Signal {
+  id: string
+  type: SignalType
+  label: BilingualText
+  strength: number
+  confidence: number
+  trend: 'rising' | 'falling' | 'stable'
+  volatility: 'low' | 'medium' | 'high'
+  source: string
+}
+
+// ── Business Impact ─────────────────────────────
+
+export interface BusinessImpact {
+  financial: { score: number; label: string; labelAr?: string; detail: string; detailAr?: string }
+  customer: { score: number; label: string; labelAr?: string; detail: string; detailAr?: string }
+  regulatory: { score: number; label: string; labelAr?: string; detail: string; detailAr?: string }
+  reputation: { score: number; label: string; labelAr?: string; detail: string; detailAr?: string }
+}
+
+// ── Graph ───────────────────────────────────────
+
 export interface GraphNode {
   id: string
   label: string
@@ -45,7 +108,6 @@ export interface GraphNode {
   y?: number
 }
 
-/** Graph edge representing relationship */
 export interface GraphEdge {
   id: string
   source: string
@@ -54,7 +116,8 @@ export interface GraphEdge {
   weight: number
 }
 
-/** Single simulation timestep */
+// ── Simulation Step ─────────────────────────────
+
 export interface SimulationStep {
   id: number
   title: string
@@ -65,13 +128,10 @@ export interface SimulationStep {
   sentiment: number
   visibility: number
   events: string[]
-   }
+}
 
-/* =================================================
-   DECISION LAYER TYPES
-   ================================================= */
+// ── Decision Layer ──────────────────────────────
 
-/** Recommended executive action */
 export interface RecommendedAction {
   id: string
   priority: ActionPriority
@@ -83,7 +143,6 @@ export interface RecommendedAction {
   impact: 'high' | 'medium' | 'low'
 }
 
-/** Explainability factor for predictions */
 export interface ExplainabilityItem {
   factor: string
   factorAr?: string
@@ -93,7 +152,6 @@ export interface ExplainabilityItem {
   descriptionAr?: string
 }
 
-/** Scenario narrative framing */
 export interface ScenarioNarrative {
   title: string
   titleAr?: string
@@ -105,7 +163,6 @@ export interface ScenarioNarrative {
   riskDescriptionAr?: string
 }
 
-/** Full decision output from simulation engine */
 export interface DecisionOutput {
   riskLevel: RiskLevel
   expectedSpread: number
@@ -114,12 +171,29 @@ export interface DecisionOutput {
   primaryDriverAr?: string
   criticalTimeWindow: string
   criticalTimeWindowAr?: string
+  spreadVelocity?: string
+  spreadVelocityAr?: string
   recommendedActions: RecommendedAction[]
   explanation: ExplainabilityItem[]
   narrative: ScenarioNarrative
+  businessImpact?: BusinessImpact
 }
 
-/** Complete simulation report with decision layer */
+// ── Intelligence Brief ──────────────────────────
+
+export interface IntelligenceBrief {
+  scenarioSummary: BilingualText
+  timelineNarrative: BilingualText
+  keyDrivers: BilingualText[]
+  entityInfluence: { entity: string; entityAr?: string; role: string; roleAr?: string; score: number }[]
+  forecast: BilingualText
+  businessImpact: BilingualText
+  recommendedActions: BilingualText[]
+  confidence: { score: number; assumptions: BilingualText[] }
+}
+
+// ── Simulation Report ───────────────────────────
+
 export interface SimulationReport {
   prediction: string
   predictionAr?: string
@@ -131,9 +205,11 @@ export interface SimulationReport {
   keyObservations: string[]
   keyObservationsAr?: string[]
   decision: DecisionOutput
+  brief?: IntelligenceBrief
 }
 
-/** Chat message in analyst panel */
+// ── Chat ────────────────────────────────────────
+
 export interface ChatMessage {
   id: string
   role: 'user' | 'analyst'
@@ -141,7 +217,8 @@ export interface ChatMessage {
   timestamp: string
 }
 
-/** GCC agent persona */
+// ── Agent ───────────────────────────────────────
+
 export interface Agent {
   id: string
   name: string
@@ -154,7 +231,8 @@ export interface Agent {
   descriptionAr?: string
 }
 
-/** Simulation engine input contract */
+// ── Simulation Input ────────────────────────────
+
 export interface SimulationInput {
   scenarioId: string
   scenarioTitle: string
@@ -166,7 +244,8 @@ export interface SimulationInput {
   baseSentiment: SentimentDirection
 }
 
-/** Structured JSON output (Phase 6 compliance) */
+// ── Structured JSON Output ──────────────────────
+
 export interface SimulationJSON {
   scenario_title: string
   risk_level: RiskLevel
@@ -178,4 +257,4 @@ export interface SimulationJSON {
   recommended_actions: string[]
   confidence: string
   key_entities: string[]
-}
+    }
