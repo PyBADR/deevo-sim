@@ -1,11 +1,23 @@
-/* ===================================================
-   Deevo Sim — Core Type Definitions
-   =================================================== */
+/* =================================================
+    Deevo Sim — Core Type Definitions
+    Decision Intelligence Platform
+   ================================================= */
+
+// Base type unions
+export type EntityType = 'person' | 'organization' | 'topic' | 'region' | 'platform' | 'media'
+export type SpreadLevel = 'low' | 'medium' | 'high' | 'critical'
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+export type SentimentDirection = 'positive' | 'negative' | 'mixed' | 'neutral'
+export type AgentArchetype = 'reactive' | 'analytical' | 'neutral'
+export type AgentPlatform = 'twitter' | 'whatsapp' | 'news'
+export type ActionPriority = 'immediate' | 'short-term' | 'monitoring'
+export type FactorDirection = 'amplifying' | 'dampening' | 'neutral'
 
 /** Scenario seed input */
 export interface Scenario {
   id: string
   title: string
+  titleAr?: string
   scenario: string
   raw_text: string
   language: 'ar' | 'en'
@@ -17,80 +29,153 @@ export interface Scenario {
 export interface Entity {
   id: string
   name: string
+  nameAr?: string
   type: EntityType
   weight: number
+  description?: string
 }
 
-export type EntityType =
-  | 'Topic'
-  | 'Region'
-  | 'Organization'
-  | 'Person'
-  | 'Platform'
-  | 'Event'
-
-/** Graph node for React Flow visualization */
+/** Graph node for visualization */
 export interface GraphNode {
   id: string
-  position: { x: number; y: number }
-  data: { label: string; type: string; weight: number }
-  type: string
+  label: string
+  type: EntityType
+  weight: number
+  x?: number
+  y?: number
 }
 
-/** Graph edge for React Flow visualization */
+/** Graph edge representing relationship */
 export interface GraphEdge {
   id: string
   source: string
   target: string
   label?: string
-  animated?: boolean
+  weight: number
 }
 
-/** Single simulation time-step */
+/** Single simulation timestep */
 export interface SimulationStep {
-  step: number
-  label: string
-  summary: string
-  sentiment_score: number
-  visibility_score: number
+  id: number
+  title: string
+  titleAr?: string
+  description: string
+  descriptionAr?: string
+  timestamp: string
+  sentiment: number
+  visibility: number
   events: string[]
+   }
+
+/* =================================================
+   DECISION LAYER TYPES
+   ================================================= */
+
+/** Recommended executive action */
+export interface RecommendedAction {
+  id: string
+  priority: ActionPriority
+  action: string
+  actionAr?: string
+  rationale: string
+  rationaleAr?: string
+  timeframe: string
+  impact: 'high' | 'medium' | 'low'
 }
 
-/** Simulation intelligence report */
+/** Explainability factor for predictions */
+export interface ExplainabilityItem {
+  factor: string
+  factorAr?: string
+  direction: FactorDirection
+  weight: number
+  description: string
+  descriptionAr?: string
+}
+
+/** Scenario narrative framing */
+export interface ScenarioNarrative {
+  title: string
+  titleAr?: string
+  subtitle: string
+  subtitleAr?: string
+  summary: string
+  summaryAr?: string
+  riskDescription: string
+  riskDescriptionAr?: string
+}
+
+/** Full decision output from simulation engine */
+export interface DecisionOutput {
+  riskLevel: RiskLevel
+  expectedSpread: number
+  sentiment: SentimentDirection
+  primaryDriver: string
+  primaryDriverAr?: string
+  criticalTimeWindow: string
+  criticalTimeWindowAr?: string
+  recommendedActions: RecommendedAction[]
+  explanation: ExplainabilityItem[]
+  narrative: ScenarioNarrative
+}
+
+/** Complete simulation report with decision layer */
 export interface SimulationReport {
   prediction: string
-  main_driver: string
-  top_influencers: string[]
-  spread_level: SpreadLevel
+  predictionAr?: string
+  mainDriver: string
+  mainDriverAr?: string
+  spreadLevel: SpreadLevel
   confidence: number
-  timeline_summary: string[]
-  graph_observations: string[]
+  topInfluencers: string[]
+  keyObservations: string[]
+  keyObservationsAr?: string[]
+  decision: DecisionOutput
 }
 
-export type SpreadLevel = 'low' | 'medium' | 'high'
-
-/** Chat message */
+/** Chat message in analyst panel */
 export interface ChatMessage {
   id: string
-  role: 'user' | 'assistant'
+  role: 'user' | 'analyst'
   content: string
+  timestamp: string
 }
 
 /** GCC agent persona */
 export interface Agent {
   id: string
   name: string
+  nameAr?: string
   archetype: AgentArchetype
+  platform: AgentPlatform
   influence: number
-  platform: 'Twitter' | 'WhatsApp' | 'News'
-  behavior: 'Reactive' | 'Analytical' | 'Neutral'
-  sentiment: 'Positive' | 'Negative' | 'Neutral'
+  region: string
+  description?: string
+  descriptionAr?: string
 }
 
-export type AgentArchetype =
-  | 'Saudi Citizen'
-  | 'Kuwaiti Citizen'
-  | 'Influencer'
-  | 'Media Account'
-  | 'Government Voice'
-  | 'Youth User'
+/** Simulation engine input contract */
+export interface SimulationInput {
+  scenarioId: string
+  scenarioTitle: string
+  entities: Entity[]
+  agents: Agent[]
+  hasGovernmentResponse: boolean
+  hasInfluencerAmplification: boolean
+  hasMediaPickup: boolean
+  baseSentiment: SentimentDirection
+}
+
+/** Structured JSON output (Phase 6 compliance) */
+export interface SimulationJSON {
+  scenario_title: string
+  risk_level: RiskLevel
+  expected_spread: string
+  sentiment: SentimentDirection
+  primary_driver: string
+  time_window: string
+  explanation: string[]
+  recommended_actions: string[]
+  confidence: string
+  key_entities: string[]
+}
