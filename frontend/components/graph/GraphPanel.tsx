@@ -1,11 +1,10 @@
 'use client'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, Component, type ReactNode } from 'react'
 import {
   ReactFlow,
   ReactFlowProvider,
   Background,
   Controls,
-  MiniMap,
   useNodesState,
   useEdgesState,
   type Node,
@@ -15,8 +14,28 @@ import {
   Position,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import { Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react'
 import { getNodeColor } from '@/lib/utils'
+
+/* ──────────────────────────────────────────────
+   Error Boundary — catches React Flow crashes
+   ────────────────────────────────────────────── */
+interface EBProps { children: ReactNode; fallback: ReactNode }
+interface EBState { hasError: boolean }
+
+class GraphErrorBoundary extends Component<EBProps, EBState> {
+  constructor(props: EBProps) {
+    super(props)
+    this.state = { hasError: false }
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+  render() {
+    if (this.state.hasError) return this.props.fallback
+    return this.props.children
+  }
+}
 
 /* ──────────────────────────────────────────────
    Custom Node — cinematic, glowing, alive
@@ -86,6 +105,49 @@ function CustomNode({ data }: { data: { label: string; type: string; weight: num
 const nodeTypes = { custom: CustomNode }
 
 /* ──────────────────────────────────────────────
+   Static fallback when React Flow crashes
+   ────────────────────────────────────────────── */
+function StaticGraphFallback({ nodes }: { nodes: Node[] }) {
+  return (
+    <div className="w-full h-full bg-ds-surface rounded-ds-xl border border-ds-border overflow-hidden relative">
+      <div className="ds-panel-header">
+        <div className="ds-panel-header-title">
+          <div className="w-2 h-2 rounded-full bg-ds-warning" />
+          <span className="text-caption font-semibold text-ds-text tracking-tight">Entity Graph</span>
+          <span className="text-nano text-ds-text-dim font-mono ml-1">STATIC</span>
+        </div>
+      </div>
+      <div className="h-[calc(100%-52px)] relative">
+        <svg viewBox="0 0 800 500" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <radialGradient id="nodeGlow">
+              <stop offset="0%" stopColor="#6C63FF" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#6C63FF" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          {nodes.map((node, i) => {
+            const x = node.position?.x ?? 100 + (i % 4) * 180
+            const y = node.position?.y ?? 80 + Math.floor(i / 4) * 160
+            const color = getNodeColor(node.data?.type as string || 'Topic')
+            const r = 20 + (node.data?.weight as number || 0.5) * 15
+            return (
+              <g key={node.id}>
+                <circle cx={x} cy={y} r={r * 2} fill="url(#nodeGlow)" opacity="0.4" />
+                <circle cx={x} cy={y} r={r} fill={`${color}20`} stroke={`${color}55`} strokeWidth="1.5" />
+                <circle cx={x} cy={y} r={3} fill={color} />
+                <text x={x} y={y + r + 14} textAnchor="middle" fill="#8A8AA0" fontSize="9" fontFamily="monospace">
+                  {node.data?.label as string}
+                </text>
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
+}
+
+/* ──────────────────────────────────────────────
    Inner Flow — separated so hooks run inside Provider
    ────────────────────────────────────────────── */
 interface FlowInnerProps {
@@ -94,15 +156,21 @@ interface FlowInnerProps {
 }
 
 function FlowInner({ initialNodes, initialEdges }: FlowInnerProps) {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+  const safeNodes = initialNodes.map(n => ({
+    ...n,
+    position: n.position ?? { x: 0, y: 0 },
+    width: 80,
+    height: 80,
+  }))
+
+  const [nodes, , onNodesChange] = useNodesState(safeNodes)
   const [edges, , onEdgesChange] = useEdgesState(initialEdges)
   const [focusMode, setFocusMode] = useState(false)
 
   const onInit = useCallback((instance: ReactFlowInstance) => {
-    // Delay fitView to ensure nodes are measured
     setTimeout(() => {
-      instance.fitView({ padding: 0.35 })
-    }, 50)
+      try { instance.fitView({ padding: 0.35 }) } catch {}
+    }, 100)
   }, [])
 
   const styledEdges = edges.map(e => ({
@@ -140,7 +208,7 @@ function FlowInner({ initialNodes, initialEdges }: FlowInnerProps) {
         </div>
       </div>
 
-      {/* Graph */}
+      {/* Graph — no MiniMap to avoid premature bounds computation */}
       <div className="h-[calc(100%-52px)]">
         <ReactFlow
           nodes={nodes}
@@ -159,12 +227,6 @@ function FlowInner({ initialNodes, initialEdges }: FlowInnerProps) {
           <Controls
             className="!bg-ds-card !border-ds-border !rounded-ds-lg !shadow-ds [&>button]:!bg-ds-card [&>button]:!border-ds-border [&>button]:!text-ds-text-muted [&>button:hover]:!bg-ds-card-hover [&>button:hover]:!text-ds-text"
           />
-          <MiniMap
-            nodeColor={(node) => getNodeColor(node.data?.type as string || 'Topic')}
-            maskColor="rgba(6, 6, 10, 0.85)"
-            className="!bg-ds-card !border-ds-border !rounded-ds-lg"
-            style={{ width: 140, height: 90 }}
-          />
         </ReactFlow>
       </div>
 
@@ -180,7 +242,7 @@ function FlowInner({ initialNodes, initialEdges }: FlowInnerProps) {
 }
 
 /* ──────────────────────────────────────────────
-   Graph Panel — wrapped with ReactFlowProvider
+   Graph Panel — wrapped with Provider + ErrorBoundary
    ────────────────────────────────────────────── */
 interface GraphPanelProps {
   initialNodes: Node[]
@@ -189,8 +251,10 @@ interface GraphPanelProps {
 
 export default function GraphPanel({ initialNodes, initialEdges }: GraphPanelProps) {
   return (
-    <ReactFlowProvider>
-      <FlowInner initialNodes={initialNodes} initialEdges={initialEdges} />
-    </ReactFlowProvider>
+    <GraphErrorBoundary fallback={<StaticGraphFallback nodes={initialNodes} />}>
+      <ReactFlowProvider>
+        <FlowInner initialNodes={initialNodes} initialEdges={initialEdges} />
+      </ReactFlowProvider>
+    </GraphErrorBoundary>
   )
 }
