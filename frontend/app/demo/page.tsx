@@ -1,297 +1,584 @@
 'use client'
 
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { ArrowLeft, Settings, Zap, Globe, ChevronDown, Play, Languages } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
-import type { Node, Edge } from '@xyflow/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Play,
+  RotateCcw,
+  Settings,
+  Zap,
+  Globe,
+  ArrowLeft,
+  Loader2,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Activity,
+  Radio,
+  Shield,
+} from 'lucide-react'
+
 import GraphPanel from '@/components/graph/GraphPanel'
-import ReportPanel from '@/components/report/ReportPanel'
-import DecisionPanel from '@/components/decision/DecisionPanel'
-import ChatPanel from '@/components/chat/ChatPanel'
 import TimelinePanel from '@/components/simulation/TimelinePanel'
-import ScenarioComposer from '@/components/ScenarioComposer'
-import BusinessImpactCard from '@/components/BusinessImpactCard'
+import ReportPanel from '@/components/report/ReportPanel'
+import ChatPanel from '@/components/chat/ChatPanel'
 import {
   mockScenarios,
   mockGraphNodes,
   mockGraphEdges,
   mockSimulationSteps,
   mockReport,
-  mockDecision,
+  mockChatMessages,
 } from '@/lib/mock-data'
-import { label, setLanguage, getLanguage } from '@/lib/i18n'
+import {
+  checkBackendHealth,
+  runScenario,
+  fetchTrustStatus,
+  type ScenarioResult,
+  type TrustStatus,
+} from '@/lib/api/demo'
 
-type ViewTab = 'brief' | 'decision'
+/* ──────────────────────────────────────────────
+   Processing pipeline steps
+   ────────────────────────────────────────────── */
+const processingSteps = [
+  { label: 'Parsing scenario input' },
+  { label: 'Extracting entities' },
+  { label: 'Building relationship graph' },
+  { label: 'Generating agent personas' },
+  { label: 'Running simulation engine' },
+  { label: 'Compiling intelligence brief' },
+]
 
 export default function DemoPage() {
+  // ── State ──
   const [selectedScenario, setSelectedScenario] = useState(mockScenarios[0])
-  const [isSimulating, setIsSimulating] = useState(false)
-  const [simulationComplete, setSimulationComplete] = useState(false)
+  const [scenarioTitle, setScenarioTitle] = useState(mockScenarios[0].title)
+  const [scenarioText, setScenarioText] = useState(mockScenarios[0].scenario)
+  const [country, setCountry] = useState(mockScenarios[0].country)
+  const [category, setCategory] = useState(mockScenarios[0].category)
+  const [isRunning, setIsRunning] = useState(false)
+  const [hasResults, setHasResults] = useState(false)
   const [currentStep, setCurrentStep] = useState(0)
-  const [rightTab, setRightTab] = useState<ViewTab>('brief')
-  const [lang, setLang] = useState<'en' | 'ar'>(getLanguage())
-  const [showComposer, setShowComposer] = useState(false)
+  const [processingStep, setProcessingStep] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const [runId, setRunId] = useState('—')
+  const [runTimestamp, setRunTimestamp] = useState('—')
 
-  const toggleLanguage = () => {
-    const next = lang === 'en' ? 'ar' : 'en'
-    setLanguage(next)
-    setLang(next)
-  }
+  // ── Live backend state ──
+  const [backendOnline, setBackendOnline] = useState<boolean | null>(null)
+  const [liveResult, setLiveResult] = useState<ScenarioResult | null>(null)
+  const [trustStatus, setTrustStatus] = useState<TrustStatus | null>(null)
+  const [dataSource, setDataSource] = useState<'live' | 'mock'>('mock')
 
-  /* ---- convert GraphNode[] -> React Flow Node[] ---- */
-  const rfNodes: Node[] = mockGraphNodes.map((n, i) => ({
-    id: n.id,
-    position: {
-      x: Math.cos((i * Math.PI * 2) / mockGraphNodes.length) * 250 + 350,
-      y: Math.sin((i * Math.PI * 2) / mockGraphNodes.length) * 200 + 250,
-    },
-    data: { label: n.label, type: n.type, weight: n.weight },
-    type: 'custom' as const,
-  }))
+  // ── Backend connection: only attempt if NEXT_PUBLIC_API_URL is configured ──
+  const apiConfigured = typeof window !== 'undefined'
+    && !!process.env.NEXT_PUBLIC_API_URL
+    && !process.env.NEXT_PUBLIC_API_URL.includes('localhost')
 
-  const rfEdges: Edge[] = mockGraphEdges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    animated: true,
-  }))
+  useEffect(() => {
+    if (!apiConfigured) {
+      setBackendOnline(false)
+      return
+    }
+    checkBackendHealth().then(online => {
+      setBackendOnline(online)
+      if (online) {
+        fetchTrustStatus().then(setTrustStatus).catch(() => {})
+      }
+    })
+  }, [apiConfigured])
 
-  /* ---- convert SimulationStep[] -> SimStep[] ---- */
-  const timelineSteps = mockSimulationSteps.map((s) => ({
-    step: s.id,
-    label: s.timestamp,
-    summary: s.description,
-    sentiment_score: (s.sentiment + 1) / 2,
-    visibility_score: s.visibility,
-    events: s.events,
-  }))
+  // ── Mobile detection ──
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 1024)
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
-  const runSimulation = () => {
-    setIsSimulating(true)
-    setSimulationComplete(false)
-    setCurrentStep(0)
-
+  // ── Simulation processing ──
+  useEffect(() => {
+    if (!isRunning) return
     const interval = setInterval(() => {
-      setCurrentStep((prev) => {
-        if (prev >= mockSimulationSteps.length - 1) {
-          clearInterval(interval)
-          setIsSimulating(false)
-          setSimulationComplete(true)
-          return prev
-        }
-        return prev + 1
+      setProcessingStep(prev => {
+        if (prev < processingSteps.length - 1) return prev + 1
+        return prev
       })
-    }, 1200)
+    }, 700)
+    return () => clearInterval(interval)
+  }, [isRunning])
+
+  useEffect(() => {
+    if (processingStep === processingSteps.length - 1 && isRunning) {
+      const timeout = setTimeout(() => {
+        setIsRunning(false)
+        setHasResults(true)
+        setCurrentStep(0)
+      }, 600)
+      return () => clearTimeout(timeout)
+    }
+  }, [processingStep, isRunning])
+
+  // ── Handlers ──
+  const handleScenarioSelect = (scenario: typeof mockScenarios[0]) => {
+    setSelectedScenario(scenario)
+    setScenarioTitle(scenario.title)
+    setScenarioText(scenario.scenario)
+    setCountry(scenario.country)
+    setCategory(scenario.category)
+    setHasResults(false)
+    setCurrentStep(0)
   }
 
-  const statusLabel = simulationComplete ? label('complete') : isSimulating ? label('simulating') : label('ready')
+  const handleReset = () => {
+    setHasResults(false)
+    setCurrentStep(0)
+    setProcessingStep(0)
+    setIsRunning(false)
+    setRunId('—')
+    setRunTimestamp('—')
+  }
 
-  return (
-    <div className="h-screen flex flex-col bg-[#0a0a0f] text-zinc-100 overflow-hidden">
-      {/* ===== Top Bar ===== */}
-      <header className="h-11 border-b border-zinc-800/60 flex items-center justify-between px-4 bg-zinc-950/80 backdrop-blur shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-zinc-500 hover:text-zinc-300 transition-colors">
+  const handleRunSimulation = async () => {
+    setIsRunning(true)
+    setProcessingStep(0)
+    setHasResults(false)
+    setLiveResult(null)
+    setRunId(`SIM-${Math.random().toString(36).substring(2, 8).toUpperCase()}`)
+    setRunTimestamp(new Date().toLocaleTimeString('en-US', { hour12: false }))
+
+    // Try live backend if available
+    if (backendOnline) {
+      try {
+        const scenarioMap: Record<string, string> = {
+          economy: 'hormuz_closure',
+          'public sentiment': 'banking_shock',
+          'business reaction': 'port_disruption',
+          technology: 'airport_disruption',
+          policy: 'sanctions_escalation',
+        }
+        const scenarioType = scenarioMap[category] ?? 'hormuz_closure'
+        const result = await runScenario(scenarioType, 'sovereign_treasury', 0.8, 72)
+        setLiveResult(result)
+        setDataSource('live')
+        // Also refresh trust status
+        fetchTrustStatus().then(setTrustStatus).catch(() => {})
+      } catch {
+        setDataSource('mock')
+      }
+    } else {
+      setDataSource('mock')
+    }
+  }
+
+  // ── System status ──
+  const systemStatus = useMemo(() => {
+    if (isRunning) return { label: 'PROCESSING', color: 'bg-ds-accent', pulse: true }
+    if (hasResults) return { label: 'COMPLETE', color: 'bg-ds-success', pulse: false }
+    return { label: 'READY', color: 'bg-ds-text-dim', pulse: false }
+  }, [isRunning, hasResults])
+
+  // ── Mobile fallback ──
+  if (isMobile) {
+    return (
+      <div className="h-screen w-full bg-ds-bg flex items-center justify-center p-6">
+        <div className="ds-card p-10 text-center max-w-md">
+          <div className="w-14 h-14 rounded-full bg-ds-surface-raised border border-ds-border flex items-center justify-center mx-auto mb-5">
+            <Globe className="w-6 h-6 text-ds-text-muted" />
+          </div>
+          <h2 className="text-h3 mb-3">Desktop Required</h2>
+          <p className="text-caption text-ds-text-muted mb-8 leading-relaxed">
+            The Control Room requires a desktop viewport for the full intelligence experience.
+          </p>
+          <Link href="/" className="ds-btn-primary">
             <ArrowLeft className="w-4 h-4" />
+            Back to Home
           </Link>
-          <Zap className="w-4 h-4 text-indigo-500" />
-          <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Deevo Sim</span>
-          <span className="text-zinc-700">/</span>
-          <span className="text-xs text-zinc-400">{label('controlRoom')}</span>
         </div>
+      </div>
+    )
+  }
+
+  /* ══════════════════════════════════════════════
+     MAIN SYSTEM INTERFACE
+     ══════════════════════════════════════════════ */
+  return (
+    <div className="h-screen w-full bg-ds-bg flex flex-col overflow-hidden">
+
+      {/* ── TOP BAR — System status bar ── */}
+      <div className="h-11 border-b border-ds-border bg-ds-surface/80 backdrop-blur-xl flex-shrink-0 flex items-center justify-between px-5">
+        {/* Left: Nav + breadcrumb */}
+        <div className="flex items-center gap-3 min-w-0">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-ds-text-muted hover:text-ds-text transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </Link>
+          <div className="w-px h-5 bg-ds-border" />
+          <span className="text-micro font-semibold text-ds-text tracking-tight">DEEVO SIM</span>
+          <span className="text-micro text-ds-text-dim font-mono">/</span>
+          <span className="text-micro text-ds-text-muted font-mono">Control Room</span>
+        </div>
+
+        {/* Center: System status */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-1.5 h-1.5 rounded-full ${simulationComplete ? 'bg-emerald-400' : isSimulating ? 'bg-amber-400 animate-pulse' : 'bg-zinc-600'}`} />
-            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
-              {statusLabel}
+          <div className="flex items-center gap-2">
+            <div className={`w-1.5 h-1.5 rounded-full ${systemStatus.color} ${systemStatus.pulse ? 'animate-pulse' : ''}`} />
+            <span className="text-nano font-mono uppercase tracking-[0.15em] text-ds-text-secondary">
+              {systemStatus.label}
             </span>
           </div>
+          {runId !== '—' && (
+            <>
+              <span className="text-nano text-ds-text-dim">·</span>
+              <span className="text-nano font-mono text-ds-text-dim">
+                <Clock size={10} className="inline mr-1 -mt-0.5" />
+                {runTimestamp}
+              </span>
+              <span className="text-nano font-mono text-ds-text-dim">{runId}</span>
+            </>
+          )}
         </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleLanguage}
-            className="flex items-center gap-1 px-2 py-1 rounded border border-zinc-800 text-[10px] font-mono text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors"
-          >
-            <Languages className="w-3 h-3" />
-            {lang === 'en' ? 'AR' : 'EN'}
-          </button>
-          <Link href="/scenarios" className="text-[10px] font-mono text-indigo-400 hover:text-indigo-300 uppercase tracking-wider">
-            {label('scenarioLibrary')}
-          </Link>
-          <Settings className="w-3.5 h-3.5 text-zinc-600" />
-        </div>
-      </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* ===== LEFT RAIL — Control ===== */}
-        <aside className="w-72 border-r border-zinc-800/60 flex flex-col bg-zinc-950/40 shrink-0">
-          {/* Scenario Selector */}
-          <div className="p-3 border-b border-zinc-800/40">
-            <div className="text-[10px] font-mono text-zinc-600 uppercase tracking-widest mb-2">{label('presets')}</div>
-            <div className="relative">
-              <select
-                value={selectedScenario.id}
-                onChange={(e) => {
-                  const sc = mockScenarios.find((s) => s.id === e.target.value)
-                  if (sc) setSelectedScenario(sc)
-                }}
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3 py-2 text-sm text-zinc-200 appearance-none pr-8 focus:border-indigo-500 focus:outline-none"
-              >
-                {mockScenarios.map((sc) => (
-                  <option key={sc.id} value={sc.id}>{sc.title}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-zinc-500 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+        {/* Right: Mode indicator + Scenario meta */}
+        <div className="flex items-center gap-3 min-w-0">
+          {backendOnline ? (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              <span className="text-nano font-mono text-emerald-400 tracking-wider">LIVE</span>
             </div>
-            {selectedScenario.titleAr && (
-              <p className="text-xs text-zinc-500 mt-1 text-right" dir="rtl">{selectedScenario.titleAr}</p>
-            )}
-          </div>
-
-          {/* Scenario Meta */}
-          <div className="p-3 border-b border-zinc-800/40 space-y-2">
-            <div className="flex flex-wrap gap-1">
-              {selectedScenario.domain && (
-                <span className="px-1.5 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded text-[9px] font-mono text-indigo-400 uppercase">{selectedScenario.domain}</span>
-              )}
-              {selectedScenario.region && (
-                <span className="px-1.5 py-0.5 bg-cyan-500/10 border border-cyan-500/20 rounded text-[9px] font-mono text-cyan-400 uppercase">{selectedScenario.region}</span>
-              )}
-              {selectedScenario.trigger && (
-                <span className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded text-[9px] font-mono text-amber-400 uppercase">{selectedScenario.trigger}</span>
-              )}
-              {selectedScenario.riskClass && (
-                <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
-                  selectedScenario.riskClass === 'CRITICAL' ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
-                  selectedScenario.riskClass === 'HIGH' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                  selectedScenario.riskClass === 'MEDIUM' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                }`}>{selectedScenario.riskClass}</span>
-              )}
-            </div>
-            {selectedScenario.narrative && (
-              <p className="text-[11px] text-zinc-500 leading-relaxed">
-                {lang === 'ar' && selectedScenario.narrative.ar ? selectedScenario.narrative.ar : selectedScenario.narrative.en}
-              </p>
-            )}
-          </div>
-
-          {/* Composer Toggle */}
-          <div className="p-3 border-b border-zinc-800/40">
-            <button
-              onClick={() => setShowComposer(!showComposer)}
-              className="w-full text-[10px] font-mono text-indigo-400 hover:text-indigo-300 uppercase tracking-wider text-center py-1"
-            >
-              {showComposer ? 'Hide Composer' : 'Open Scenario Composer'}
-            </button>
-          </div>
-
-          {showComposer && (
-            <div className="p-2 border-b border-zinc-800/40 overflow-y-auto max-h-[300px]">
-              <ScenarioComposer collapsed={false} />
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-ds-accent/10 border border-ds-accent/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-ds-accent" />
+              <span className="text-nano font-mono text-ds-accent tracking-wider">DEMO</span>
             </div>
           )}
+          <span className="text-micro text-ds-text-muted truncate max-w-[200px] font-mono">
+            {scenarioTitle}
+          </span>
+          <button className="p-1.5 hover:bg-ds-card rounded-md transition-colors text-ds-text-dim hover:text-ds-text">
+            <Settings className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
 
-          {/* Run Button */}
-          <div className="p-3 border-b border-zinc-800/40">
-            <button
-              onClick={runSimulation}
-              disabled={isSimulating}
-              className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded font-mono text-xs uppercase tracking-wider transition-all ${
-                isSimulating
-                  ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-              }`}
-            >
-              <Play className="w-4 h-4" />
-              {label('runSimulation')}
-            </button>
-          </div>
+      {/* ── MAIN 3-COLUMN LAYOUT ── */}
+      <div className="flex-1 flex overflow-hidden">
 
-          {/* Business Impact */}
-          <div className="flex-1 overflow-y-auto p-2">
-            {selectedScenario.estimatedImpact && (
-              <BusinessImpactCard impact={selectedScenario.estimatedImpact} compact />
-            )}
-          </div>
-        </aside>
+        {/* ═══ LEFT SIDEBAR — Controls ═══ */}
+        <div className="w-[280px] bg-ds-surface border-r border-ds-border overflow-y-auto flex flex-col">
+          <div className="p-5 space-y-5 flex flex-col">
 
-        {/* ===== CENTER — Visualization ===== */}
-        <main className="flex-1 flex flex-col min-w-0">
-          {/* Graph */}
-          <div className="flex-1 relative">
-            <GraphPanel initialNodes={rfNodes} initialEdges={rfEdges} />
-            <div className="absolute top-3 left-3 flex items-center gap-2">
-              <span className="text-[9px] font-mono text-zinc-600 uppercase tracking-widest bg-zinc-950/80 px-2 py-1 rounded border border-zinc-800/50">
-                Entity Graph
-              </span>
+            {/* Scenario Input */}
+            <div>
+              <h3 className="text-nano uppercase tracking-[0.15em] text-ds-text-dim font-semibold mb-3 flex items-center gap-2">
+                <Radio size={10} />
+                Scenario Input
+              </h3>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={scenarioTitle}
+                  onChange={(e) => setScenarioTitle(e.target.value)}
+                  placeholder="Scenario title"
+                  className="ds-input text-micro"
+                />
+                <textarea
+                  value={scenarioText}
+                  onChange={(e) => setScenarioText(e.target.value)}
+                  placeholder="Describe the scenario..."
+                  dir="auto"
+                  className="ds-input min-h-[100px] resize-none text-micro"
+                />
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  className="ds-select text-micro"
+                >
+                  <option value="Saudi Arabia">Saudi Arabia</option>
+                  <option value="Kuwait">Kuwait</option>
+                  <option value="UAE">UAE</option>
+                  <option value="Bahrain">Bahrain</option>
+                  <option value="Oman">Oman</option>
+                  <option value="Qatar">Qatar</option>
+                  <option value="GCC">GCC</option>
+                </select>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="ds-select text-micro"
+                >
+                  <option value="economy">Economy</option>
+                  <option value="public sentiment">Public Sentiment</option>
+                  <option value="business reaction">Business Reaction</option>
+                  <option value="technology">Technology</option>
+                  <option value="policy">Policy</option>
+                </select>
+              </div>
             </div>
-          </div>
 
-          {/* Timeline */}
-          <div className="h-48 border-t border-zinc-800/60 bg-zinc-950/60">
-            <TimelinePanel
-              steps={timelineSteps}
-              activeStep={currentStep}
-              onStepChange={setCurrentStep}
-            />
-          </div>
-        </main>
-
-        {/* ===== RIGHT RAIL — Decision ===== */}
-        <aside className="w-96 border-l border-zinc-800/60 flex flex-col bg-zinc-950/40 shrink-0">
-          {/* Tabs */}
-          <div className="flex border-b border-zinc-800/60">
-            {(['brief', 'decision'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setRightTab(tab)}
-                className={`flex-1 py-2.5 text-[10px] font-mono uppercase tracking-wider transition-colors ${
-                  rightTab === tab
-                    ? 'text-indigo-400 border-b-2 border-indigo-500 bg-indigo-500/5'
-                    : 'text-zinc-600 hover:text-zinc-400'
-                }`}
-              >
-                {tab === 'brief' ? label('intelligenceBrief') : label('decisionOutput')}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content */}
-          <div className="flex-1 overflow-y-auto">
-            <AnimatePresence mode="wait">
-              {rightTab === 'brief' && (
-                <motion.div
-                  key="brief"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.15 }}
-                >
-                  <ReportPanel report={simulationComplete ? mockReport : null} isActive={simulationComplete} />
-                </motion.div>
+            {/* Run Button */}
+            <button
+              onClick={handleRunSimulation}
+              disabled={isRunning}
+              className="w-full ds-btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isRunning ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4" />
+                  Run Simulation
+                </>
               )}
-              {rightTab === 'decision' && (
+            </button>
+
+            {/* Processing Pipeline */}
+            <AnimatePresence>
+              {isRunning && (
                 <motion.div
-                  key="decision"
-                  initial={{ opacity: 0, x: 10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.15 }}
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.3 }}
                 >
-                  <DecisionPanel decision={mockDecision} isActive={simulationComplete} />
+                  <div className="pt-4 border-t border-ds-border space-y-3">
+                    <h3 className="text-nano uppercase tracking-[0.15em] text-ds-text-dim font-semibold flex items-center gap-2">
+                      <Activity size={10} className="text-ds-accent" />
+                      Pipeline
+                    </h3>
+                    <div className="space-y-2.5">
+                      {processingSteps.map((step, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: -8 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: idx * 0.05 }}
+                          className="flex items-center gap-2.5"
+                        >
+                          {idx < processingStep ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-ds-success flex-shrink-0" />
+                          ) : idx === processingStep ? (
+                            <Loader2 className="w-3.5 h-3.5 text-ds-accent animate-spin flex-shrink-0" />
+                          ) : (
+                            <Circle className="w-3.5 h-3.5 text-ds-text-dim flex-shrink-0" />
+                          )}
+                          <span className={`text-[11px] font-mono ${
+                            idx < processingStep
+                              ? 'text-ds-text-muted line-through'
+                              : idx === processingStep
+                                ? 'text-ds-accent'
+                                : 'text-ds-text-dim'
+                          }`}>
+                            {step.label}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {/* Divider */}
+            <div className="ds-divider" />
+
+            {/* Preset Scenarios */}
+            <div>
+              <h3 className="text-nano uppercase tracking-[0.15em] text-ds-text-dim font-semibold mb-3 flex items-center gap-2">
+                <Shield size={10} />
+                Presets
+              </h3>
+              <div className="space-y-2">
+                {mockScenarios.slice(0, 3).map((scenario) => (
+                  <button
+                    key={scenario.id}
+                    onClick={() => handleScenarioSelect(scenario)}
+                    className={`w-full text-left px-3.5 py-3 rounded-ds-lg border transition-all duration-200 ${
+                      selectedScenario.id === scenario.id
+                        ? 'bg-ds-accent/8 border-ds-accent/25'
+                        : 'bg-ds-bg-alt border-ds-border hover:border-ds-border-hover hover:bg-ds-card/40'
+                    }`}
+                  >
+                    <div className="text-micro font-medium text-ds-text truncate">
+                      {scenario.title}
+                    </div>
+                    <div className="flex items-center gap-1.5 mt-1.5 text-[10px] text-ds-text-dim font-mono">
+                      <Globe className="w-3 h-3" />
+                      {scenario.country}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ═══ CENTER — Graph + Timeline (primary focus) ═══ */}
+        <div className="flex-1 bg-ds-bg overflow-y-auto flex flex-col p-4 gap-4">
+          {/* Graph Panel — dominant visual weight */}
+          <div className="flex-1 min-h-[420px]">
+            {!hasResults && !isRunning && (
+              <div className="h-full ds-card rounded-ds-xl flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 ds-grid-bg opacity-20" />
+                <div className="relative text-center">
+                  <div className="w-12 h-12 rounded-full bg-ds-surface-raised border border-ds-border flex items-center justify-center mx-auto mb-3">
+                    <Circle className="w-5 h-5 text-ds-text-dim" />
+                  </div>
+                  <p className="text-caption text-ds-text-dim">
+                    Run a simulation to generate the entity graph
+                  </p>
+                  <p className="text-nano text-ds-text-dim mt-1 font-mono">AWAITING INPUT</p>
+                </div>
+              </div>
+            )}
+            {isRunning && (
+              <div className="h-full ds-card rounded-ds-xl flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 ds-grid-bg opacity-20" />
+                <div className="relative text-center">
+                  <Loader2 className="w-10 h-10 mx-auto mb-3 text-ds-accent animate-spin" />
+                  <p className="text-caption text-ds-text-muted">
+                    Generating entity graph...
+                  </p>
+                  <p className="text-nano text-ds-accent font-mono mt-1">SIGNAL PROPAGATION ACTIVE</p>
+                </div>
+              </div>
+            )}
+            {hasResults && (
+              <GraphPanel initialNodes={mockGraphNodes} initialEdges={mockGraphEdges} />
+            )}
           </div>
 
-          {/* Chat Panel */}
-          <div className="h-64 border-t border-zinc-800/60">
-            <ChatPanel />
+          {/* Timeline Panel */}
+          <div className="flex-shrink-0">
+            {!hasResults && !isRunning && (
+              <div className="ds-card rounded-ds-xl p-5 text-center">
+                <p className="text-caption text-ds-text-dim font-mono">TIMELINE · AWAITING SIMULATION</p>
+              </div>
+            )}
+            {isRunning && (
+              <div className="ds-card rounded-ds-xl p-5 flex items-center justify-center gap-3">
+                <Loader2 className="w-4 h-4 text-ds-accent animate-spin" />
+                <span className="text-caption text-ds-text-muted font-mono">Building temporal model...</span>
+              </div>
+            )}
+            {hasResults && (
+              <TimelinePanel
+                steps={mockSimulationSteps}
+                activeStep={currentStep}
+                onStepChange={setCurrentStep}
+              />
+            )}
           </div>
-        </aside>
+        </div>
+
+        {/* ═══ RIGHT SIDEBAR — Intelligence Brief + Analyst ═══ */}
+        <div className="w-[360px] bg-ds-surface border-l border-ds-border overflow-y-auto flex flex-col">
+          <div className="p-4 space-y-4 flex flex-col h-full">
+
+            {/* Action buttons */}
+            {hasResults && (
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={handleRunSimulation}
+                  className="flex-1 ds-btn-primary text-micro"
+                >
+                  <Play className="w-3.5 h-3.5" />
+                  Rerun
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="flex-1 ds-btn-secondary text-micro"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Reset
+                </button>
+              </div>
+            )}
+
+            {/* Live Engine Metrics (when backend data available) */}
+            {hasResults && liveResult && (
+              <div className="flex-shrink-0 ds-card rounded-ds-lg p-3 space-y-2 border border-ds-accent/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span className="text-nano font-mono uppercase tracking-widest text-ds-accent">Live Engine Output</span>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                  <div>
+                    <span className="text-ds-text-dim">Total Loss</span>
+                    <div className="text-ds-text font-semibold">${(liveResult.totalLoss / 1e9).toFixed(2)}B</div>
+                  </div>
+                  <div>
+                    <span className="text-ds-text-dim">Credibility</span>
+                    <div className="text-emerald-400 font-semibold">{liveResult.costCredibility}</div>
+                  </div>
+                  <div>
+                    <span className="text-ds-text-dim">Calibration</span>
+                    <div className="text-ds-text font-semibold">{liveResult.calibrationScore}</div>
+                  </div>
+                  <div>
+                    <span className="text-ds-text-dim">Trust Level</span>
+                    <div className="text-ds-accent font-semibold">{liveResult.overallTrustLevel}</div>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-ds-text-dim">Deployment</span>
+                    <div className="text-ds-text font-semibold">{liveResult.deploymentSuitability}</div>
+                  </div>
+                </div>
+                {liveResult.drivers.length > 0 && (
+                  <div className="pt-2 border-t border-ds-border">
+                    <span className="text-[10px] text-ds-text-dim font-mono">DRIVERS</span>
+                    <div className="text-[11px] text-ds-text-muted mt-1">{liveResult.drivers.join(' · ')}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Trust Status (when backend available) */}
+            {trustStatus && (
+              <div className="flex-shrink-0 ds-card rounded-ds-lg p-3 space-y-1 text-[11px] font-mono">
+                <span className="text-nano text-ds-text-dim uppercase tracking-widest">System Trust</span>
+                <div className="flex justify-between"><span className="text-ds-text-dim">Cost Credibility</span><span className="text-emerald-400">{trustStatus.costCredibility}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">Calibration</span><span className="text-ds-text">{trustStatus.calibrationScore}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">References</span><span className="text-ds-text">{trustStatus.fileReferences}/{trustStatus.totalReferences}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">Fields</span><span className="text-ds-text">{trustStatus.supportedFields}S/{trustStatus.weakFields}W/{trustStatus.unsupportedFields}U</span></div>
+              </div>
+            )}
+
+            {/* Report / Intelligence Brief */}
+            <div className="flex-shrink-0">
+              {!hasResults && (
+                <ReportPanel report={null} />
+              )}
+              {hasResults && (
+                <ReportPanel report={mockReport} />
+              )}
+            </div>
+
+            {/* Analyst / Chat */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <ChatPanel
+                initialMessages={
+                  hasResults
+                    ? mockChatMessages
+                    : [
+                        {
+                          id: '1',
+                          role: 'assistant' as const,
+                          content: 'Run a simulation to activate the analyst interface.',
+                        },
+                      ]
+                }
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
