@@ -57,6 +57,26 @@ export const nodeCoordinates: Record<string, GeoCoordinate> = {
   soc_social:   { lat: 24.7200, lng: 46.6800 },  // Riyadh
   soc_travel_d: { lat: 25.2500, lng: 55.3500 },  // Dubai
   soc_ticket:   { lat: 25.2532, lng: 55.3600 },  // Dubai airport area
+  soc_sentiment:{ lat: 24.8000, lng: 46.7500 },  // Riyadh
+  soc_stability:{ lat: 24.6500, lng: 46.7100 },  // Riyadh
+
+  // — Additional Airports —
+  inf_jed:      { lat: 21.6796, lng: 39.1565 },  // King Abdulaziz Airport
+  inf_dmm:      { lat: 26.4712, lng: 49.7979 },  // King Fahd Airport
+  inf_auh:      { lat: 24.4430, lng: 54.6511 },  // Abu Dhabi Airport
+  inf_bah:      { lat: 26.2708, lng: 50.6336 },  // Bahrain Airport
+  inf_mct:      { lat: 23.5933, lng: 58.2844 },  // Muscat Airport
+
+  // — Additional Ports —
+  inf_hamad:    { lat: 25.3800, lng: 51.5300 },  // Hamad Port, Qatar
+  inf_khalifa:  { lat: 24.8100, lng: 54.6500 },  // Khalifa Port, Abu Dhabi
+  inf_shuwaikh: { lat: 29.3500, lng: 47.9200 },  // Shuwaikh Port, Kuwait
+  inf_sohar:    { lat: 24.3400, lng: 56.7100 },  // Sohar Port, Oman
+
+  // — Additional Sectors —
+  eco_telecom:  { lat: 24.7400, lng: 46.6600 },  // Riyadh
+  eco_food:     { lat: 25.0500, lng: 55.1900 },  // Dubai
+  eco_logistics:{ lat: 25.0100, lng: 55.0800 },  // Jebel Ali zone
 }
 
 /** Shipping routes for globe arc rendering */
@@ -64,7 +84,11 @@ export const shippingRoutes: { from: GeoCoordinate; to: GeoCoordinate; label: st
   { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 24.9857, lng: 55.0272 }, label: 'Hormuz → Jebel Ali' },
   { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 26.4473, lng: 50.1014 }, label: 'Hormuz → Dammam' },
   { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 25.2960, lng: 51.5488 }, label: 'Jebel Ali → Doha Port' },
-  { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 23.6345, lng: 57.5893 }, label: 'Jebel Ali → Sohar' },
+  { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 24.3400, lng: 56.7100 }, label: 'Jebel Ali → Sohar' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 25.3800, lng: 51.5300 }, label: 'Hormuz → Hamad Port' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 24.8100, lng: 54.6500 }, label: 'Hormuz → Khalifa Port' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 29.3500, lng: 47.9200 }, label: 'Hormuz → Shuwaikh Port' },
+  { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 24.8100, lng: 54.6500 }, label: 'Jebel Ali → Khalifa' },
 ]
 
 /** Aviation routes */
@@ -73,5 +97,9 @@ export const aviationRoutes: { from: GeoCoordinate; to: GeoCoordinate; label: st
   { from: { lat: 24.9578, lng: 46.6989 }, to: { lat: 29.2266, lng: 47.9689 }, label: 'RUH → KWI' },
   { from: { lat: 25.2532, lng: 55.3657 }, to: { lat: 25.2731, lng: 51.6081 }, label: 'DXB → DOH' },
   { from: { lat: 29.2266, lng: 47.9689 }, to: { lat: 25.2731, lng: 51.6081 }, label: 'KWI → DOH' },
-  { from: { lat: 25.2532, lng: 55.3657 }, to: { lat: 23.5880, lng: 58.3829 }, label: 'DXB → MCT' },
+  { from: { lat: 25.2532, lng: 55.3657 }, to: { lat: 23.5933, lng: 58.2844 }, label: 'DXB → MCT' },
+  { from: { lat: 24.9578, lng: 46.6989 }, to: { lat: 21.6796, lng: 39.1565 }, label: 'RUH → JED' },
+  { from: { lat: 25.2532, lng: 55.3657 }, to: { lat: 24.4430, lng: 54.6511 }, label: 'DXB → AUH' },
+  { from: { lat: 25.2532, lng: 55.3657 }, to: { lat: 26.2708, lng: 50.6336 }, label: 'DXB → BAH' },
+  { from: { lat: 21.6796, lng: 39.1565 }, to: { lat: 25.2731, lng: 51.6081 }, label: 'JED → DOH' },
 ]

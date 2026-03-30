@@ -236,22 +236,34 @@ function GlobeView({
     return propagation.nodeImpacts
   }, [propagation, timelineIteration])
 
+  // Normalized intensity: I_i = x_i / max_k |x_k|
+  const maxImpact = useMemo(() => {
+    let max = 0.001
+    for (const val of activeImpacts.values()) {
+      const abs = Math.abs(val)
+      if (abs > max) max = abs
+    }
+    return max
+  }, [activeImpacts])
+
   const pointsData = useMemo(() => {
     return gccNodes.map(node => {
-      const impact = Math.abs(activeImpacts.get(node.id) || 0)
-      const isPort = node.id.includes('jebel') || node.id.includes('dammam') || node.id.includes('doha_p')
-      const isAirport = node.id.includes('ruh') || node.id.includes('dxb') || node.id.includes('kwi') || (node.id.includes('doh') && !node.id.includes('doha_p'))
+      const rawImpact = Math.abs(activeImpacts.get(node.id) || 0)
+      const normalizedI = rawImpact / maxImpact  // I_i = x_i / max_k |x_k|
+      const isPort = node.type === 'port' || node.id.includes('jebel') || node.id.includes('dammam') || node.id.includes('doha_p') || node.id.includes('hamad') || node.id.includes('khalifa') || node.id.includes('shuwaikh') || node.id.includes('sohar')
+      const isAirport = node.type === 'airport' || node.id.includes('ruh') || node.id.includes('dxb') || node.id.includes('kwi') || node.id.includes('jed') || node.id.includes('auh') || node.id.includes('bah') || node.id.includes('mct') || (node.id.includes('doh') && !node.id.includes('doha_p'))
       const isChokepoint = node.id === 'geo_hormuz'
       return {
         id: node.id, lat: node.lat, lng: node.lng,
         label: lang === 'ar' ? (node.labelAr || node.label) : node.label,
         layer: node.layer,
-        impact,
+        impact: rawImpact,
+        normalizedI,
         color: isChokepoint ? '#ef4444' : (LAYER_COLORS[node.layer] || '#64748b'),
-        size: isChokepoint ? 0.8 : (isPort || isAirport ? 0.5 + impact * 1.2 : 0.3 + impact * 1.5),
+        size: isChokepoint ? 0.8 : (isPort || isAirport ? 0.5 + normalizedI * 1.2 : 0.3 + normalizedI * 1.5),
       }
     }).filter(Boolean)
-  }, [activeImpacts, lang])
+  }, [activeImpacts, maxImpact, lang])
 
   const propagationArcs = useMemo(() => {
     if (!propagation) return []
@@ -262,11 +274,12 @@ function GlobeView({
       const toNode = gccNodes.find(n => n.id === step.to)
       if (!fromNode || !toNode) continue
       const isNegative = step.polarity < 0
+      const flowStrength = Math.abs(step.impact) / maxImpact  // normalized propagation strength
       arcs.push({
         startLat: fromNode.lat, startLng: fromNode.lng,
         endLat: toNode.lat, endLng: toNode.lng,
         color: isNegative ? '#ef4444' : (LAYER_COLORS[fromNode?.layer || 'geography'] || '#22d3ee'),
-        stroke: Math.abs(step.impact) * 3,
+        stroke: 0.5 + flowStrength * 2.5,
       })
     }
     return arcs

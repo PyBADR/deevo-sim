@@ -49,7 +49,7 @@ export interface GCCScenario {
 }
 
 /* ════════════════════════════════════════════════
-   NODES — 35 real GCC entities across 5 layers
+   NODES — 53 real GCC entities across 5 layers
    ════════════════════════════════════════════════ */
 export const gccNodes: GCCNode[] = [
   // ── Layer 1: Geography ──
@@ -101,10 +101,30 @@ export const gccNodes: GCCNode[] = [
   { id: 'soc_social',   label: 'Social Platforms',  labelAr: 'المنصات الاجتماعية', layer: 'society', type: 'Platform',     lat: 24.7200, lng: 46.6800, weight: 0.78, sensitivity: 0.4,  damping_factor: 0.05, value: 0.78 },
   { id: 'soc_travel_d', label: 'Travel Demand',     labelAr: 'الطلب على السفر',    layer: 'society', type: 'Topic',         lat: 25.2500, lng: 55.3500, weight: 0.72, sensitivity: 0.7,  damping_factor: 0.07, value: 0.72 },
   { id: 'soc_ticket',   label: 'Ticket Price',      labelAr: 'أسعار التذاكر',      layer: 'society', type: 'Topic',         lat: 25.2532, lng: 55.3600, weight: 0.68, sensitivity: 0.75, damping_factor: 0.08, value: 0.68 },
+  { id: 'soc_sentiment',label: 'Public Sentiment',  labelAr: 'المشاعر العامة',     layer: 'society', type: 'Topic',         lat: 24.8000, lng: 46.7500, weight: 0.72, sensitivity: 0.65, damping_factor: 0.06, value: 0.72 },
+  { id: 'soc_stability',label: 'Public Stability',  labelAr: 'الاستقرار العام',    layer: 'society', type: 'Topic',         lat: 24.6500, lng: 46.7100, weight: 0.80, sensitivity: 0.4,  damping_factor: 0.03, value: 0.80 },
+
+  // ── Layer 2c: Additional Airports ──
+  { id: 'inf_jed',     label: 'JED Airport',        labelAr: 'مطار جدة',          layer: 'infrastructure', type: 'airport',      lat: 21.6796, lng: 39.1565, weight: 0.82, sensitivity: 0.5,  damping_factor: 0.05, value: 0.82 },
+  { id: 'inf_dmm',     label: 'DMM Airport',        labelAr: 'مطار الدمام',        layer: 'infrastructure', type: 'airport',      lat: 26.4712, lng: 49.7979, weight: 0.70, sensitivity: 0.5,  damping_factor: 0.05, value: 0.70 },
+  { id: 'inf_auh',     label: 'AUH Airport',        labelAr: 'مطار أبوظبي',       layer: 'infrastructure', type: 'airport',      lat: 24.4430, lng: 54.6511, weight: 0.80, sensitivity: 0.5,  damping_factor: 0.05, value: 0.80 },
+  { id: 'inf_bah',     label: 'BAH Airport',        labelAr: 'مطار البحرين',       layer: 'infrastructure', type: 'airport',      lat: 26.2708, lng: 50.6336, weight: 0.62, sensitivity: 0.55, damping_factor: 0.06, value: 0.62 },
+  { id: 'inf_mct',     label: 'MCT Airport',        labelAr: 'مطار مسقط',         layer: 'infrastructure', type: 'airport',      lat: 23.5933, lng: 58.2844, weight: 0.60, sensitivity: 0.55, damping_factor: 0.06, value: 0.60 },
+
+  // ── Layer 2d: Additional Ports ──
+  { id: 'inf_hamad',   label: 'Hamad Port',         labelAr: 'ميناء حمد',          layer: 'infrastructure', type: 'port',         lat: 25.3800, lng: 51.5300, weight: 0.72, sensitivity: 0.55, damping_factor: 0.05, value: 0.72 },
+  { id: 'inf_khalifa', label: 'Khalifa Port',       labelAr: 'ميناء خليفة',        layer: 'infrastructure', type: 'port',         lat: 24.8100, lng: 54.6500, weight: 0.75, sensitivity: 0.55, damping_factor: 0.05, value: 0.75 },
+  { id: 'inf_shuwaikh',label: 'Shuwaikh Port',      labelAr: 'ميناء الشويخ',       layer: 'infrastructure', type: 'port',         lat: 29.3500, lng: 47.9200, weight: 0.58, sensitivity: 0.55, damping_factor: 0.06, value: 0.58 },
+  { id: 'inf_sohar',   label: 'Sohar Port',         labelAr: 'ميناء صحار',         layer: 'infrastructure', type: 'port',         lat: 24.3400, lng: 56.7100, weight: 0.60, sensitivity: 0.55, damping_factor: 0.06, value: 0.60 },
+
+  // ── Layer 3b: Additional Sectors ──
+  { id: 'eco_telecom', label: 'Telecom Sector',     labelAr: 'قطاع الاتصالات',     layer: 'economy', type: 'Topic',         lat: 24.7400, lng: 46.6600, weight: 0.78, sensitivity: 0.45, damping_factor: 0.04, value: 0.78 },
+  { id: 'eco_food',    label: 'Food Security',      labelAr: 'الأمن الغذائي',      layer: 'economy', type: 'Topic',         lat: 25.0500, lng: 55.1900, weight: 0.82, sensitivity: 0.6,  damping_factor: 0.05, value: 0.82 },
+  { id: 'eco_logistics',label: 'Logistics Hub',     labelAr: 'المركز اللوجستي',    layer: 'economy', type: 'Topic',         lat: 25.0100, lng: 55.0800, weight: 0.80, sensitivity: 0.6,  damping_factor: 0.05, value: 0.80 },
 ]
 
 /* ════════════════════════════════════════════════
-   EDGES — 53 weighted causal dependencies
+   EDGES — 98 weighted causal dependencies
    ════════════════════════════════════════════════ */
 export const gccEdges: GCCEdge[] = [
   // ── Hormuz → Oil chain ──
@@ -196,6 +216,48 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e64', source: 'inf_power',   target: 'soc_business',  weight: 0.65, polarity: 1, label: 'business power', labelAr: 'طاقة الأعمال' },
   { id: 'e65', source: 'geo_sa',      target: 'inf_power',     weight: 0.80, polarity: 1, label: 'national grid', labelAr: 'الشبكة الوطنية' },
   { id: 'e66', source: 'geo_uae',     target: 'inf_desal',     weight: 0.75, polarity: 1, label: 'water infrastructure', labelAr: 'البنية التحتية للمياه' },
+
+  // —— New airports connectivity ——
+  { id: 'e67', source: 'geo_sa',      target: 'inf_jed',       weight: 0.82, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e68', source: 'geo_sa',      target: 'inf_dmm',       weight: 0.70, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e69', source: 'geo_uae',     target: 'inf_auh',       weight: 0.80, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e70', source: 'geo_bh',      target: 'inf_bah',       weight: 0.62, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e71', source: 'geo_om',      target: 'inf_mct',       weight: 0.60, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e72', source: 'soc_travel_d', target: 'inf_jed',      weight: 0.65, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
+  { id: 'e73', source: 'soc_travel_d', target: 'inf_auh',      weight: 0.60, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
+  { id: 'e74', source: 'soc_travel_d', target: 'inf_bah',      weight: 0.40, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
+  { id: 'e75', source: 'soc_travel_d', target: 'inf_mct',      weight: 0.35, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
+
+  // —— New ports connectivity ——
+  { id: 'e76', source: 'geo_qa',      target: 'inf_hamad',     weight: 0.72, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e77', source: 'geo_uae',     target: 'inf_khalifa',   weight: 0.75, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e78', source: 'geo_kw',      target: 'inf_shuwaikh',  weight: 0.58, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e79', source: 'geo_om',      target: 'inf_sohar',     weight: 0.60, polarity: 1, label: 'operates', labelAr: 'يشغّل' },
+  { id: 'e80', source: 'eco_shipping', target: 'inf_hamad',    weight: 0.55, polarity: 1, label: 'port traffic', labelAr: 'حركة الميناء' },
+  { id: 'e81', source: 'eco_shipping', target: 'inf_khalifa',  weight: 0.60, polarity: 1, label: 'port traffic', labelAr: 'حركة الميناء' },
+  { id: 'e82', source: 'eco_shipping', target: 'inf_shuwaikh', weight: 0.45, polarity: 1, label: 'port traffic', labelAr: 'حركة الميناء' },
+  { id: 'e83', source: 'eco_shipping', target: 'inf_sohar',    weight: 0.50, polarity: 1, label: 'port traffic', labelAr: 'حركة الميناء' },
+
+  // —— New sectors connectivity ——
+  { id: 'e84', source: 'inf_power',   target: 'eco_telecom',   weight: 0.65, polarity: 1, label: 'powers telecom', labelAr: 'يغذي الاتصالات' },
+  { id: 'e85', source: 'eco_telecom', target: 'soc_business',  weight: 0.55, polarity: 1, label: 'enables commerce', labelAr: 'يتيح التجارة' },
+  { id: 'e86', source: 'eco_telecom', target: 'eco_gdp',       weight: 0.40, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
+  { id: 'e87', source: 'eco_shipping', target: 'eco_food',     weight: 0.75, polarity: 1, label: 'food imports', labelAr: 'واردات الغذاء' },
+  { id: 'e88', source: 'eco_food',    target: 'soc_citizens',  weight: 0.80, polarity: 1, label: 'food supply', labelAr: 'إمدادات الغذاء' },
+  { id: 'e89', source: 'eco_food',    target: 'soc_stability', weight: 0.70, polarity: 1, label: 'stability driver', labelAr: 'محرك الاستقرار' },
+  { id: 'e90', source: 'inf_jebel',   target: 'eco_logistics', weight: 0.85, polarity: 1, label: 'logistics hub', labelAr: 'مركز لوجستي' },
+  { id: 'e91', source: 'eco_logistics',target: 'eco_gdp',      weight: 0.50, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
+  { id: 'e92', source: 'eco_logistics',target: 'eco_food',     weight: 0.60, polarity: 1, label: 'food distribution', labelAr: 'توزيع الغذاء' },
+
+  // —— Society sentiment/stability connectivity ——
+  { id: 'e93', source: 'soc_media',    target: 'soc_sentiment', weight: 0.70, polarity: 1, label: 'shapes sentiment', labelAr: 'يشكّل المشاعر' },
+  { id: 'e94', source: 'soc_social',   target: 'soc_sentiment', weight: 0.65, polarity: 1, label: 'amplifies', labelAr: 'يضخّم' },
+  { id: 'e95', source: 'soc_sentiment',target: 'soc_stability', weight: 0.75, polarity: 1, label: 'affects stability', labelAr: 'يؤثر على الاستقرار' },
+  { id: 'e96', source: 'soc_stability',target: 'fin_tadawul',   weight: 0.50, polarity: 1, label: 'market confidence', labelAr: 'ثقة السوق' },
+  { id: 'e97', source: 'eco_gdp',      target: 'soc_stability', weight: 0.55, polarity: 1, label: 'prosperity signal', labelAr: 'إشارة الرخاء' },
+
+  // —— DMM airport to logistics ——
+  { id: 'e98', source: 'inf_dmm',     target: 'eco_logistics',  weight: 0.45, polarity: 1, label: 'cargo hub', labelAr: 'مركز شحن' },
 ]
 
 /* ════════════════════════════════════════════════
