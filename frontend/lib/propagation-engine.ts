@@ -1,18 +1,24 @@
-/* âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-   Propagation Engine â Causal Impact Computation
-   âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+/* ═══════════════════════════════════════════════════════════════
+   Propagation Engine — Causal Impact Computation v3.0
+   ═══════════════════════════════════════════════════════════════
    Computes cascading impacts through the GCC Reality Graph.
 
-   Algorithm:
-   1. Apply initial shocks to seed nodes
-   2. Propagate through edges using: impact(node) = Î£(edge_weight Ã source_impact) Ã sensitivity
-   3. Track the full propagation chain for explanation
-   4. Compute sector-level aggregates and economic estimates
-   âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */
+   Mathematical Model:
+   1. impact_i(t+1) = Σ(w_ji × polarity_ji × impact_j(t)) × sensitivity_i - decay × impact_i(t)
+   2. Severity scaling: effective_impact = impact × severity
+   3. Energy: E_total = Σ impact_i²
+   4. Normalization: normalized_i = impact_i / max(all node impacts)
+
+   Validity Conditions:
+   - Propagation depth > 2
+   - Impacts bounded [-1, 1]
+   - No disconnected critical nodes
+   - Explanation chain matches propagation path
+   ═══════════════════════════════════════════════════════════════ */
 
 import type { GCCNode, GCCEdge, GCCLayer } from './gcc-graph'
 
-/* ââ Result types ââ */
+/* ── Result types ── */
 export interface PropagationResult {
   nodeImpacts: Map<string, number>
   propagationChain: PropagationStep[]
@@ -22,6 +28,31 @@ export interface PropagationResult {
   confidence: number
   explanation: string
   spreadLevel: 'low' | 'medium' | 'high' | 'critical'
+  spreadLevelAr: string
+  systemEnergy: number
+  iterationSnapshots: IterationSnapshot[]
+  nodeExplanations: Map<string, NodeExplanation>
+  propagationDepth: number
+}
+
+export interface IterationSnapshot {
+  iteration: number
+  impacts: Map<string, number>
+  energy: number
+  deltaEnergy: number
+}
+
+export interface NodeExplanation {
+  nodeId: string
+  label: string
+  labelAr: string
+  layer: GCCLayer
+  impact: number
+  normalizedImpact: number
+  incomingEdges: { from: string; fromLabel: string; weight: number; polarity: number; contribution: number }[]
+  outgoingEdges: { to: string; toLabel: string; weight: number; polarity: number }[]
+  explanation: string
+  explanationAr: string
 }
 
 export interface PropagationStep {
@@ -30,8 +61,10 @@ export interface PropagationStep {
   to: string
   toLabel: string
   weight: number
+  polarity: number
   impact: number
   label: string
+  iteration: number
 }
 
 export interface SectorImpact {
@@ -49,19 +82,19 @@ export interface Driver {
   label: string
   impact: number
   layer: GCCLayer
-  outDegree: number   // how many nodes this drives
+  outDegree: number
 }
 
-/* ââ Sector economic base values ($B) for loss estimation ââ */
+/* ── Sector economic base values ($B) for loss estimation ── */
 const SECTOR_GDP_BASE: Record<GCCLayer, number> = {
-  geography: 0,           // no direct GDP
-  infrastructure: 85,     // ports + airports combined
-  economy: 420,           // oil + aviation + shipping
-  finance: 180,           // banking + insurance
-  society: 95,            // travel + consumer spending
+  geography: 0,
+  infrastructure: 85,
+  economy: 420,
+  finance: 180,
+  society: 95,
 }
 
-/* ââ Layer labels for display ââ */
+/* ── Layer labels ── */
 const LAYER_LABELS: Record<GCCLayer, { en: string; ar: string }> = {
   geography: { en: 'Geography', ar: 'الجغرافيا' },
   infrastructure: { en: 'Infrastructure', ar: 'البنية التحتية' },
@@ -78,86 +111,144 @@ const LAYER_COLORS: Record<GCCLayer, string> = {
   society: '#EF5454',
 }
 
-/* ââââââââââââââââââââââââââââââââââââââââââââââ
+/* ── Spread level i18n ── */
+const SPREAD_LABELS: Record<string, string> = {
+  low: 'منخفض',
+  medium: 'متوسط',
+  high: 'مرتفع',
+  critical: 'حرج',
+}
+
+/* ════════════════════════════════════════════════
    MAIN PROPAGATION FUNCTION
-   ââââââââââââââââââââââââââââââââââââââââââââââ */
+   ════════════════════════════════════════════════ */
 export function runPropagation(
   nodes: GCCNode[],
   edges: GCCEdge[],
   shocks: { nodeId: string; impact: number }[],
-  maxIterations: number = 5,
-  lang: 'ar' | 'en' = 'en',
+  maxIterations: number = 6,
+  lang: 'ar' | 'en' = 'ar',
+  decayRate: number = 0.05,
 ): PropagationResult {
-  // Build adjacency: source â [{ target, edge }]
-  const adjacency = new Map<string, { target: string; edge: GCCEdge }[]>()
+  // Build adjacency: target ← [{ source, edge }] (incoming edges for each node)
+  const incomingAdj = new Map<string, { source: string; edge: GCCEdge }[]>()
+  const outgoingAdj = new Map<string, { target: string; edge: GCCEdge }[]>()
   for (const e of edges) {
-    if (!adjacency.has(e.source)) adjacency.set(e.source, [])
-    adjacency.get(e.source)!.push({ target: e.target, edge: e })
+    if (!incomingAdj.has(e.target)) incomingAdj.set(e.target, [])
+    incomingAdj.get(e.target)!.push({ source: e.source, edge: e })
+    if (!outgoingAdj.has(e.source)) outgoingAdj.set(e.source, [])
+    outgoingAdj.get(e.source)!.push({ target: e.target, edge: e })
   }
 
   // Node lookup
   const nodeMap = new Map<string, GCCNode>(nodes.map(n => [n.id, n]))
 
-  // Impact state
+  // Impact state: I(t)
   const impacts = new Map<string, number>()
   nodes.forEach(n => impacts.set(n.id, 0))
 
   // Apply initial shocks
   for (const shock of shocks) {
-    impacts.set(shock.nodeId, shock.impact)
+    impacts.set(shock.nodeId, Math.max(-1, Math.min(1, shock.impact)))
   }
 
-  // Track propagation chain
+  // Track propagation chain & iteration history
   const chain: PropagationStep[] = []
-  const visited = new Set<string>(shocks.map(s => s.nodeId))
+  const iterationSnapshots: IterationSnapshot[] = []
+  let maxDepth = 0
 
-  // BFS-style propagation with dampening
-  let frontier = new Set<string>(shocks.map(s => s.nodeId))
+  // Snapshot iteration 0 (initial shocks)
+  const snap0 = new Map(impacts)
+  const energy0 = computeEnergy(snap0)
+  iterationSnapshots.push({ iteration: 0, impacts: snap0, energy: energy0, deltaEnergy: 0 })
 
-  for (let iter = 0; iter < maxIterations && frontier.size > 0; iter++) {
-    const nextFrontier = new Set<string>()
+  // ── CORE MATHEMATICAL LOOP ──
+  // Formula: I_i(t+1) = clamp( Σ_j(w_ji × p_ji × I_j(t)) × s_i - decay × I_i(t) )
+  for (let iter = 0; iter < maxIterations; iter++) {
+    const newImpacts = new Map<string, number>()
+    let anyChange = false
 
-    for (const sourceId of frontier) {
-      const sourceImpact = impacts.get(sourceId) ?? 0
-      if (Math.abs(sourceImpact) < 0.01) continue // skip negligible
+    for (const node of nodes) {
+      const currentImpact = impacts.get(node.id) ?? 0
+      const incoming = incomingAdj.get(node.id) ?? []
 
-      const outEdges = adjacency.get(sourceId) ?? []
-      for (const { target: targetId, edge } of outEdges) {
-        const targetNode = nodeMap.get(targetId)
-        if (!targetNode) continue
+      // Σ(w_ji × polarity_ji × I_j(t))
+      let weightedSum = 0
+      for (const { source: srcId, edge } of incoming) {
+        const srcImpact = impacts.get(srcId) ?? 0
+        if (Math.abs(srcImpact) < 0.005) continue
 
-        // Core formula: impact = edge_weight Ã source_impact Ã target_sensitivity
-        const rawImpact = edge.weight * sourceImpact * targetNode.sensitivity
-        const currentImpact = impacts.get(targetId) ?? 0
+        const polarity = (edge as any).polarity ?? 1
+        const contribution = edge.weight * polarity * srcImpact
+        weightedSum += contribution
 
-        // Only propagate if this adds meaningful new impact
-        if (Math.abs(rawImpact) > 0.01 && Math.abs(rawImpact) > Math.abs(currentImpact) * 0.1) {
-          const newImpact = Math.max(-1, Math.min(1, currentImpact + rawImpact * (1 - Math.abs(currentImpact) * 0.3)))
-          impacts.set(targetId, newImpact)
-
-          const sourceNode = nodeMap.get(sourceId)!
+        // Record propagation step if meaningful
+        if (Math.abs(contribution * node.sensitivity) > 0.01) {
+          const srcNode = nodeMap.get(srcId)!
           chain.push({
-            from: sourceId,
-            fromLabel: lang === 'ar' ? (sourceNode.labelAr || sourceNode.label) : sourceNode.label,
-            to: targetId,
-            toLabel: lang === 'ar' ? (targetNode.labelAr || targetNode.label) : targetNode.label,
+            from: srcId,
+            fromLabel: lang === 'ar' ? (srcNode.labelAr || srcNode.label) : srcNode.label,
+            to: node.id,
+            toLabel: lang === 'ar' ? (node.labelAr || node.label) : node.label,
             weight: edge.weight,
-            impact: rawImpact,
+            polarity: polarity,
+            impact: contribution * node.sensitivity,
             label: lang === 'ar' ? (edge.labelAr || edge.label) : edge.label,
+            iteration: iter + 1,
           })
-
-          if (!visited.has(targetId)) {
-            nextFrontier.add(targetId)
-            visited.add(targetId)
-          }
         }
+      }
+
+      // I_i(t+1) = Σ(w_ji × p_ji × I_j(t)) × s_i - decay × I_i(t)
+      const propagated = weightedSum * node.sensitivity
+      const decayed = decayRate * currentImpact
+      let newImpact = currentImpact + propagated - decayed
+
+      // Clamp to [-1, 1]
+      newImpact = Math.max(-1, Math.min(1, newImpact))
+
+      // Check for shocks (keep them pinned on iter 0)
+      const isShockNode = shocks.some(s => s.nodeId === node.id)
+      if (isShockNode && iter === 0) {
+        // On first iteration, shock nodes keep their initial value + propagation
+        const shockVal = shocks.find(s => s.nodeId === node.id)!.impact
+        newImpact = Math.max(-1, Math.min(1, shockVal + propagated - decayed))
+      }
+
+      newImpacts.set(node.id, newImpact)
+
+      if (Math.abs(newImpact - currentImpact) > 0.005) {
+        anyChange = true
       }
     }
 
-    frontier = nextFrontier
+    // Update impacts
+    for (const [id, val] of newImpacts) {
+      impacts.set(id, val)
+    }
+
+    // Track depth
+    const affectedCount = Array.from(impacts.values()).filter(v => Math.abs(v) > 0.01).length
+    if (affectedCount > shocks.length) {
+      maxDepth = iter + 1
+    }
+
+    // Snapshot this iteration
+    const snapN = new Map(impacts)
+    const energyN = computeEnergy(snapN)
+    const prevEnergy = iterationSnapshots[iterationSnapshots.length - 1].energy
+    iterationSnapshots.push({
+      iteration: iter + 1,
+      impacts: snapN,
+      energy: energyN,
+      deltaEnergy: energyN - prevEnergy,
+    })
+
+    // Early convergence: if no meaningful change, stop
+    if (!anyChange && iter > 1) break
   }
 
-  // ââ Compute sector impacts ââ
+  // ── Compute sector impacts ──
   const sectorGroups = new Map<GCCLayer, { impacts: number[]; nodes: string[] }>()
   for (const node of nodes) {
     const impact = Math.abs(impacts.get(node.id) ?? 0)
@@ -188,7 +279,7 @@ export function runPropagation(
   }
   affectedSectors.sort((a, b) => b.avgImpact - a.avgImpact)
 
-  // ââ Compute top drivers ââ
+  // ── Compute top drivers ──
   const driverMap = new Map<string, number>()
   for (const step of chain) {
     driverMap.set(step.from, (driverMap.get(step.from) ?? 0) + 1)
@@ -207,38 +298,121 @@ export function runPropagation(
     .sort((a, b) => b.impact * b.outDegree - a.impact * a.outDegree)
     .slice(0, 8)
 
-  // ââ Estimate total economic loss ââ
+  // ── Total economic loss ──
   let totalLoss = 0
   for (const [layer, group] of sectorGroups) {
     const avgImpact = group.impacts.reduce((a, b) => a + b, 0) / group.impacts.length
     totalLoss += SECTOR_GDP_BASE[layer] * avgImpact
   }
 
-  // ââ Spread level ââ
+  // ── Spread level ──
   const avgGlobalImpact = Array.from(impacts.values())
     .reduce((a, b) => a + Math.abs(b), 0) / impacts.size
   const spreadLevel: PropagationResult['spreadLevel'] =
     avgGlobalImpact > 0.4 ? 'critical' :
     avgGlobalImpact > 0.25 ? 'high' :
     avgGlobalImpact > 0.1 ? 'medium' : 'low'
+  const spreadLevelAr = SPREAD_LABELS[spreadLevel] || spreadLevel
 
-  // ââ Confidence (based on chain completeness) ââ
-  const confidence = Math.min(0.95, 0.6 + chain.length * 0.008)
+  // ── System energy: E = Σ impact_i² ──
+  const systemEnergy = computeEnergy(impacts)
 
-  // ââ Explanation ââ
+  // ── Confidence ──
+  const confidence = Math.min(0.95, 0.6 + chain.length * 0.005 + maxDepth * 0.05)
+
+  // ── Per-node explanations ──
+  const maxImpactVal = Math.max(...Array.from(impacts.values()).map(Math.abs), 0.001)
+  const nodeExplanations = new Map<string, NodeExplanation>()
+  for (const node of nodes) {
+    const impact = impacts.get(node.id) ?? 0
+    const normalizedImpact = impact / maxImpactVal
+    const incoming = (incomingAdj.get(node.id) ?? []).map(({ source: srcId, edge }) => {
+      const srcNode = nodeMap.get(srcId)!
+      const srcImpact = impacts.get(srcId) ?? 0
+      const polarity = (edge as any).polarity ?? 1
+      return {
+        from: srcId,
+        fromLabel: lang === 'ar' ? (srcNode.labelAr || srcNode.label) : srcNode.label,
+        weight: edge.weight,
+        polarity,
+        contribution: edge.weight * polarity * srcImpact * node.sensitivity,
+      }
+    }).filter(e => Math.abs(e.contribution) > 0.005)
+      .sort((a, b) => Math.abs(b.contribution) - Math.abs(a.contribution))
+
+    const outgoing = (outgoingAdj.get(node.id) ?? []).map(({ target: tgtId, edge }) => {
+      const tgtNode = nodeMap.get(tgtId)!
+      const polarity = (edge as any).polarity ?? 1
+      return {
+        to: tgtId,
+        toLabel: lang === 'ar' ? (tgtNode.labelAr || tgtNode.label) : tgtNode.label,
+        weight: edge.weight,
+        polarity,
+      }
+    })
+
+    const topIncoming = incoming.slice(0, 3)
+    const impactPct = (Math.abs(impact) * 100).toFixed(0)
+
+    const nodeLabel = lang === 'ar' ? (node.labelAr || node.label) : node.label
+    const layerLabel = lang === 'ar' ? LAYER_LABELS[node.layer].ar : LAYER_LABELS[node.layer].en
+
+    let explanation = ''
+    let explanationAr = ''
+
+    if (Math.abs(impact) < 0.01) {
+      explanation = `${node.label} is not significantly affected in this scenario.`
+      explanationAr = `${node.labelAr || node.label} غير متأثر بشكل ملحوظ في هذا السيناريو.`
+    } else {
+      const topSrc = topIncoming[0]
+      if (topSrc) {
+        explanation = `${node.label} (${LAYER_LABELS[node.layer].en}) is ${impactPct}% impacted. ` +
+          `Primary driver: ${topSrc.fromLabel} (contribution: ${(topSrc.contribution * 100).toFixed(0)}%). ` +
+          `Sensitivity: ${(node.sensitivity * 100).toFixed(0)}%. ` +
+          `Feeds into ${outgoing.length} downstream node${outgoing.length !== 1 ? 's' : ''}.`
+        explanationAr = `${node.labelAr || node.label} (${LAYER_LABELS[node.layer].ar}) متأثر بنسبة ${impactPct}%. ` +
+          `المحرك الرئيسي: ${topSrc.fromLabel} (مساهمة: ${(topSrc.contribution * 100).toFixed(0)}%). ` +
+          `الحساسية: ${(node.sensitivity * 100).toFixed(0)}%. ` +
+          `يغذي ${outgoing.length} عقد${outgoing.length > 1 ? 'ة' : ''} تالية.`
+      } else {
+        // Shock node
+        explanation = `${node.label} is a shock origin with ${impactPct}% direct impact. ` +
+          `Feeds into ${outgoing.length} downstream node${outgoing.length !== 1 ? 's' : ''}.`
+        explanationAr = `${node.labelAr || node.label} نقطة صدمة أصلية بتأثير مباشر ${impactPct}%. ` +
+          `يغذي ${outgoing.length} عقد${outgoing.length > 1 ? 'ة' : ''} تالية.`
+      }
+    }
+
+    nodeExplanations.set(node.id, {
+      nodeId: node.id,
+      label: node.label,
+      labelAr: node.labelAr || node.label,
+      layer: node.layer,
+      impact,
+      normalizedImpact,
+      incomingEdges: incoming,
+      outgoingEdges: outgoing,
+      explanation,
+      explanationAr,
+    })
+  }
+
+  // ── Global explanation ──
   const primaryShock = shocks[0]
   const primaryNode = nodeMap.get(primaryShock.nodeId)
   const topSector = affectedSectors[0]
   const primaryLabel = lang === 'ar' ? (primaryNode?.labelAr || primaryNode?.label || 'غير معروف') : (primaryNode?.label ?? 'Unknown')
-  const explanation = lang === 'ar'
+  const globalExplanation = lang === 'ar'
     ? `الصدمة الأساسية: ${primaryLabel} (الحدة ${(primaryShock.impact * 100).toFixed(0)}%). ` +
-      `انتشرت عبر ${chain.length} مسار سببي في ${affectedSectors.length} قطاعات. ` +
-      `الأكثر تأثراً: ${topSector?.sectorLabel ?? 'غير متاح'} (متوسط التأثير ${(topSector?.avgImpact * 100).toFixed(0)}%). ` +
-      `التعرض الاقتصادي المقدر: $${(totalLoss).toFixed(1)} مليار خلال نافذة انتشار 72 ساعة.`
+      `انتشرت عبر ${chain.length} مسار سببي في ${affectedSectors.length} قطاعات خلال ${maxDepth} مراحل انتشار. ` +
+      `الأكثر تأثراً: ${topSector?.sectorLabel ?? 'غير متاح'} (متوسط التأثير ${((topSector?.avgImpact ?? 0) * 100).toFixed(0)}%). ` +
+      `طاقة النظام: ${systemEnergy.toFixed(3)}. معدل الاضمحلال: ${(decayRate * 100).toFixed(0)}%. ` +
+      `التعرض الاقتصادي المقدر: $${(totalLoss).toFixed(1)} مليار.`
     : `Primary shock: ${primaryLabel} (severity ${(primaryShock.impact * 100).toFixed(0)}%). ` +
-      `Propagated through ${chain.length} causal paths across ${affectedSectors.length} sectors. ` +
-      `Most affected: ${topSector?.sectorLabel ?? 'N/A'} (avg impact ${(topSector?.avgImpact * 100).toFixed(0)}%). ` +
-      `Estimated economic exposure: $${(totalLoss).toFixed(1)}B over 72h propagation window.`
+      `Propagated through ${chain.length} causal paths across ${affectedSectors.length} sectors over ${maxDepth} iterations. ` +
+      `Most affected: ${topSector?.sectorLabel ?? 'N/A'} (avg impact ${((topSector?.avgImpact ?? 0) * 100).toFixed(0)}%). ` +
+      `System energy: ${systemEnergy.toFixed(3)}. Decay rate: ${(decayRate * 100).toFixed(0)}%. ` +
+      `Estimated economic exposure: $${(totalLoss).toFixed(1)}B.`
 
   return {
     nodeImpacts: impacts,
@@ -247,26 +421,40 @@ export function runPropagation(
     topDrivers,
     totalLoss,
     confidence,
-    explanation,
+    explanation: globalExplanation,
     spreadLevel,
+    spreadLevelAr,
+    systemEnergy,
+    iterationSnapshots,
+    nodeExplanations,
+    propagationDepth: maxDepth,
   }
 }
 
-/* ââ Utility: format propagation chain as readable strings ââ */
+/* ── Compute system energy: E = Σ impact_i² ── */
+function computeEnergy(impacts: Map<string, number>): number {
+  let energy = 0
+  for (const val of impacts.values()) {
+    energy += val * val
+  }
+  return energy
+}
+
+/* ── Utility: format propagation chain as readable strings ── */
 export function formatPropagationChain(chain: PropagationStep[]): string[] {
-  // Deduplicate and order by impact magnitude
   const seen = new Set<string>()
   return chain
     .filter(step => {
       const key = `${step.from}->${step.to}`
       if (seen.has(key)) return false
       seen.add(key)
-      return Math.abs(step.impact) > 0.03
+      return Math.abs(step.impact) > 0.02
     })
     .sort((a, b) => Math.abs(b.impact) - Math.abs(a.impact))
     .slice(0, 12)
     .map(step => {
-      const direction = step.impact > 0 ? 'â' : 'â'
-      return `${step.fromLabel} â ${step.toLabel} ${direction} (${step.label})`
+      const direction = step.impact > 0 ? '↑' : '↓'
+      const pol = step.polarity < 0 ? ' ⊖' : ''
+      return `${step.fromLabel} → ${step.toLabel} ${direction}${pol} (${step.label})`
     })
 }

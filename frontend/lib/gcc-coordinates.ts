@@ -27,7 +27,7 @@ export const nodeCoordinates: Record<string, GeoCoordinate> = {
   inf_dammam:  { lat: 26.4473, lng: 50.1014 },  // King Abdulaziz Port
   inf_doha_p:  { lat: 25.2960, lng: 51.5488 },  // Doha Port
 
-  // — Economy Layer (mapped to HQ locations) —
+  // — Economy Layer —
   eco_oil:     { lat: 26.3000, lng: 50.2000 },  // Eastern Province (oil hub)
   eco_aramco:  { lat: 26.3175, lng: 50.2083 },  // Dhahran (Aramco HQ)
   eco_adnoc:   { lat: 24.4539, lng: 54.3773 },  // Abu Dhabi (ADNOC HQ)
@@ -36,6 +36,7 @@ export const nodeCoordinates: Record<string, GeoCoordinate> = {
   eco_aviation:{ lat: 25.0657, lng: 55.1713 },  // UAE aviation hub
   eco_fuel:    { lat: 24.4700, lng: 54.3700 },  // Abu Dhabi fuel hub
   eco_gdp:     { lat: 24.4700, lng: 49.0000 },  // GCC center
+  eco_tourism: { lat: 25.1970, lng: 55.2744 },  // Dubai tourism hub
 
   // — Finance Layer —
   fin_sama:    { lat: 24.6918, lng: 46.6855 },  // SAMA, Riyadh
@@ -44,6 +45,7 @@ export const nodeCoordinates: Record<string, GeoCoordinate> = {
   fin_insurers:{ lat: 24.7500, lng: 46.7200 },  // Riyadh insurance hub
   fin_reinsure:{ lat: 25.1800, lng: 55.2800 },  // Dubai reinsurance hub
   fin_ins_risk:{ lat: 25.2200, lng: 55.2600 },  // Dubai risk center
+  fin_tadawul: { lat: 24.6900, lng: 46.6900 },  // Tadawul, Riyadh
 
   // — Society Layer —
   soc_citizens: { lat: 24.7000, lng: 46.7000 },  // Riyadh
