@@ -626,6 +626,16 @@ function DemoPageContent() {
     }
   }, [processingStep, isRunning, scenario, severityMod, lang])
 
+  // Auto-set severity slider and analysis mode from scenario defaults
+  useEffect(() => {
+    if (scenario?.severityDefault !== undefined) {
+      setSeverityMod(scenario.severityDefault)
+    }
+    if (scenario?.simulationType) {
+      setAnalysisMode(scenario.simulationType === 'probabilistic' || scenario.simulationType === 'hybrid' ? 'probabilistic' : 'deterministic')
+    }
+  }, [scenario])
+
   const handleRun = useCallback(() => {
     if (!scenario) return
     setIsRunning(true)
@@ -1355,9 +1365,28 @@ function DemoPageContent() {
                   )}
                   {scenario.formulaTags && scenario.formulaTags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {scenario.formulaTags.map((tag, i) => (
+                      {scenario.formulaTags.map((tag: string, i: number) => (
                         <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-400/80 border border-amber-500/15 font-mono">{tag}</span>
                       ))}
+                    </div>
+                  )}
+                  {scenario.mapModes && scenario.mapModes.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {scenario.mapModes.map((mode: string, i: number) => (
+                        <span key={i} className="text-[8px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400/80 border border-purple-500/15 font-mono">{mode}</span>
+                      ))}
+                    </div>
+                  )}
+                  {scenario.chokePoints && scenario.chokePoints.length > 0 && (
+                    <div className="flex items-center gap-1.5 mt-2 text-[10px] text-red-400/80">
+                      <span>⚠</span>
+                      <span className="font-mono">{lang === 'ar' ? 'نقاط الاختناق' : 'Choke Points'}: {scenario.chokePoints.join(', ')}</span>
+                    </div>
+                  )}
+                  {scenario.severityDefault !== undefined && (
+                    <div className="flex items-center gap-1.5 mt-1 text-[10px] text-ds-text-dim">
+                      <span className="text-red-400">●</span>
+                      <span className="font-mono">{lang === 'ar' ? 'الحدة الأساسية' : 'Base Severity'}: {(scenario.severityDefault * 100).toFixed(0)}%</span>
                     </div>
                   )}
                 </div>
