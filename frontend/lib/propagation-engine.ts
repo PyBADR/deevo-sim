@@ -447,6 +447,107 @@ export function runPropagation(
   }
 }
 
+/* ═══════════════════════════════════════════════════
+   SECTOR FINANCIAL FORMULAS
+   ═══════════════════════════════════════════════════
+   Mandatory sector-specific financial metrics derived
+   from propagation impacts on relevant graph nodes.
+
+   Each formula aggregates impacts on the relevant nodes
+   and applies domain-specific scaling:
+
+   R_oil            = base × (1 - |I(eco_oil)|) × (1 - 0.5 × |I(geo_hormuz)|)
+   R_tourism        = base × (1 - |I(eco_tourism)|) × (1 - 0.3 × |I(soc_travelers)|)
+   Throughput_airport = base × Π(1 - |I(inf_airport_k)|) for all airports
+   Throughput_port  = base × Π(1 - |I(inf_port_k)|) for all ports
+   Cost_shipping    = base × (1 + |I(eco_shipping)| + 0.5 × |I(geo_hormuz)|)
+   Stress_banking   = Σ|I(fin_bank_k)| / N_banks
+   Risk_insurance   = base × (1 + 2 × |I(fin_insurers)| + |I(fin_reinsure)|)
+   Stress_food      = |I(eco_food)| × 0.5 + |I(soc_food_d)| × 0.5
+   Avail_utility    = 1 - (|I(inf_desal)| + |I(inf_power)|) / 2
+   ═══════════════════════════════════════════════════ */
+
+export interface SectorFinancials {
+  oilRevenue: { value: number; base: number; label: string; labelAr: string; unit: string }
+  tourismRevenue: { value: number; base: number; label: string; labelAr: string; unit: string }
+  airportThroughput: { value: number; base: number; label: string; labelAr: string; unit: string }
+  portThroughput: { value: number; base: number; label: string; labelAr: string; unit: string }
+  shippingCost: { value: number; base: number; label: string; labelAr: string; unit: string }
+  bankingStress: { value: number; base: number; label: string; labelAr: string; unit: string }
+  insuranceRisk: { value: number; base: number; label: string; labelAr: string; unit: string }
+  foodStress: { value: number; base: number; label: string; labelAr: string; unit: string }
+  utilityAvailability: { value: number; base: number; label: string; labelAr: string; unit: string }
+}
+
+const AIRPORT_IDS = ['inf_ruh', 'inf_dxb', 'inf_kwi', 'inf_doh', 'inf_jed', 'inf_dmm', 'inf_auh', 'inf_bah', 'inf_mct']
+const PORT_IDS = ['inf_jebel', 'inf_dammam', 'inf_doha_p', 'inf_hamad', 'inf_khalifa', 'inf_shuwaikh', 'inf_sohar']
+const BANK_IDS = ['fin_sama', 'fin_uae_cb', 'fin_kw_cb', 'fin_qa_cb', 'fin_om_cb', 'fin_bh_cb', 'fin_banking']
+
+/** Base values (annual, $B or index) */
+const FINANCIAL_BASES = {
+  oilRevenue: 540,       // $B — GCC combined oil revenue
+  tourismRevenue: 85,    // $B — GCC tourism
+  airportPax: 350,       // M passengers — GCC combined
+  portTEU: 45,           // M TEU — GCC combined
+  shippingCost: 12,      // $B baseline shipping cost
+  insurancePremium: 28,  // $B GCC insurance premiums
+}
+
+export function computeSectorFinancials(impacts: Map<string, number>): SectorFinancials {
+  const I = (id: string) => Math.abs(impacts.get(id) ?? 0)
+
+  // R_oil = base × (1 - |I(eco_oil)|) × (1 - 0.5 × |I(geo_hormuz)|)
+  const oilFactor = (1 - I('eco_oil')) * (1 - 0.5 * I('geo_hormuz'))
+  const oilRevenue = FINANCIAL_BASES.oilRevenue * Math.max(0, oilFactor)
+
+  // R_tourism = base × (1 - |I(eco_tourism)|) × (1 - 0.3 × |I(soc_travelers)|)
+  const tourismFactor = (1 - I('eco_tourism')) * (1 - 0.3 * I('soc_travelers'))
+  const tourismRevenue = FINANCIAL_BASES.tourismRevenue * Math.max(0, tourismFactor)
+
+  // Throughput_airport = base × Π(1 - |I(airport_k)|)
+  let airportProduct = 1
+  for (const id of AIRPORT_IDS) {
+    airportProduct *= (1 - I(id))
+  }
+  const airportThroughput = FINANCIAL_BASES.airportPax * Math.max(0, airportProduct)
+
+  // Throughput_port = base × Π(1 - |I(port_k)|)
+  let portProduct = 1
+  for (const id of PORT_IDS) {
+    portProduct *= (1 - I(id))
+  }
+  const portThroughput = FINANCIAL_BASES.portTEU * Math.max(0, portProduct)
+
+  // Cost_shipping = base × (1 + |I(eco_shipping)| + 0.5 × |I(geo_hormuz)|)
+  const shippingCost = FINANCIAL_BASES.shippingCost * (1 + I('eco_shipping') + 0.5 * I('geo_hormuz'))
+
+  // Stress_banking = Σ|I(fin_bank_k)| / N_banks
+  let bankSum = 0
+  for (const id of BANK_IDS) { bankSum += I(id) }
+  const bankingStress = bankSum / BANK_IDS.length
+
+  // Risk_insurance = base × (1 + 2 × |I(fin_insurers)| + |I(fin_reinsure)|)
+  const insuranceRisk = FINANCIAL_BASES.insurancePremium * (1 + 2 * I('fin_insurers') + I('fin_reinsure'))
+
+  // Stress_food = |I(eco_food)| × 0.5 + |I(soc_food_d)| × 0.5
+  const foodStress = I('eco_food') * 0.5 + I('soc_food_d') * 0.5
+
+  // Avail_utility = 1 - (|I(inf_desal)| + |I(inf_power)|) / 2
+  const utilityAvailability = Math.max(0, 1 - (I('inf_desal') + I('inf_power')) / 2)
+
+  return {
+    oilRevenue: { value: oilRevenue, base: FINANCIAL_BASES.oilRevenue, label: 'Oil Revenue (R_oil)', labelAr: 'إيرادات النفط', unit: '$B' },
+    tourismRevenue: { value: tourismRevenue, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Revenue (R_tourism)', labelAr: 'إيرادات السياحة', unit: '$B' },
+    airportThroughput: { value: airportThroughput, base: FINANCIAL_BASES.airportPax, label: 'Airport Throughput', labelAr: 'إنتاجية المطارات', unit: 'M pax' },
+    portThroughput: { value: portThroughput, base: FINANCIAL_BASES.portTEU, label: 'Port Throughput', labelAr: 'إنتاجية الموانئ', unit: 'M TEU' },
+    shippingCost: { value: shippingCost, base: FINANCIAL_BASES.shippingCost, label: 'Shipping Cost', labelAr: 'تكلفة الشحن', unit: '$B' },
+    bankingStress: { value: bankingStress, base: 0, label: 'Banking Stress', labelAr: 'إجهاد المصارف', unit: 'index' },
+    insuranceRisk: { value: insuranceRisk, base: FINANCIAL_BASES.insurancePremium, label: 'Insurance Risk Premium', labelAr: 'علاوة مخاطر التأمين', unit: '$B' },
+    foodStress: { value: foodStress, base: 0, label: 'Food Security Stress', labelAr: 'إجهاد الأمن الغذائي', unit: 'index' },
+    utilityAvailability: { value: utilityAvailability, base: 1, label: 'Utility Availability', labelAr: 'توفر المرافق', unit: '%' },
+  }
+}
+
 /* ── Compute system energy: E = Σ impact_i² ── */
 function computeEnergy(impacts: Map<string, number>): number {
   let energy = 0
