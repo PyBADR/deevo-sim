@@ -99,6 +99,19 @@ function GlobeView({
   lang: Language
 }) {
   const globeRef = useRef<any>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [dims, setDims] = useState({ w: 800, h: 600 })
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const { width, height } = entries[0].contentRect
+      setDims({ w: Math.round(width), h: Math.round(height) })
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   const pointsData = useMemo(() => {
     return gccNodes.map(node => {
@@ -140,7 +153,7 @@ function GlobeView({
   }, [])
 
   return (
-    <div className="w-full h-full bg-[#06060a] rounded-xl overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-[#06060a] rounded-xl overflow-hidden">
       <GlobeGL
         ref={globeRef}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
@@ -165,8 +178,8 @@ function GlobeView({
         arcDashAnimateTime={2000}
         atmosphereColor="#22d3ee"
         atmosphereAltitude={0.15}
-        width={800}
-        height={600}
+        width={dims.w}
+        height={dims.h}
         animateIn={true}
       />
     </div>
