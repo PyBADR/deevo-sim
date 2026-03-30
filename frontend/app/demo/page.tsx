@@ -786,12 +786,10 @@ function DemoPageContent() {
   }, [propagation, severityMod])
 
   const engineResult = useMemo<ScenarioEngineOutput | null>(() => {
-    if (!propagation) return null
-    const scenario = gccScenarios.find(s => s.id === selectedScenario)
-    if (!scenario) return null
+    if (!propagation || !scenario) return null
     const eid = scenario.engineId || scenario.id
     return computeScenarioEngine(eid)
-  }, [propagation, selectedScenario, severityMod])
+  }, [propagation, scenario, severityMod])
 
   if (isMobile) {
     return (
@@ -891,77 +889,7 @@ function DemoPageContent() {
               )}
             </div>
 
-            {/* ═══ SCENARIO FORMULA ENGINE — UNIVERSAL ═══ */}
-            {propagation && engineResult && engineResult.steps.length > 0 && (
-              <div className="ds-card rounded-xl p-3 border border-cyan-500/20">
-                <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 font-bold mb-2 flex items-center gap-2">
-                  <Zap size={12} /> {(() => {
-                    const engine = getScenarioEngine(engineResult.engineId)
-                    return lang === 'ar' ? engine.labelAr : engine.label
-                  })()}
-                </h3>
-                <div className="text-[9px] font-mono text-ds-text-dim mb-2 leading-relaxed">
-                  {(() => {
-                    const engine = getScenarioEngine(engineResult.engineId)
-                    return lang === 'ar' ? engine.chainLabelAr : engine.chainLabel
-                  })()}
-                </div>
-                <div className="space-y-1.5">
-                  {engineResult.steps.map((step, i) => {
-                    const dirColor = step.direction === '↑' ? '#ef4444' : step.direction === '↓' ? '#f59e0b' : '#64748b'
-                    const label = lang === 'ar' ? step.labelAr : step.label
-                    const formula = lang === 'ar' ? step.formulaAr : step.formula
-                    return (
-                      <div key={step.id} className="bg-ds-bg-alt rounded-lg px-2 py-1.5">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-bold" style={{ color: dirColor }}>{step.direction}</span>
-                            <span className="text-[11px] text-ds-text font-medium">{label}</span>
-                          </div>
-                          <span className="text-[10px] font-mono font-bold" style={{ color: dirColor }}>
-                            {step.impactPct > 0 ? (step.direction === '↑' ? '+' : '−') : ''}{Math.abs(step.impactPct).toFixed(0)}%
-                          </span>
-                        </div>
-                        <div className="text-[9px] font-mono text-ds-text-dim mt-0.5">{formula}</div>
-                        {i < engineResult.steps.length - 1 && (
-                          <div className="text-center text-[8px] text-ds-text-dim mt-0.5">│</div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* Key Metrics */}
-                {engineResult.keyMetrics.length > 0 && (
-                  <div className="mt-2 pt-2 border-t border-ds-border">
-                    <h4 className="text-[9px] text-cyan-400 font-bold mb-1.5">{ui('engineMetrics', lang)}</h4>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {engineResult.keyMetrics.map((m, i) => (
-                        <div key={i} className="bg-ds-bg-alt rounded px-2 py-1">
-                          <span className="text-[8px] text-ds-text-dim block">{lang === 'ar' ? m.labelAr : m.label}</span>
-                          <span className="text-[11px] font-mono font-bold" style={{ color: m.color }}>{m.value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Total Exposure */}
-                <div className="mt-2 pt-2 border-t border-ds-border">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-ds-text-dim font-semibold">{ui('engineExposure', lang)}</span>
-                    <span className="font-mono text-red-400 font-bold">${engineResult.totalExposure.toFixed(1)}B</span>
-                  </div>
-                </div>
-
-                {/* Narrative */}
-                <div className="mt-2 pt-2 border-t border-ds-border">
-                  <p className="text-[10px] text-ds-text-muted leading-relaxed">
-                    {lang === 'ar' ? engineResult.narrativeAr : engineResult.narrative}
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* ═══ SCENARIO FORMULA ENGINE — UNIVERSAL (replaced by Engine Intelligence Panel below) ═══ */}
 
             {/* Loss Exposure — Deterministic + Probabilistic */}
             <div className="ds-card rounded-xl p-3">
