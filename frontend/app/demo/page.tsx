@@ -13,7 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import GraphPanel from '@/components/graph/GraphPanel'
 import { gccNodes, gccEdges, gccScenarios, layerMeta, SCENARIO_GROUPS, type ScenarioGroup } from '@/lib/gcc-graph'
-import { runPropagation, formatPropagationChain, computeSectorFinancials, computeHormuzChain, computeAviationChain, type PropagationResult, type NodeExplanation, type SectorFinancials, type HormuzChainResult, type AviationChainResult } from '@/lib/propagation-engine'
+import { runPropagation, formatPropagationChain, computeSectorFinancials, type PropagationResult, type NodeExplanation, type SectorFinancials } from '@/lib/propagation-engine'
 import { getScenarioEngine, type ScenarioEngineResult, type ScenarioEngine } from '@/lib/scenario-engines'
 import { setLanguage, getLanguage, type Language } from '@/lib/i18n'
 import { shippingRoutes, aviationRoutes, nodeCoordinates } from '@/lib/gcc-coordinates'
@@ -233,6 +233,7 @@ function runMonteCarlo(
    ══════════════════════════════════════════════ */
 function GlobeView({
   propagation, selectedNode, onSelectNode, lang, timelineIteration, globeMode = 'normal',
+  scientist,
 }: {
   propagation: PropagationResult | null
   selectedNode: string | null
@@ -240,6 +241,7 @@ function GlobeView({
   lang: Language
   timelineIteration: number
   globeMode?: string
+  scientist?: { energy: number; confidence: number; shockClass: string; shockClassAr: string; stage: string; stageAr: string } | null
 }) {
   const globeRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -344,18 +346,29 @@ function GlobeView({
     return [...shippingArcs, ...aviationArcs, ...propagationArcs]
   }, [shippingArcs, aviationArcs, propagationArcs, globeMode])
 
+  // Heat rings: all nodes with impact > 15% get pulsing rings (heat layer)
   const ringsData = useMemo(() => {
-    const hormuz = nodeCoordinates['geo_hormuz']
-    if (!hormuz) return []
-    const hormuzImpact = Math.abs(activeImpacts.get('geo_hormuz') || 0)
-    return [{
-      lat: hormuz.lat, lng: hormuz.lng,
-      maxR: 3 + hormuzImpact * 5,
-      propagationSpeed: 2,
-      repeatPeriod: 1200,
-      color: () => hormuzImpact > 0.1 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(14, 165, 233, 0.3)',
-    }]
-  }, [activeImpacts])
+    const rings: any[] = []
+    for (const node of gccNodes) {
+      const coord = nodeCoordinates[node.id]
+      if (!coord) continue
+      const impact = Math.abs(activeImpacts.get(node.id) || 0)
+      const nI = impact / maxImpact
+      if (nI < 0.15) continue
+      const r = Math.min(255, Math.round(180 + nI * 75))
+      const g = Math.max(0, Math.round(200 - nI * 180))
+      const b = Math.round(30 - nI * 30)
+      const a = Math.min(0.6, 0.15 + nI * 0.45)
+      rings.push({
+        lat: coord.lat, lng: coord.lng,
+        maxR: 2 + nI * 6,
+        propagationSpeed: 1 + nI * 3,
+        repeatPeriod: 800 + (1 - nI) * 600,
+        color: () => `rgba(${r},${g},${b},${a})`,
+      })
+    }
+    return rings
+  }, [activeImpacts, maxImpact])
 
   const pointLabelFn = useCallback((d: any) => {
     const impactPct = (d.impact * 100).toFixed(0)
@@ -413,6 +426,23 @@ function GlobeView({
         <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-purple-400 inline-block rounded" /> {ui('airCorridors', lang)}</div>
         <div className="flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full inline-block" /> {ui('hormuzLabel', lang)}</div>
       </div>
+      {/* Scientist overlay on globe */}
+      {scientist && (
+        <div className="absolute top-3 end-3 bg-ds-surface/85 backdrop-blur-sm rounded-lg px-3 py-2 border border-ds-border text-[9px] font-mono space-y-1" style={{ direction: lang === 'ar' ? 'rtl' : 'ltr' }}>
+          <div className="flex items-center gap-2">
+            <span style={{ color: scientist.energy > 5 ? '#ef4444' : scientist.energy > 2 ? '#f59e0b' : '#22c55e' }} className="font-bold">E = {scientist.energy.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ color: scientist.confidence > 0.7 ? '#22c55e' : scientist.confidence > 0.4 ? '#f59e0b' : '#ef4444' }} className="font-bold">C = {(scientist.confidence * 100).toFixed(0)}%</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span style={{ color: scientist.shockClass === 'critical' ? '#ef4444' : scientist.shockClass === 'severe' ? '#f59e0b' : '#22c55e' }} className="font-bold">
+              {lang === 'ar' ? scientist.shockClassAr : scientist.shockClass}
+            </span>
+          </div>
+          <div className="text-ds-text-dim text-[8px]">{lang === 'ar' ? scientist.stageAr : scientist.stage}</div>
+        </div>
+      )}
     </div>
   )
 }
@@ -774,16 +804,6 @@ function DemoPageContent() {
     if (!propagation) return null
     return computeSectorFinancials(propagation.nodeImpacts)
   }, [propagation])
-
-  const hormuzChain = useMemo(() => {
-    if (!propagation) return null
-    return computeHormuzChain(propagation.nodeImpacts, severityMod)
-  }, [propagation, severityMod])
-
-  const aviationChain = useMemo(() => {
-    if (!propagation) return null
-    return computeAviationChain(propagation.nodeImpacts, severityMod)
-  }, [propagation, severityMod])
 
   // ═══ UNIFIED ENGINE RUNTIME ═══
   // Engine reads propagation nodeImpacts + severity → produces ScenarioEngineResult
@@ -1348,7 +1368,7 @@ function DemoPageContent() {
             )}
             {propagation && !isRunning && viewMode === 'globe' && (
               <div className="h-full p-2 relative">
-                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} lang={lang} timelineIteration={timelineIteration} globeMode={globeMode} />
+                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} lang={lang} timelineIteration={timelineIteration} globeMode={globeMode} scientist={scientist} />
                 <AnimatePresence>
                   {selectedNodeExpl && (
                     <NodeDetailPanel nodeExpl={selectedNodeExpl} lang={lang} onClose={() => setSelectedNode(null)} />

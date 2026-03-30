@@ -11,12 +11,23 @@ import { getLayerColor } from '@/lib/utils'
    Mathematical Mode: node glow = normalized impact
    ═══════════════════════════════════════════════════ */
 
+interface ScientistOverlay {
+  energy: number
+  confidence: number
+  shockClass: string
+  shockClassAr: string
+  stage: string
+  stageAr: string
+}
+
 interface GlobePanelProps {
   nodes: GCCNode[]
   edges: GCCEdge[]
   nodeImpacts: Map<string, number>
   systemEnergy: number
   onNodeClick?: (nodeId: string) => void
+  scientist?: ScientistOverlay | null
+  showHeatLayer?: boolean
 }
 
 /* Mercator projection for GCC region */
@@ -32,7 +43,7 @@ function projectToCanvas(
   return { x, y }
 }
 
-export default function GlobePanel({ nodes, edges, nodeImpacts, systemEnergy, onNodeClick }: GlobePanelProps) {
+export default function GlobePanel({ nodes, edges, nodeImpacts, systemEnergy, onNodeClick, scientist, showHeatLayer = true }: GlobePanelProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animRef = useRef<number>(0)
   const [hoveredNode, setHoveredNode] = useState<string | null>(null)
@@ -100,6 +111,35 @@ export default function GlobePanel({ nodes, edges, nodeImpacts, systemEnergy, on
 
       // Draw GCC region outline (simplified)
       drawGCCOutline(ctx, w, h, center, zoom)
+
+      // Heat layer — radial gradient blobs from impact intensity
+      if (showHeatLayer) {
+        ctx.save()
+        ctx.globalCompositeOperation = 'screen'
+        for (const node of nodes) {
+          const coord = nodeCoordinates[node.id]
+          if (!coord) continue
+          const impact = Math.abs(nodeImpacts.get(node.id) ?? 0)
+          if (impact < 0.05) continue
+          const nI = normalizedImpacts.get(node.id) ?? 0
+          const pos = projectToCanvas(coord.lat, coord.lng, w, h, center, zoom)
+          const heatR = 25 + nI * 80 + Math.sin(frame * 0.015 + nI * 10) * 4
+          const heatGrad = ctx.createRadialGradient(pos.x, pos.y, 0, pos.x, pos.y, heatR)
+          // Color by intensity: green→yellow→orange→red
+          const r = Math.min(255, Math.round(180 + nI * 75))
+          const g = Math.max(0, Math.round(200 - nI * 180))
+          const b = Math.round(30 - nI * 30)
+          const peakAlpha = Math.min(0.45, 0.08 + nI * 0.35)
+          heatGrad.addColorStop(0, `rgba(${r},${g},${b},${peakAlpha})`)
+          heatGrad.addColorStop(0.4, `rgba(${r},${g},${b},${peakAlpha * 0.5})`)
+          heatGrad.addColorStop(1, `rgba(${r},${g},${b},0)`)
+          ctx.beginPath()
+          ctx.arc(pos.x, pos.y, heatR, 0, Math.PI * 2)
+          ctx.fillStyle = heatGrad
+          ctx.fill()
+        }
+        ctx.restore()
+      }
 
       // Draw shipping & aviation routes
       const routeAlpha = 0.15 + Math.sin(frame * 0.02) * 0.05
@@ -213,12 +253,17 @@ export default function GlobePanel({ nodes, edges, nodeImpacts, systemEnergy, on
       // Legend
       drawLegend(ctx, w, h)
 
+      // Scientist overlay (top-right)
+      if (scientist) {
+        drawScientistOverlay(ctx, w, scientist)
+      }
+
       animRef.current = requestAnimationFrame(draw)
     }
 
     draw()
     return () => cancelAnimationFrame(animRef.current)
-  }, [nodes, edges, nodeImpacts, normalizedImpacts, canvasSize, zoom, center, hoveredNode])
+  }, [nodes, edges, nodeImpacts, normalizedImpacts, canvasSize, zoom, center, hoveredNode, showHeatLayer, scientist])
 
   // Mouse interaction
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -339,6 +384,44 @@ function drawRoutes(
     ctx.setLineDash([])
     ctx.globalAlpha = 1
   }
+}
+
+/* — Helper: Draw scientist overlay (top-right) — */
+function drawScientistOverlay(ctx: CanvasRenderingContext2D, w: number, s: ScientistOverlay) {
+  const px = w - 160
+  const py = 8
+  const boxW = 148
+  const boxH = 68
+
+  ctx.fillStyle = '#0A0A14E8'
+  ctx.beginPath()
+  ctx.roundRect(px, py, boxW, boxH, 6)
+  ctx.fill()
+  ctx.strokeStyle = '#1E1E36'
+  ctx.lineWidth = 0.5
+  ctx.stroke()
+
+  ctx.font = '600 8px "JetBrains Mono", monospace'
+  ctx.textAlign = 'left'
+
+  // E_sys
+  const eColor = s.energy > 5 ? '#ef4444' : s.energy > 2 ? '#f59e0b' : '#2DD4A0'
+  ctx.fillStyle = eColor
+  ctx.fillText(`E_sys = ${s.energy.toFixed(2)}`, px + 8, py + 16)
+
+  // Confidence
+  const cColor = s.confidence > 0.7 ? '#2DD4A0' : s.confidence > 0.4 ? '#f59e0b' : '#ef4444'
+  ctx.fillStyle = cColor
+  ctx.fillText(`C = ${s.confidence.toFixed(2)}`, px + 8, py + 30)
+
+  // Shock class
+  ctx.fillStyle = '#A78BFA'
+  ctx.fillText(s.shockClass, px + 8, py + 44)
+
+  // Stage
+  ctx.fillStyle = '#8888A0'
+  ctx.font = '400 7px system-ui, sans-serif'
+  ctx.fillText(s.stage, px + 8, py + 58)
 }
 
 /* — Helper: Draw legend — */
