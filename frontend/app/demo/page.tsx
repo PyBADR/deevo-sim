@@ -231,9 +231,12 @@ function runMonteCarlo(
 /* ══════════════════════════════════════════════
    GLOBE VIEW — Operational Geospatial Intelligence
    ══════════════════════════════════════════════ */
+const SHIPPING_SCENARIOS = new Set(['hormuz_closure', 'jebel_ali_disruption', 'gcc_port_congestion', 'military_repositioning', 'insurance_repricing', 'food_security_shock'])
+const AVIATION_SCENARIOS = new Set(['airspace_restriction', 'flight_rerouting', 'hajj_disruption'])
+
 function GlobeView({
   propagation, selectedNode, onSelectNode, lang, timelineIteration, globeMode = 'normal',
-  scientist,
+  scientist, scenarioId,
 }: {
   propagation: PropagationResult | null
   selectedNode: string | null
@@ -242,6 +245,7 @@ function GlobeView({
   timelineIteration: number
   globeMode?: string
   scientist?: { energy: number; confidence: number; shockClass: string; shockClassAr: string; stage: string; stageAr: string } | null
+  scenarioId?: string
 }) {
   const globeRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -334,7 +338,7 @@ function GlobeView({
   }, [])
 
   const allArcs = useMemo(() => {
-    // Route-specific modes: emphasize relevant arcs, dim others
+    // Manual mode overrides
     if (globeMode === 'shipping') {
       const boostedShipping = shippingArcs.map(a => ({ ...a, stroke: a.stroke * 3, color: '#0ea5e9' }))
       return [...boostedShipping, ...propagationArcs]
@@ -343,8 +347,19 @@ function GlobeView({
       const boostedAviation = aviationArcs.map(a => ({ ...a, stroke: a.stroke * 3, color: '#a78bfa' }))
       return [...boostedAviation, ...propagationArcs]
     }
+    // Auto-emphasis from scenario sector context (when in normal mode)
+    if (globeMode === 'normal' && scenarioId) {
+      if (SHIPPING_SCENARIOS.has(scenarioId)) {
+        const autoShipping = shippingArcs.map(a => ({ ...a, stroke: a.stroke * 2.5, color: '#0ea5e9' }))
+        return [...autoShipping, ...aviationArcs, ...propagationArcs]
+      }
+      if (AVIATION_SCENARIOS.has(scenarioId)) {
+        const autoAviation = aviationArcs.map(a => ({ ...a, stroke: a.stroke * 2.5, color: '#a78bfa' }))
+        return [...shippingArcs, ...autoAviation, ...propagationArcs]
+      }
+    }
     return [...shippingArcs, ...aviationArcs, ...propagationArcs]
-  }, [shippingArcs, aviationArcs, propagationArcs, globeMode])
+  }, [shippingArcs, aviationArcs, propagationArcs, globeMode, scenarioId])
 
   // Heat rings: all nodes with impact > 15% get pulsing rings (heat layer)
   const ringsData = useMemo(() => {
@@ -1368,7 +1383,7 @@ function DemoPageContent() {
             )}
             {propagation && !isRunning && viewMode === 'globe' && (
               <div className="h-full p-2 relative">
-                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} lang={lang} timelineIteration={timelineIteration} globeMode={globeMode} scientist={scientist} />
+                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} lang={lang} timelineIteration={timelineIteration} globeMode={globeMode} scientist={scientist} scenarioId={scenarioId} />
                 <AnimatePresence>
                   {selectedNodeExpl && (
                     <NodeDetailPanel nodeExpl={selectedNodeExpl} lang={lang} onClose={() => setSelectedNode(null)} />
