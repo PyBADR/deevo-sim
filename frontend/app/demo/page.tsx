@@ -7,13 +7,15 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, RotateCcw, Globe as GlobeIcon, ArrowLeft, Loader2, CheckCircle2, Circle,
   Activity, Radio, Shield, Zap, BarChart3, List, FileText, Languages,
-  X, ChevronLeft, ChevronRight, TrendingUp, Target, Info,
+  X, ChevronLeft, ChevronRight, TrendingUp, Target, Info, Layers,
+  Anchor, Plane, AlertTriangle, Network,
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import GraphPanel from '@/components/graph/GraphPanel'
 import { gccNodes, gccEdges, gccScenarios } from '@/lib/gcc-graph'
 import { runPropagation, formatPropagationChain, type PropagationResult, type NodeExplanation } from '@/lib/propagation-engine'
 import { setLanguage, getLanguage, type Language } from '@/lib/i18n'
+import { shippingRoutes, aviationRoutes, nodeCoordinates } from '@/lib/gcc-coordinates'
 
 const GlobeGL = dynamic(() => import('react-globe.gl'), { ssr: false })
 
@@ -29,7 +31,7 @@ const LAYER_COLORS: Record<string, string> = {
 /* ── Bilingual labels ── */
 const UI: Record<string, { en: string; ar: string }> = {
   title: { en: 'Deevo Sim', ar: 'ديفو سيم' },
-  controlRoom: { en: 'Control Room', ar: 'غرفة التحكم' },
+  controlRoom: { en: 'Regional Command Center', ar: 'مركز القيادة الإقليمي' },
   selectScenario: { en: 'Select Scenario', ar: 'اختر السيناريو' },
   runSim: { en: 'Run Simulation', ar: 'تشغيل المحاكاة' },
   processing: { en: 'Processing...', ar: 'جارٍ المعالجة...' },
@@ -54,7 +56,7 @@ const UI: Record<string, { en: string; ar: string }> = {
   pipeline: { en: 'Pipeline', ar: 'خط المعالجة' },
   spread: { en: 'Spread Level', ar: 'مستوى الانتشار' },
   desktop: { en: 'Desktop Required', ar: 'مطلوب سطح المكتب' },
-  desktopMsg: { en: 'Control Room requires desktop viewport.', ar: 'غرفة التحكم تتطلب شاشة سطح المكتب.' },
+  desktopMsg: { en: 'Command Center requires desktop viewport.', ar: 'مركز القيادة يتطلب شاشة سطح المكتب.' },
   rerun: { en: 'Rerun', ar: 'إعادة' },
   reset: { en: 'Reset', ar: 'إعادة تعيين' },
   back: { en: 'Back', ar: 'العودة' },
@@ -78,15 +80,21 @@ const UI: Record<string, { en: string; ar: string }> = {
   runs: { en: 'runs', ar: 'تشغيل' },
   mean: { en: 'Mean', ar: 'المتوسط' },
   variance: { en: 'Variance', ar: 'التباين' },
-  briefing: { en: 'Briefing', ar: 'الموجز' },
-  scenarioControl: { en: 'Scenario Control', ar: 'التحكم بالسيناريو' },
-  intelligence: { en: 'Intelligence', ar: 'الاستخبارات' },
-  systemStatus: { en: 'System Status', ar: 'حالة النظام' },
-  lossExposure: { en: 'Loss Exposure', ar: 'التعرض للخسائر' },
   deterministic: { en: 'Deterministic', ar: 'حتمي' },
-  causalBrief: { en: 'Causal Brief', ar: 'الموجز السببي' },
-  graphStats: { en: 'Graph', ar: 'الرسم البياني' },
-  layerLegend: { en: 'Layers', ar: 'الطبقات' },
+  probabilisticMode: { en: 'Probabilistic', ar: 'احتمالي' },
+  mode: { en: 'Mode', ar: 'الوضع' },
+  scenarioMeta: { en: 'Scenario Details', ar: 'تفاصيل السيناريو' },
+  systemState: { en: 'System State', ar: 'حالة النظام' },
+  nodes: { en: 'Nodes', ar: 'عقدة' },
+  edges: { en: 'Edges', ar: 'رابط' },
+  scenarios: { en: 'Scenarios', ar: 'سيناريوهات' },
+  uncertaintyDrivers: { en: 'Uncertainty Drivers', ar: 'محركات عدم اليقين' },
+  shippingLanes: { en: 'Shipping Lanes', ar: 'الممرات البحرية' },
+  airCorridors: { en: 'Air Corridors', ar: 'الممرات الجوية' },
+  hormuzLabel: { en: 'Strait of Hormuz', ar: 'مضيق هرمز' },
+  live: { en: 'LIVE', ar: 'مباشر' },
+  delta: { en: 'Change', ar: 'التغيير' },
+  version: { en: 'v4.0', ar: 'v4.0' },
 }
 
 const LAYER_LABELS: Record<string, { en: string; ar: string }> = {
@@ -143,26 +151,20 @@ function runMonteCarlo(
   const losses: number[] = []
 
   for (let r = 0; r < runs; r++) {
-    // Sample severity with ±20% noise
     const sampledSeverity = severityMod * (0.8 + Math.random() * 0.4)
-
-    // Sample shocks with ±15% noise on each
     const sampledShocks = shocks.map(s => ({
       ...s,
       impact: Math.max(-1, Math.min(1, s.impact * sampledSeverity * (0.85 + Math.random() * 0.3))),
     }))
-
-    // Sample edge weights with ±10% noise
     const sampledEdges = edges.map(e => ({
       ...e,
       weight: e.weight * (0.9 + Math.random() * 0.2),
     }))
-
     const result = runPropagation(nodes, sampledEdges, sampledShocks, 6, lang, 0.05)
     losses.push(result.totalLoss)
   }
 
-  losses.sort((a, b) => a - b)
+  losses.sort((a: number, b: number) => a - b)
   const mean = losses.reduce((a, b) => a + b, 0) / losses.length
   const median = losses[Math.floor(losses.length / 2)]
   const p10 = losses[Math.floor(losses.length * 0.1)]
@@ -184,7 +186,7 @@ function runMonteCarlo(
 }
 
 /* ══════════════════════════════════════════════
-   GLOBE VIEW COMPONENT
+   GLOBE VIEW — Operational Geospatial Intelligence
    ══════════════════════════════════════════════ */
 function GlobeView({
   propagation, selectedNode, onSelectNode, lang, timelineIteration,
@@ -210,7 +212,6 @@ function GlobeView({
     return () => ro.disconnect()
   }, [])
 
-  // Use iteration snapshot if available
   const activeImpacts = useMemo(() => {
     if (!propagation) return new Map<string, number>()
     if (propagation.iterationSnapshots && propagation.iterationSnapshots[timelineIteration]) {
@@ -222,20 +223,23 @@ function GlobeView({
   const pointsData = useMemo(() => {
     return gccNodes.map(node => {
       const impact = Math.abs(activeImpacts.get(node.id) || 0)
+      const isPort = node.id.includes('jebel') || node.id.includes('dammam') || node.id.includes('doha_p')
+      const isAirport = node.id.includes('ruh') || node.id.includes('dxb') || node.id.includes('kwi') || (node.id.includes('doh') && !node.id.includes('doha_p'))
+      const isChokepoint = node.id === 'geo_hormuz'
       return {
         id: node.id, lat: node.lat, lng: node.lng,
-        label: lang === 'ar' ? (node.labelAr || node.label) : node.label, layer: node.layer,
+        label: lang === 'ar' ? (node.labelAr || node.label) : node.label,
+        layer: node.layer,
         impact,
-        color: LAYER_COLORS[node.layer] || '#64748b',
-        size: 0.3 + impact * 1.5,
+        color: isChokepoint ? '#ef4444' : (LAYER_COLORS[node.layer] || '#64748b'),
+        size: isChokepoint ? 0.8 : (isPort || isAirport ? 0.5 + impact * 1.2 : 0.3 + impact * 1.5),
       }
     }).filter(Boolean)
   }, [activeImpacts, lang])
 
-  const arcsData = useMemo(() => {
+  const propagationArcs = useMemo(() => {
     if (!propagation) return []
     const arcs: any[] = []
-    // Filter chain steps up to current timeline iteration
     const filteredChain = propagation.propagationChain.filter(s => s.iteration <= timelineIteration)
     for (const step of filteredChain) {
       const fromNode = gccNodes.find(n => n.id === step.from)
@@ -252,6 +256,47 @@ function GlobeView({
     return arcs
   }, [propagation, timelineIteration])
 
+  const shippingArcs = useMemo(() => {
+    return shippingRoutes.map(route => ({
+      startLat: route.from.lat, startLng: route.from.lng,
+      endLat: route.to.lat, endLng: route.to.lng,
+      color: '#0ea5e9',
+      stroke: 0.4,
+    }))
+  }, [])
+
+  const aviationArcs = useMemo(() => {
+    return aviationRoutes.map(route => ({
+      startLat: route.from.lat, startLng: route.from.lng,
+      endLat: route.to.lat, endLng: route.to.lng,
+      color: '#a78bfa',
+      stroke: 0.3,
+    }))
+  }, [])
+
+  const allArcs = useMemo(() => {
+    return [...shippingArcs, ...aviationArcs, ...propagationArcs]
+  }, [shippingArcs, aviationArcs, propagationArcs])
+
+  const ringsData = useMemo(() => {
+    const hormuz = nodeCoordinates['geo_hormuz']
+    if (!hormuz) return []
+    const hormuzImpact = Math.abs(activeImpacts.get('geo_hormuz') || 0)
+    return [{
+      lat: hormuz.lat, lng: hormuz.lng,
+      maxR: 3 + hormuzImpact * 5,
+      propagationSpeed: 2,
+      repeatPeriod: 1200,
+      color: () => hormuzImpact > 0.1 ? 'rgba(239, 68, 68, 0.6)' : 'rgba(14, 165, 233, 0.3)',
+    }]
+  }, [activeImpacts])
+
+  const pointLabelFn = useCallback((d: any) => {
+    const impactPct = (d.impact * 100).toFixed(0)
+    const layerName = layerLabel(d.layer, lang)
+    return `<div style="color:${d.color};font-family:system-ui;font-size:12px;font-weight:600;direction:${lang === 'ar' ? 'rtl' : 'ltr'}">${d.label}<br/><span style="color:#94a3b8;font-size:10px">${layerName} · ${impactPct}%</span></div>`
+  }, [lang])
+
   useEffect(() => {
     if (globeRef.current) {
       globeRef.current.pointOfView({ lat: 25, lng: 51, altitude: 2.5 }, 1000)
@@ -259,7 +304,7 @@ function GlobeView({
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-full bg-[#06060a] rounded-xl overflow-hidden">
+    <div ref={containerRef} className="w-full h-full bg-[#06060a] rounded-xl overflow-hidden relative">
       <GlobeGL
         ref={globeRef}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
@@ -270,9 +315,9 @@ function GlobeView({
         pointColor="color"
         pointAltitude={(d: any) => d.impact * 0.05}
         pointRadius={(d: any) => d.size}
-        pointLabel={(d: any) => `<div style="color:${d.color};font-family:system-ui;font-size:12px;font-weight:600">${d.label}<br/><span style="color:#94a3b8">${(d.impact * 100).toFixed(0)}% impact</span></div>`}
+        pointLabel={pointLabelFn}
         onPointClick={(point: any) => onSelectNode(point.id)}
-        arcsData={arcsData}
+        arcsData={allArcs}
         arcStartLat="startLat"
         arcStartLng="startLng"
         arcEndLat="endLat"
@@ -282,12 +327,24 @@ function GlobeView({
         arcDashLength={0.5}
         arcDashGap={0.3}
         arcDashAnimateTime={2000}
+        ringsData={ringsData}
+        ringLat="lat"
+        ringLng="lng"
+        ringMaxRadius="maxR"
+        ringPropagationSpeed="propagationSpeed"
+        ringRepeatPeriod="repeatPeriod"
+        ringColor="color"
         atmosphereColor="#22d3ee"
         atmosphereAltitude={0.15}
         width={dims.w}
         height={dims.h}
         animateIn={true}
       />
+      <div className="absolute bottom-3 start-3 bg-ds-surface/80 backdrop-blur-sm rounded-lg px-3 py-2 border border-ds-border text-[9px] font-mono space-y-1">
+        <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-sky-500 inline-block rounded" /> {ui('shippingLanes', lang)}</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-0.5 bg-purple-400 inline-block rounded" /> {ui('airCorridors', lang)}</div>
+        <div className="flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full inline-block" /> {ui('hormuzLabel', lang)}</div>
+      </div>
     </div>
   )
 }
@@ -389,7 +446,7 @@ function NodeDetailPanel({
 }
 
 /* ══════════════════════════════════════════════
-   TIMELINE NAVIGATION
+   TIMELINE NAVIGATION — Bottom Bar
    ══════════════════════════════════════════════ */
 function TimelineBar({
   propagation, currentIteration, onIterationChange, lang,
@@ -436,14 +493,14 @@ function TimelineBar({
       <div className="flex items-center gap-3 ms-2 text-[10px] font-mono text-ds-text-dim">
         <span>{ui('iteration', lang)}: <span className="text-cyan-400">{currentIteration}/{maxIter}</span></span>
         <span>{ui('energy', lang)}: <span className="text-amber-400">{snap?.energy.toFixed(3)}</span></span>
-        <span>Δ: <span className={snap?.deltaEnergy >= 0 ? 'text-red-400' : 'text-emerald-400'}>{snap?.deltaEnergy >= 0 ? '+' : ''}{snap?.deltaEnergy.toFixed(4)}</span></span>
+        <span>{ui('delta', lang)}: <span className={snap?.deltaEnergy >= 0 ? 'text-red-400' : 'text-emerald-400'}>{snap?.deltaEnergy >= 0 ? '+' : ''}{snap?.deltaEnergy.toFixed(4)}</span></span>
       </div>
     </div>
   )
 }
 
 /* ══════════════════════════════════════════════
-   MAIN DEMO PAGE
+   MAIN COMMAND CENTER PAGE
    ══════════════════════════════════════════════ */
 function DemoPageContent() {
   const [lang, setLang] = useState<Language>('ar')
@@ -459,6 +516,7 @@ function DemoPageContent() {
   const [severityMod, setSeverityMod] = useState(1.0)
   const [isMobile, setIsMobile] = useState(false)
   const [timelineIteration, setTimelineIteration] = useState(0)
+  const [analysisMode, setAnalysisMode] = useState<'deterministic' | 'probabilistic'>('deterministic')
 
   useEffect(() => {
     setLanguage(lang)
@@ -495,8 +553,6 @@ function DemoPageContent() {
           const result = runPropagation(gccNodes, gccEdges, modShocks, 6, lang, 0.05)
           setPropagation(result)
           setTimelineIteration(result.iterationSnapshots.length - 1)
-
-          // Run Monte Carlo (500 runs)
           const mc = runMonteCarlo(gccNodes, gccEdges, modShocks, severityMod, 500, lang)
           setMonteCarlo(mc)
         }
@@ -525,7 +581,6 @@ function DemoPageContent() {
     setTimelineIteration(0)
   }, [])
 
-  // Use timeline snapshot for graph/globe rendering
   const activeImpacts = useMemo(() => {
     if (!propagation) return new Map<string, number>()
     if (propagation.iterationSnapshots && propagation.iterationSnapshots[timelineIteration]) {
@@ -576,7 +631,6 @@ function DemoPageContent() {
     })
   }, [activeImpacts, lang])
 
-  // Node explanation from propagation result
   const selectedNodeExpl = useMemo(() => {
     if (!selectedNode || !propagation) return null
     return propagation.nodeExplanations.get(selectedNode) || null
@@ -606,7 +660,7 @@ function DemoPageContent() {
 
   return (
     <div className="h-screen w-full bg-ds-bg flex flex-col overflow-hidden" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      {/* ── TOP BAR ── */}
+      {/* ═══ TOP BAR — Command Center Header ═══ */}
       <div className="h-11 border-b border-ds-border bg-ds-surface/80 backdrop-blur-xl flex-shrink-0 flex items-center justify-between px-5">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-ds-text-muted hover:text-ds-text transition-colors">
@@ -617,31 +671,41 @@ function DemoPageContent() {
           <span className="text-[11px] text-ds-text-dim font-mono">/</span>
           <span className="text-[11px] text-ds-text-muted font-mono">{ui('controlRoom', lang)}</span>
         </div>
+
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: statusColor }} />
             <span className="text-[10px] font-mono uppercase tracking-[0.15em]" style={{ color: statusColor }}>{statusText}</span>
           </div>
           {propagation && (
             <>
               <span className="text-[10px] text-ds-text-dim">|</span>
-              <span className="text-[10px] font-mono text-ds-text-dim">{ui('confidence', lang)}: <span className="text-emerald-400">{(propagation.confidence * 100).toFixed(0)}%</span></span>
+              <span className="text-[10px] font-mono text-ds-text-dim">{ui('systemEnergy', lang)}: <span className="text-amber-400">{propagation.systemEnergy.toFixed(3)}</span></span>
               <span className="text-[10px] text-ds-text-dim">|</span>
-              <span className="text-[10px] font-mono text-ds-text-dim">{ui('energy', lang)}: <span className="text-cyan-400">{propagation.systemEnergy.toFixed(3)}</span></span>
+              <span className="text-[10px] font-mono text-ds-text-dim">{ui('confidence', lang)}: <span className="text-emerald-400">{(propagation.confidence * 100).toFixed(0)}%</span></span>
               <span className="text-[10px] text-ds-text-dim">|</span>
               <span className="text-[10px] font-mono text-ds-text-dim">{ui('spread', lang)}: <span className="text-cyan-400">{lang === 'ar' ? propagation.spreadLevelAr : propagation.spreadLevel}</span></span>
               <span className="text-[10px] text-ds-text-dim">|</span>
-              <span className="text-[10px] font-mono text-ds-text-dim">{ui('totalLoss', lang)}: <span className="text-red-400">${propagation.totalLoss.toFixed(1)}B</span></span>
-              {monteCarlo && (
-                <>
-                  <span className="text-[10px] text-ds-text-dim">|</span>
-                  <span className="text-[10px] font-mono text-amber-400">[P10: ${monteCarlo.p10Loss.toFixed(1)}B — P90: ${monteCarlo.p90Loss.toFixed(1)}B]</span>
-                </>
-              )}
+              <span className="text-[10px] font-mono text-ds-text-dim">{ui('depth', lang)}: <span className="text-purple-400">{propagation.propagationDepth}</span></span>
             </>
           )}
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border border-ds-border overflow-hidden">
+            <button
+              onClick={() => setAnalysisMode('deterministic')}
+              className={`px-2 py-1 text-[10px] font-semibold transition-colors ${analysisMode === 'deterministic' ? 'bg-cyan-500 text-ds-bg' : 'bg-ds-card text-ds-text-dim hover:text-ds-text'}`}
+            >
+              {ui('deterministic', lang)}
+            </button>
+            <button
+              onClick={() => setAnalysisMode('probabilistic')}
+              className={`px-2 py-1 text-[10px] font-semibold transition-colors ${analysisMode === 'probabilistic' ? 'bg-rose-500 text-white' : 'bg-ds-card text-ds-text-dim hover:text-ds-text'}`}
+            >
+              {ui('probabilisticMode', lang)}
+            </button>
+          </div>
           <button
             onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
             className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-ds-card border border-ds-border hover:border-ds-border-hover transition-colors text-[11px] font-semibold text-ds-text"
@@ -652,68 +716,20 @@ function DemoPageContent() {
         </div>
       </div>
 
-      {/* ── MAIN 3-COLUMN LAYOUT ── */}
+      {/* ═══ MAIN 3-COLUMN LAYOUT ═══ */}
       <div className="flex-1 flex overflow-hidden">
-        {/* ═══ LEFT — INTELLIGENCE RAIL ═══ */}
-        <div className="w-[310px] bg-ds-surface border-e border-ds-border overflow-y-auto flex-shrink-0">
-          <div className="p-4 space-y-4">
-            {/* Causal Brief (Hero) */}
+
+        {/* ═══ LEFT RAIL — Analytical Intelligence ═══ */}
+        <div className="w-[280px] bg-ds-surface border-e border-ds-border overflow-y-auto flex-shrink-0">
+          <div className="p-3 space-y-3">
+
+            {/* Explanation — FIRST (explanation-first UX) */}
             <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 font-bold mb-2 flex items-center gap-2">
-                <FileText size={12} /> {ui('causalBrief', lang)}
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-purple-400 font-bold mb-2 flex items-center gap-2">
+                <FileText size={12} /> {ui('explanation', lang)}
               </h3>
               {propagation ? (
                 <p className="text-[12px] text-ds-text-muted leading-relaxed">{propagation.explanation}</p>
-              ) : (
-                <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
-              )}
-            </div>
-
-            {/* Loss Exposure — Deterministic + Probabilistic */}
-            <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-red-400 font-bold mb-2 flex items-center gap-2">
-                <TrendingUp size={12} /> {ui('lossExposure', lang)}
-              </h3>
-              {propagation ? (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-ds-text-dim">{ui('deterministic', lang)}</span>
-                    <span className="font-mono text-red-400 font-semibold">${propagation.totalLoss.toFixed(1)}B</span>
-                  </div>
-                  {monteCarlo && (
-                    <>
-                      <div className="border-t border-ds-border pt-1">
-                        <div className="text-[10px] text-ds-text-dim font-mono mb-1">{ui('monteCarlo', lang)}: {monteCarlo.runs} {ui('runs', lang)}</div>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-emerald-400">{ui('p10', lang)}</span>
-                        <span className="font-mono text-ds-text">${monteCarlo.p10Loss.toFixed(1)}B</span>
-                      </div>
-                      <div className="relative h-3 bg-ds-bg-alt rounded-full overflow-hidden">
-                        <div className="absolute h-full bg-emerald-500/30 rounded-full" style={{ left: `${(monteCarlo.p10Loss / monteCarlo.p90Loss) * 100 * 0.5}%`, right: `${100 - (monteCarlo.p90Loss / monteCarlo.p90Loss) * 100 * 0.9}%` }} />
-                        <div className="absolute h-full w-0.5 bg-amber-400" style={{ left: `${(monteCarlo.p50Loss / monteCarlo.p90Loss) * 90}%` }} />
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-amber-400">{ui('p50', lang)}</span>
-                        <span className="font-mono text-ds-text">${monteCarlo.p50Loss.toFixed(1)}B</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-red-400">{ui('p90', lang)}</span>
-                        <span className="font-mono text-ds-text">${monteCarlo.p90Loss.toFixed(1)}B</span>
-                      </div>
-                      <div className="border-t border-ds-border pt-1 mt-1">
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-ds-text-dim">{ui('mean', lang)}</span>
-                          <span className="font-mono text-ds-text-muted">${monteCarlo.meanLoss.toFixed(2)}B</span>
-                        </div>
-                        <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-ds-text-dim">{ui('variance', lang)}</span>
-                          <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
               ) : (
                 <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
               )}
@@ -744,21 +760,9 @@ function DemoPageContent() {
               )}
             </div>
 
-            {/* Sector Impact */}
-            <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 font-bold mb-2 flex items-center gap-2">
-                <Activity size={12} /> {ui('sectorImpact', lang)}
-              </h3>
-              {propagation ? (
-                <div>{propagation.affectedSectors.map(s => <SectorBar key={s.sector} sector={s.sector} avgImpact={s.avgImpact} color={s.color} lang={lang} />)}</div>
-              ) : (
-                <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
-              )}
-            </div>
-
             {/* Impact Chain */}
             <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-purple-400 font-bold mb-2 flex items-center gap-2">
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 font-bold mb-2 flex items-center gap-2">
                 <List size={12} /> {ui('impactChain', lang)}
               </h3>
               {propagation && chains.length > 0 ? (
@@ -772,29 +776,58 @@ function DemoPageContent() {
               )}
             </div>
 
-            {/* Layer Legend */}
+            {/* Sector Impact */}
             <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-bold mb-2 flex items-center gap-2">
-                <Target size={12} /> {ui('layerLegend', lang)}
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-emerald-400 font-bold mb-2 flex items-center gap-2">
+                <Activity size={12} /> {ui('sectorImpact', lang)}
               </h3>
-              <div className="space-y-1">
-                {Object.entries(LAYER_COLORS).map(([layer, color]) => (
-                  <div key={layer} className="flex items-center gap-2 text-[11px]">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-                    <span className="text-ds-text-muted">{lang === 'ar' ? (LAYER_LABELS[layer]?.ar || layer) : (LAYER_LABELS[layer]?.en || layer)}</span>
-                    <span className="ms-auto text-[10px] font-mono text-ds-text-dim">{gccNodes.filter(n => n.layer === layer).length}</span>
-                  </div>
-                ))}
-              </div>
+              {propagation ? (
+                <div>{propagation.affectedSectors.map(s => <SectorBar key={s.sector} sector={s.sector} avgImpact={s.avgImpact} color={s.color} lang={lang} />)}</div>
+              ) : (
+                <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
+              )}
             </div>
+
+            {/* Uncertainty Drivers — visible in probabilistic mode */}
+            {analysisMode === 'probabilistic' && (
+              <div className="ds-card rounded-xl p-3">
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-rose-400 font-bold mb-2 flex items-center gap-2">
+                  <AlertTriangle size={12} /> {ui('uncertaintyDrivers', lang)}
+                </h3>
+                {monteCarlo ? (
+                  <div className="space-y-2 text-[11px]">
+                    <div className="flex justify-between">
+                      <span className="text-ds-text-dim">{ui('severity', lang)}</span>
+                      <span className="font-mono text-amber-400">±20%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ds-text-dim">{ui('shockNodes', lang)}</span>
+                      <span className="font-mono text-amber-400">±15%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-ds-text-dim">{ui('edges', lang)}</span>
+                      <span className="font-mono text-amber-400">±10%</span>
+                    </div>
+                    <div className="border-t border-ds-border pt-1">
+                      <div className="flex justify-between">
+                        <span className="text-ds-text-dim">{ui('variance', lang)}</span>
+                        <span className="font-mono text-rose-400">{monteCarlo.variance.toFixed(4)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ═══ CENTER ═══ */}
+        {/* ═══ CENTER — Graph / Globe Canvas ═══ */}
         <div className="flex-1 bg-ds-bg flex flex-col overflow-hidden">
           <div className="flex items-center gap-0 px-4 py-2 border-b border-ds-border bg-ds-surface/50">
             <button onClick={() => setViewMode('graph')} className={`px-4 py-1.5 text-[12px] font-semibold rounded-s-md border border-ds-border transition-colors ${viewMode === 'graph' ? 'bg-cyan-500 text-ds-bg border-cyan-500' : 'bg-ds-card text-ds-text-muted'}`}>
-              {ui('graphView', lang)}
+              <Network className="w-3 h-3 inline me-1" />{ui('graphView', lang)}
             </button>
             <button onClick={() => setViewMode('globe')} className={`px-4 py-1.5 text-[12px] font-semibold rounded-e-md border border-ds-border transition-colors ${viewMode === 'globe' ? 'bg-cyan-500 text-ds-bg border-cyan-500' : 'bg-ds-card text-ds-text-muted'}`}>
               <GlobeIcon className="w-3 h-3 inline me-1" />{ui('globeView', lang)}
@@ -802,7 +835,7 @@ function DemoPageContent() {
             {propagation && (
               <div className="ms-auto flex items-center gap-3 text-[10px] font-mono text-ds-text-dim">
                 <span>{ui('totalLoss', lang)}: <span className="text-red-400 font-semibold">${propagation.totalLoss.toFixed(1)}B</span></span>
-                {monteCarlo && (
+                {monteCarlo && analysisMode === 'probabilistic' && (
                   <span className="text-amber-400">[{ui('p10', lang)}: ${monteCarlo.p10Loss.toFixed(1)}B — {ui('p90', lang)}: ${monteCarlo.p90Loss.toFixed(1)}B]</span>
                 )}
                 <span>{ui('nodesAffected', lang)}: <span className="text-cyan-400">{propagation.propagationChain.length}</span></span>
@@ -814,9 +847,9 @@ function DemoPageContent() {
             {!propagation && !isRunning && (
               <div className="h-full ds-card m-4 rounded-xl flex items-center justify-center">
                 <div className="text-center">
-                  <Circle className="w-10 h-10 text-ds-text-dim mx-auto mb-3" />
+                  <Network className="w-10 h-10 text-ds-text-dim mx-auto mb-3" />
                   <p className="text-sm text-ds-text-dim">{ui('runToSee', lang)}</p>
-                  <p className="text-[10px] text-ds-text-dim font-mono mt-1">{gccNodes.length} {lang === 'ar' ? 'عقدة' : 'nodes'} · {gccEdges.length} {lang === 'ar' ? 'رابط' : 'edges'} · {gccScenarios.length} {lang === 'ar' ? 'سيناريوهات' : 'scenarios'}</p>
+                  <p className="text-[10px] text-ds-text-dim font-mono mt-1">{gccNodes.length} {ui('nodes', lang)} · {gccEdges.length} {ui('edges', lang)} · {gccScenarios.length} {ui('scenarios', lang)}</p>
                 </div>
               </div>
             )}
@@ -850,7 +883,6 @@ function DemoPageContent() {
             )}
           </div>
 
-          {/* Timeline Navigation */}
           {propagation && !isRunning && (
             <TimelineBar
               propagation={propagation}
@@ -861,9 +893,10 @@ function DemoPageContent() {
           )}
         </div>
 
-        {/* ═══ RIGHT — SCENARIO CONTROL RAIL ═══ */}
-        <div className="w-[260px] bg-ds-surface border-s border-ds-border overflow-y-auto flex-shrink-0">
-          <div className="p-4 space-y-4">
+        {/* ═══ RIGHT RAIL — Controls & System State ═══ */}
+        <div className="w-[280px] bg-ds-surface border-s border-ds-border overflow-y-auto flex-shrink-0">
+          <div className="p-3 space-y-3">
+
             <div>
               <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-semibold mb-2 flex items-center gap-2">
                 <Radio size={10} /> {ui('selectScenario', lang)}
@@ -883,9 +916,18 @@ function DemoPageContent() {
 
             {scenario && (
               <div className="space-y-3">
-                <p className="text-[12px] text-ds-text-muted leading-relaxed">
-                  {lang === 'ar' ? scenario.descriptionAr : scenario.description}
-                </p>
+                <div className="ds-card rounded-xl p-3">
+                  <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-semibold mb-2 flex items-center gap-2">
+                    <Info size={10} /> {ui('scenarioMeta', lang)}
+                  </h3>
+                  <p className="text-[12px] text-ds-text-muted leading-relaxed mb-2">
+                    {lang === 'ar' ? scenario.descriptionAr : scenario.description}
+                  </p>
+                  <div className="text-[10px] text-ds-text-dim font-mono">
+                    {lang === 'ar' ? scenario.countryAr : scenario.country} · {lang === 'ar' ? scenario.categoryAr : scenario.category}
+                  </div>
+                </div>
+
                 <div>
                   <span className="text-[10px] text-ds-text-dim font-semibold uppercase tracking-wider">{ui('shockNodes', lang)}</span>
                   {scenario.shocks.map(s => {
@@ -898,6 +940,7 @@ function DemoPageContent() {
                     )
                   })}
                 </div>
+
                 <div>
                   <div className="flex justify-between text-[10px] text-ds-text-dim mb-1">
                     <span>{ui('severity', lang)}</span>
@@ -905,16 +948,17 @@ function DemoPageContent() {
                   </div>
                   <input type="range" min="0.1" max="1.5" step="0.05" value={severityMod} onChange={(e) => setSeverityMod(parseFloat(e.target.value))} className="w-full accent-cyan-500" />
                 </div>
+
                 <button onClick={handleRun} disabled={isRunning} className="w-full ds-btn-primary disabled:opacity-40 disabled:cursor-not-allowed">
                   {isRunning ? <><Loader2 className="w-4 h-4 animate-spin" /> {ui('processing', lang)}</> : <><Zap className="w-4 h-4" /> {ui('runSim', lang)}</>}
                 </button>
-              </div>
-            )}
 
-            {propagation && (
-              <div className="flex gap-2">
-                <button onClick={handleRun} className="flex-1 ds-btn-primary text-[12px]"><Play className="w-3 h-3" /> {ui('rerun', lang)}</button>
-                <button onClick={handleReset} className="flex-1 ds-btn-secondary text-[12px]"><RotateCcw className="w-3 h-3" /> {ui('reset', lang)}</button>
+                {propagation && (
+                  <div className="flex gap-2">
+                    <button onClick={handleRun} className="flex-1 ds-btn-primary text-[12px]"><Play className="w-3 h-3" /> {ui('rerun', lang)}</button>
+                    <button onClick={handleReset} className="flex-1 ds-btn-secondary text-[12px]"><RotateCcw className="w-3 h-3" /> {ui('reset', lang)}</button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -940,8 +984,70 @@ function DemoPageContent() {
               )}
             </AnimatePresence>
 
-            <div className="border-t border-ds-border" />
+            {/* Monte Carlo / Probability Summary */}
+            {(analysisMode === 'probabilistic' || monteCarlo) && (
+              <div className="ds-card rounded-xl p-3">
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-rose-400 font-bold mb-2 flex items-center gap-2">
+                  <TrendingUp size={12} /> {ui('probabilistic', lang)}
+                </h3>
+                {monteCarlo ? (
+                  <div className="space-y-2">
+                    <div className="text-[10px] text-ds-text-dim font-mono mb-1">{ui('monteCarlo', lang)}: {monteCarlo.runs} {ui('runs', lang)}</div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-emerald-400">{ui('p10', lang)}</span>
+                      <span className="font-mono text-ds-text">${monteCarlo.p10Loss.toFixed(1)}B</span>
+                    </div>
+                    <div className="relative h-3 bg-ds-bg-alt rounded-full overflow-hidden">
+                      <div className="absolute h-full bg-gradient-to-r from-emerald-500/30 via-amber-500/30 to-red-500/30 rounded-full" style={{ left: '5%', right: '5%' }} />
+                      <div className="absolute h-full w-0.5 bg-amber-400" style={{ left: `${monteCarlo.p90Loss > 0 ? (monteCarlo.p50Loss / monteCarlo.p90Loss) * 90 : 50}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-amber-400">{ui('p50', lang)}</span>
+                      <span className="font-mono text-ds-text">${monteCarlo.p50Loss.toFixed(1)}B</span>
+                    </div>
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-red-400">{ui('p90', lang)}</span>
+                      <span className="font-mono text-ds-text">${monteCarlo.p90Loss.toFixed(1)}B</span>
+                    </div>
+                    <div className="border-t border-ds-border pt-1 mt-1">
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-ds-text-dim">{ui('mean', lang)}</span>
+                        <span className="font-mono text-ds-text-muted">${monteCarlo.meanLoss.toFixed(2)}B</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-ds-text-dim">{ui('variance', lang)}</span>
+                        <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
+                )}
+              </div>
+            )}
 
+            {/* System State */}
+            <div className="ds-card rounded-xl p-3">
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-bold mb-2 flex items-center gap-2">
+                <Layers size={12} /> {ui('systemState', lang)}
+              </h3>
+              <div className="space-y-1.5 text-[10px] font-mono">
+                <div className="flex justify-between"><span className="text-ds-text-dim">{ui('nodes', lang)}</span><span className="text-cyan-400">{gccNodes.length}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">{ui('edges', lang)}</span><span className="text-cyan-400">{gccEdges.length}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">{ui('scenarios', lang)}</span><span className="text-cyan-400">{gccScenarios.length}</span></div>
+                <div className="flex justify-between"><span className="text-ds-text-dim">{ui('mode', lang)}</span><span className={analysisMode === 'probabilistic' ? 'text-rose-400' : 'text-cyan-400'}>{ui(analysisMode === 'probabilistic' ? 'probabilisticMode' : 'deterministic', lang)}</span></div>
+                {propagation && (
+                  <>
+                    <div className="border-t border-ds-border pt-1 mt-1" />
+                    <div className="flex justify-between"><span className="text-ds-text-dim">{ui('systemEnergy', lang)}</span><span className="text-amber-400">{propagation.systemEnergy.toFixed(4)}</span></div>
+                    <div className="flex justify-between"><span className="text-ds-text-dim">{ui('depth', lang)}</span><span className="text-purple-400">{propagation.propagationDepth}</span></div>
+                    <div className="flex justify-between"><span className="text-ds-text-dim">{ui('totalLoss', lang)}</span><span className="text-red-400">${propagation.totalLoss.toFixed(2)}B</span></div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Scenario Presets */}
             <div>
               <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-semibold mb-2 flex items-center gap-2">
                 <Shield size={10} /> {ui('presets', lang)}
@@ -951,12 +1057,12 @@ function DemoPageContent() {
                   <button
                     key={s.id}
                     onClick={() => { setScenarioId(s.id); handleReset() }}
-                    className={`w-full text-start px-3 py-2.5 rounded-lg border transition-all text-[12px] ${
+                    className={`w-full text-start px-3 py-2 rounded-lg border transition-all text-[11px] ${
                       scenarioId === s.id ? 'bg-cyan-500/10 border-cyan-500/25' : 'bg-ds-bg-alt border-ds-border hover:border-ds-border-hover'
                     }`}
                   >
                     <div className="font-medium text-ds-text">{lang === 'ar' ? s.titleAr : s.title}</div>
-                    <div className="text-[10px] text-ds-text-dim mt-0.5 font-mono">{s.country} · {s.category}</div>
+                    <div className="text-[10px] text-ds-text-dim mt-0.5 font-mono">{lang === 'ar' ? s.countryAr : s.country} · {lang === 'ar' ? s.categoryAr : s.category}</div>
                   </button>
                 ))}
               </div>
@@ -965,7 +1071,7 @@ function DemoPageContent() {
         </div>
       </div>
 
-      {/* ── STATUS BAR ── */}
+      {/* ═══ STATUS BAR ═══ */}
       <div className="h-8 border-t border-ds-border bg-ds-surface/80 backdrop-blur-xl flex items-center justify-between px-5 text-[10px] font-mono flex-shrink-0">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1.5">
@@ -977,13 +1083,13 @@ function DemoPageContent() {
               <span className="text-ds-text-dim">|</span>
               <span className="text-ds-text-dim">{ui('energy', lang)}: <span className="text-cyan-400">{propagation.systemEnergy.toFixed(3)}</span></span>
               <span className="text-ds-text-dim">|</span>
-              <span className="text-ds-text-dim">{ui('decay', lang)}: <span className="text-amber-400">5%</span></span>
+              <span className="text-ds-text-dim">{ui('mode', lang)}: <span className={analysisMode === 'probabilistic' ? 'text-rose-400' : 'text-cyan-400'}>{ui(analysisMode === 'probabilistic' ? 'probabilisticMode' : 'deterministic', lang)}</span></span>
               <span className="text-ds-text-dim">|</span>
-              <span className="text-ds-text-dim">{gccNodes.length} V · {gccEdges.length} E</span>
+              <span className="text-ds-text-dim">{gccNodes.length} {ui('nodes', lang)} · {gccEdges.length} {ui('edges', lang)}</span>
             </>
           )}
         </div>
-        <span className="text-ds-text-dim">Deevo Sim v4.0 · GCC Regional Command Center</span>
+        <span className="text-ds-text-dim">{ui('title', lang)} {ui('version', lang)} | deevo-sim.vercel.app</span>
       </div>
     </div>
   )
