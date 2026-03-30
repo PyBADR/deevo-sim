@@ -104,6 +104,10 @@ export const nodeCoordinates: Record<string, GeoCoordinate> = {
   eco_saudia:   { lat: 24.96, lng: 46.70 },  // Saudia Airlines, Riyadh
   eco_emirates: { lat: 25.25, lng: 55.37 },  // Emirates, Dubai
   eco_qatar_aw: { lat: 25.27, lng: 51.57 },  // Qatar Airways, Doha
+  eco_kw_airways:{ lat: 29.23, lng: 47.97 },  // Kuwait Airways, Kuwait City
+  eco_gulf_air:  { lat: 26.27, lng: 50.63 },  // Gulf Air, Bahrain
+  eco_oman_air:  { lat: 23.59, lng: 58.28 },  // Oman Air, Muscat
+  eco_av_stress: { lat: 25.10, lng: 55.15 },  // Aviation Sector Stress
 }
 
 /** Shipping routes for globe arc rendering */

@@ -487,6 +487,7 @@ export interface SectorFinancials {
   aviationCost: SectorFinancialMetric
   flightCost: SectorFinancialMetric
   travelDemand: SectorFinancialMetric
+  aviationStress: SectorFinancialMetric
   tourismRevenue: SectorFinancialMetric
   gdpLoss: SectorFinancialMetric
   airportThroughput: SectorFinancialMetric
@@ -574,6 +575,13 @@ export function computeSectorFinancials(impacts: Map<string, number>): SectorFin
   // Tourism_revenue = Base_tourism × Demand (demand-driven)
   const tourismFromDemand = FINANCIAL_BASES.tourismRevenue * travelDemand
 
+  // Aviation_stress = Fuel_cost_impact + Insurance_impact + Flight_cost_impact + (1-Demand)
+  const aviationStress = aviationCostImpact + insuranceRiskImpact + flightCostImpact + (1 - travelDemand)
+
+  // S_aviation = Σ x_i for aviation nodes (sector aggregation)
+  const aviationNodeIds = ['eco_aviation', 'soc_ticket', 'soc_travel_d', 'inf_airport_throughput', 'eco_av_stress']
+  const S_aviation = aviationNodeIds.reduce((sum, id) => sum + Math.abs(impacts.get(id) ?? 0), 0) / aviationNodeIds.length
+
   // ── Additional sector formulas ──
 
   // Throughput_airport = base × Π(1 - |I(airport_k)|) — per-node impact product
@@ -608,6 +616,7 @@ export function computeSectorFinancials(impacts: Map<string, number>): SectorFin
     aviationCost:       { value: aviationCost, base: FINANCIAL_BASES.aviationFuel, label: 'Aviation Fuel Cost', labelAr: 'تكلفة وقود الطيران', unit: '$B', formula: `Base×(1+${insuranceRiskImpact.toFixed(2)}×0.75)`, direction: 'up' as const },
     flightCost:         { value: flightCost, base: FINANCIAL_BASES.baseTicket, label: 'Flight Cost', labelAr: 'تكلفة الرحلات', unit: '$', formula: `$${FINANCIAL_BASES.baseTicket}×(1+${aviationCostImpact.toFixed(2)}×0.85)=$${flightCost.toFixed(0)}`, direction: 'up' as const },
     travelDemand:       { value: travelDemand, base: 1, label: 'Travel Demand', labelAr: 'الطلب على السفر', unit: '%', formula: `1-(${flightCostImpact.toFixed(2)}×0.80)=${(travelDemand*100).toFixed(0)}%`, direction: 'down' as const },
+    aviationStress:     { value: aviationStress, base: 0, label: 'Aviation Stress', labelAr: 'ضغط قطاع الطيران', unit: 'index', formula: `Fuel+Ins+Ticket+Delay=${(aviationStress*100).toFixed(0)}%`, direction: 'up' as const },
     tourismRevenue:     { value: tourismFromDemand, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Revenue', labelAr: 'إيرادات السياحة', unit: '$B', formula: `$${FINANCIAL_BASES.tourismRevenue}B×${(travelDemand*100).toFixed(0)}%=$${tourismFromDemand.toFixed(1)}B`, direction: 'down' as const },
     gdpLoss:            { value: gdpLoss, base: 0, label: 'GDP Loss', labelAr: 'خسائر الناتج المحلي', unit: 'index', formula: `Σ(sector×weight)=${(gdpLoss*100).toFixed(1)}%`, direction: 'up' as const },
     airportThroughput:  { value: airportThroughputFromDemand, base: FINANCIAL_BASES.airportPax, label: 'Airport Throughput', labelAr: 'حركة المطارات', unit: 'M pax', formula: `${FINANCIAL_BASES.airportPax}M×${(travelDemand*100).toFixed(0)}%=${airportThroughputFromDemand.toFixed(0)}M`, direction: 'down' as const },

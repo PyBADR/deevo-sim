@@ -118,7 +118,7 @@ export const gccNodes: GCCNode[] = [
   { id: 'eco_aviation',label: 'Aviation Fuel Cost',   labelAr: 'تكلفة وقود الطيران', layer: 'economy', type: 'Topic',         lat: 25.0657, lng: 55.1713, weight: 0.82, sensitivity: 0.6,  damping_factor: 0.05, value: 0.82 },
   { id: 'eco_fuel',    label: 'Fuel Cost',           labelAr: 'تكلفة الوقود',      layer: 'economy', type: 'Topic',         lat: 24.4700, lng: 54.3700, weight: 0.88, sensitivity: 0.7,  damping_factor: 0.04, value: 0.88 },
   { id: 'eco_gdp',     label: 'GCC GDP',            labelAr: 'الناتج المحلي الخليجي', layer: 'economy', type: 'Topic',      lat: 24.4700, lng: 49.0000, weight: 0.90, sensitivity: 0.4,  damping_factor: 0.02, value: 0.90 },
-  { id: 'eco_tourism', label: 'Tourism Demand',       labelAr: 'الطلب السياحي',      layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, damping_factor: 0.05, value: 0.78 },
+  { id: 'eco_tourism', label: 'Tourism Revenue',      labelAr: 'إيرادات السياحة',    layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, damping_factor: 0.05, value: 0.78 },
   { id: 'eco_food',    label: 'Food Security',       labelAr: 'الأمن الغذائي',      layer: 'economy', type: 'Topic',         lat: 25.0500, lng: 51.0000, weight: 0.88, sensitivity: 0.7,  damping_factor: 0.05, value: 0.88 },
 
   // ── Economy-layer Ministries ──
@@ -170,6 +170,10 @@ export const gccNodes: GCCNode[] = [
   { id: 'eco_saudia',   label: 'Saudia Airlines',    labelAr: 'الخطوط السعودية',    layer: 'economy', type: 'Organization',  lat: 24.96, lng: 46.70, weight: 0.75, sensitivity: 0.65, damping_factor: 0.05, value: 0.75 },
   { id: 'eco_emirates',  label: 'Emirates',           labelAr: 'طيران الإمارات',     layer: 'economy', type: 'Organization',  lat: 25.25, lng: 55.37, weight: 0.80, sensitivity: 0.6,  damping_factor: 0.05, value: 0.80 },
   { id: 'eco_qatar_aw',  label: 'Qatar Airways',      labelAr: 'الخطوط القطرية',     layer: 'economy', type: 'Organization',  lat: 25.27, lng: 51.57, weight: 0.78, sensitivity: 0.6,  damping_factor: 0.05, value: 0.78 },
+  { id: 'eco_kw_airways',label: 'Kuwait Airways',     labelAr: 'الخطوط الكويتية',    layer: 'economy', type: 'Organization',  lat: 29.23, lng: 47.97, weight: 0.65, sensitivity: 0.6,  damping_factor: 0.05, value: 0.65 },
+  { id: 'eco_gulf_air',  label: 'Gulf Air',           labelAr: 'طيران الخليج',       layer: 'economy', type: 'Organization',  lat: 26.27, lng: 50.63, weight: 0.60, sensitivity: 0.6,  damping_factor: 0.05, value: 0.60 },
+  { id: 'eco_oman_air',  label: 'Oman Air',           labelAr: 'الطيران العماني',     layer: 'economy', type: 'Organization',  lat: 23.59, lng: 58.28, weight: 0.58, sensitivity: 0.6,  damping_factor: 0.05, value: 0.58 },
+  { id: 'eco_av_stress', label: 'Aviation Sector Stress', labelAr: 'ضغط قطاع الطيران', layer: 'economy', type: 'Topic',      lat: 25.10, lng: 55.15, weight: 0.80, sensitivity: 0.7,  damping_factor: 0.05, value: 0.80 },
 ]
 
 /* ════════════════════════════════════════════════
@@ -457,6 +461,33 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e173', source: 'eco_qatar_aw',  target: 'inf_doh', weight: 0.85, polarity: 1, label: 'Qatar hub → DOH',   labelAr: 'مركز القطرية → الدوحة',   animated: true },
   // Saudia also serves JED (Hajj gateway)
   { id: 'e174', source: 'eco_saudia',   target: 'inf_jed', weight: 0.75, polarity: 1, label: 'Saudia → JED',       labelAr: 'السعودية → جدة',          animated: true },
+
+  // ── Additional Airlines ──
+  // Fuel cost → airlines
+  { id: 'e175', source: 'eco_aviation', target: 'eco_kw_airways', weight: 0.70, polarity: 1, label: 'fuel cost → Kuwait Airways', labelAr: 'تكلفة الوقود → الكويتية' },
+  { id: 'e176', source: 'eco_aviation', target: 'eco_gulf_air',   weight: 0.65, polarity: 1, label: 'fuel cost → Gulf Air',      labelAr: 'تكلفة الوقود → طيران الخليج' },
+  { id: 'e177', source: 'eco_aviation', target: 'eco_oman_air',   weight: 0.60, polarity: 1, label: 'fuel cost → Oman Air',      labelAr: 'تكلفة الوقود → الطيران العماني' },
+  // Airlines → hub airports
+  { id: 'e178', source: 'eco_kw_airways', target: 'inf_kwi', weight: 0.80, polarity: 1, label: 'Kuwait Airways hub → KWI', labelAr: 'الكويتية → الكويت', animated: true },
+  { id: 'e179', source: 'eco_gulf_air',   target: 'inf_bah', weight: 0.80, polarity: 1, label: 'Gulf Air hub → BAH',      labelAr: 'طيران الخليج → البحرين', animated: true },
+  { id: 'e180', source: 'eco_oman_air',   target: 'inf_mct', weight: 0.80, polarity: 1, label: 'Oman Air hub → MCT',      labelAr: 'الطيران العماني → مسقط', animated: true },
+  // Throughput → airlines
+  { id: 'e181', source: 'inf_airport_throughput', target: 'eco_kw_airways', weight: 0.60, polarity: 1, label: 'passengers → Kuwait Airways', labelAr: 'المسافرون → الكويتية' },
+  { id: 'e182', source: 'inf_airport_throughput', target: 'eco_gulf_air',   weight: 0.55, polarity: 1, label: 'passengers → Gulf Air',      labelAr: 'المسافرون → طيران الخليج' },
+  { id: 'e183', source: 'inf_airport_throughput', target: 'eco_oman_air',   weight: 0.50, polarity: 1, label: 'passengers → Oman Air',      labelAr: 'المسافرون → الطيران العماني' },
+  // Airlines → GDP
+  { id: 'e184', source: 'eco_kw_airways', target: 'eco_gdp', weight: 0.30, polarity: -1, label: 'airline cost drags GDP', labelAr: 'تكلفة الطيران تضغط الناتج' },
+  { id: 'e185', source: 'eco_gulf_air',   target: 'eco_gdp', weight: 0.25, polarity: -1, label: 'airline cost drags GDP', labelAr: 'تكلفة الطيران تضغط الناتج' },
+  { id: 'e186', source: 'eco_oman_air',   target: 'eco_gdp', weight: 0.25, polarity: -1, label: 'airline cost drags GDP', labelAr: 'تكلفة الطيران تضغط الناتج' },
+
+  // ── Aviation Sector Stress (aggregate) ──
+  // Inputs: fuel cost, insurance risk, flight cost, throughput decline
+  { id: 'e187', source: 'eco_aviation',          target: 'eco_av_stress', weight: 0.85, polarity: 1,  label: 'fuel cost → stress',       labelAr: 'تكلفة الوقود → الضغط' },
+  { id: 'e188', source: 'fin_insurers',           target: 'eco_av_stress', weight: 0.70, polarity: 1,  label: 'insurance → stress',       labelAr: 'التأمين → الضغط' },
+  { id: 'e189', source: 'soc_ticket',             target: 'eco_av_stress', weight: 0.65, polarity: 1,  label: 'flight cost → stress',     labelAr: 'تكلفة الرحلات → الضغط' },
+  { id: 'e190', source: 'inf_airport_throughput',  target: 'eco_av_stress', weight: 0.60, polarity: -1, label: 'throughput drop → stress',  labelAr: 'انخفاض الحركة → الضغط' },
+  // Stress → GDP
+  { id: 'e191', source: 'eco_av_stress', target: 'eco_gdp', weight: 0.50, polarity: -1, label: 'aviation stress drags GDP', labelAr: 'ضغط الطيران يضغط الناتج' },
 ]
 
 /* ════════════════════════════════════════════════
