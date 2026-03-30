@@ -14,6 +14,7 @@ import dynamic from 'next/dynamic'
 import GraphPanel from '@/components/graph/GraphPanel'
 import { gccNodes, gccEdges, gccScenarios, layerMeta, SCENARIO_GROUPS, type ScenarioGroup } from '@/lib/gcc-graph'
 import { runPropagation, formatPropagationChain, computeSectorFinancials, computeHormuzChain, computeAviationChain, type PropagationResult, type NodeExplanation, type SectorFinancials, type HormuzChainResult, type AviationChainResult } from '@/lib/propagation-engine'
+import { computeScenarioEngine, type ScenarioEngineOutput } from '@/lib/scenario-engines'
 import { setLanguage, getLanguage, type Language } from '@/lib/i18n'
 import { shippingRoutes, aviationRoutes, nodeCoordinates } from '@/lib/gcc-coordinates'
 
@@ -110,6 +111,10 @@ const UI: Record<string, { en: string; ar: string }> = {
   aviationEngine: { en: 'Aviation Cascade Engine', ar: 'محرك سلسلة الطيران' },
   aviationChain: { en: 'Insurance → Fuel → Flight Cost → Demand → Airports → Tourism → GDP', ar: 'التأمين ← الوقود ← تكلفة الرحلات ← الطلب ← المطارات ← السياحة ← الناتج المحلي' },
   airportImpact: { en: 'Airport Throughput', ar: 'حركة المطارات' },
+  scenarioEngine: { en: 'Scenario Formula Engine', ar: 'محرك المعادلات' },
+  engineExposure: { en: 'Total Exposure', ar: 'إجمالي التعرض' },
+  engineNarrative: { en: 'Causal Narrative', ar: 'السرد السببي' },
+  engineMetrics: { en: 'Key Metrics', ar: 'المقاييس الرئيسية' },
 }
 
 const LAYER_LABELS: Record<string, { en: string; ar: string }> = {
@@ -780,6 +785,14 @@ function DemoPageContent() {
     return computeAviationChain(propagation.nodeImpacts, severityMod)
   }, [propagation, severityMod])
 
+  const engineResult = useMemo<ScenarioEngineOutput | null>(() => {
+    if (!propagation) return null
+    const scenario = gccScenarios.find(s => s.id === selectedScenario)
+    if (!scenario) return null
+    const eid = scenario.engineId || scenario.id
+    return computeScenarioEngine(eid)
+  }, [propagation, selectedScenario, severityMod])
+
   if (isMobile) {
     return (
       <div className="h-screen w-full bg-ds-bg flex items-center justify-center p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -878,17 +891,23 @@ function DemoPageContent() {
               )}
             </div>
 
-            {/* ═══ HORMUZ CASCADE ENGINE ═══ */}
-            {propagation && hormuzChain && hormuzChain.steps[0].impactPct > 0.1 && (
-              <div className="ds-card rounded-xl p-3 border border-amber-500/20">
-                <h3 className="text-[10px] uppercase tracking-[0.15em] text-amber-400 font-bold mb-2 flex items-center gap-2">
-                  <Anchor size={12} /> {ui('hormuzEngine', lang)}
+            {/* ═══ SCENARIO FORMULA ENGINE — UNIVERSAL ═══ */}
+            {propagation && engineResult && engineResult.steps.length > 0 && (
+              <div className="ds-card rounded-xl p-3 border border-cyan-500/20">
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 font-bold mb-2 flex items-center gap-2">
+                  <Zap size={12} /> {(() => {
+                    const engine = getScenarioEngine(engineResult.engineId)
+                    return lang === 'ar' ? engine.labelAr : engine.label
+                  })()}
                 </h3>
                 <div className="text-[9px] font-mono text-ds-text-dim mb-2 leading-relaxed">
-                  {ui('hormuzChain', lang)}
+                  {(() => {
+                    const engine = getScenarioEngine(engineResult.engineId)
+                    return lang === 'ar' ? engine.chainLabelAr : engine.chainLabel
+                  })()}
                 </div>
                 <div className="space-y-1.5">
-                  {hormuzChain.steps.map((step, i) => {
+                  {engineResult.steps.map((step, i) => {
                     const dirColor = step.direction === '↑' ? '#ef4444' : step.direction === '↓' ? '#f59e0b' : '#64748b'
                     const label = lang === 'ar' ? step.labelAr : step.label
                     const formula = lang === 'ar' ? step.formulaAr : step.formula
@@ -900,83 +919,47 @@ function DemoPageContent() {
                             <span className="text-[11px] text-ds-text font-medium">{label}</span>
                           </div>
                           <span className="text-[10px] font-mono font-bold" style={{ color: dirColor }}>
-                            {step.impactPct > 0 ? (step.direction === '↑' ? '+' : '−') : ''}{step.impactPct.toFixed(0)}%
+                            {step.impactPct > 0 ? (step.direction === '↑' ? '+' : '−') : ''}{Math.abs(step.impactPct).toFixed(0)}%
                           </span>
                         </div>
                         <div className="text-[9px] font-mono text-ds-text-dim mt-0.5">{formula}</div>
-                        {i < hormuzChain.steps.length - 1 && (
+                        {i < engineResult.steps.length - 1 && (
                           <div className="text-center text-[8px] text-ds-text-dim mt-0.5">│</div>
                         )}
                       </div>
                     )
                   })}
                 </div>
+
+                {/* Key Metrics */}
+                {engineResult.keyMetrics.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-ds-border">
+                    <h4 className="text-[9px] text-cyan-400 font-bold mb-1.5">{ui('engineMetrics', lang)}</h4>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {engineResult.keyMetrics.map((m, i) => (
+                        <div key={i} className="bg-ds-bg-alt rounded px-2 py-1">
+                          <span className="text-[8px] text-ds-text-dim block">{lang === 'ar' ? m.labelAr : m.label}</span>
+                          <span className="text-[11px] font-mono font-bold" style={{ color: m.color }}>{m.value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Total Exposure */}
                 <div className="mt-2 pt-2 border-t border-ds-border">
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-ds-text-dim font-semibold">{ui('gdpExposure', lang)}</span>
-                    <span className="font-mono text-red-400 font-bold">${hormuzChain.gdpLoss.toFixed(1)}B</span>
+                    <span className="text-ds-text-dim font-semibold">{ui('engineExposure', lang)}</span>
+                    <span className="font-mono text-red-400 font-bold">${engineResult.totalExposure.toFixed(1)}B</span>
                   </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-ds-border">
-                  <p className="text-[10px] text-ds-text-muted leading-relaxed">
-                    {lang === 'ar' ? hormuzChain.chainNarrativeAr : hormuzChain.chainNarrative}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* ── AVIATION CHAIN ENGINE ── */}
-            {propagation && aviationChain && aviationChain.steps[0].impactPct > 0.1 && (
-              <div className="ds-card rounded-xl p-3">
-                <h3 className="text-[10px] uppercase tracking-[0.15em] text-sky-400 font-bold mb-2 flex items-center gap-2">
-                  ✈️ {ui('aviationEngine', lang)}
-                </h3>
-                <p className="text-[9px] text-ds-muted mb-2">
-                  {ui('aviationChain', lang)}
-                </p>
-
-                {/* Aviation cascade steps */}
-                {aviationChain.steps.map((step, i) => {
-                  const color = step.direction === '↑' ? 'text-red-400' : 'text-emerald-400'
-                  return (
-                    <div key={step.id} className="mb-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] text-ds-text">{lang === 'ar' ? step.labelAr : step.label}</span>
-                        <span className={`text-[10px] font-mono font-bold ${color}`}>{step.direction} {step.impactPct.toFixed(1)}%</span>
-                      </div>
-                      <p className="text-[8px] text-ds-muted font-mono">{lang === 'ar' ? step.formulaAr : step.formula}</p>
-                      {i < aviationChain.steps.length - 1 && (
-                        <div className="text-center text-[8px] text-sky-500/60">↓</div>
-                      )}
-                    </div>
-                  )
-                })}
-
-                {/* Airport throughput breakdown */}
-                <div className="mt-2 pt-2 border-t border-ds-border/30">
-                  <h4 className="text-[9px] text-sky-400 font-bold mb-1">{ui('airportImpact', lang)}</h4>
-                  <div className="grid grid-cols-3 gap-1">
-                    {aviationChain.airportImpacts.map(apt => (
-                      <div key={apt.id} className="text-center">
-                        <span className="text-[9px] font-mono text-ds-text">{apt.label}</span>
-                        <div className={`text-[8px] font-mono ${apt.changePct < 0 ? 'text-red-400' : 'text-ds-muted'}`}>
-                          {apt.paxM}M <span className="text-[7px]">({apt.changePct.toFixed(0)}%)</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* GDP impact */}
-                <div className="mt-2 pt-2 border-t border-ds-border/30 flex items-center justify-between">
-                  <span className="text-[9px] text-ds-muted">{ui('gdpExposure', lang)}</span>
-                  <span className="font-mono text-sky-400 font-bold">${aviationChain.gdpImpact.toFixed(1)}B</span>
                 </div>
 
                 {/* Narrative */}
-                <p className="text-[8px] text-ds-muted mt-2 leading-relaxed">
-                  {lang === 'ar' ? aviationChain.chainNarrativeAr : aviationChain.chainNarrative}
-                </p>
+                <div className="mt-2 pt-2 border-t border-ds-border">
+                  <p className="text-[10px] text-ds-text-muted leading-relaxed">
+                    {lang === 'ar' ? engineResult.narrativeAr : engineResult.narrative}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -1147,6 +1130,69 @@ function DemoPageContent() {
                       </div>
                     )
                   })}
+                </div>
+              </div>
+            )}
+
+            {/* ═══ ENGINE INTELLIGENCE PANEL ═══ */}
+            {engineResult && (
+              <div className="ds-card rounded-xl p-3">
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-violet-400 font-bold mb-2 flex items-center gap-2">
+                  <Zap size={12} /> {lang === 'ar' ? 'محرك السيناريو' : 'Scenario Engine'}
+                </h3>
+                {/* GDP Loss Metrics */}
+                <div className="space-y-1.5 mb-3">
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-ds-text-muted">{lang === 'ar' ? 'خسائر الناتج الإقليمي' : 'Regional GDP Loss'}</span>
+                    <span className="font-mono text-rose-400 font-semibold">{engineResult.metrics.regionalGdpLoss.value.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-ds-text-muted">{lang === 'ar' ? 'خسائر الناتج العالمي' : 'Global GDP Loss'}</span>
+                    <span className="font-mono text-amber-400 font-semibold">{engineResult.metrics.globalGdpLoss.value.toFixed(1)}%</span>
+                  </div>
+                  <div className="flex justify-between text-[11px]">
+                    <span className="text-ds-text-muted">{lang === 'ar' ? 'الثقة' : 'Confidence'}</span>
+                    <span className="font-mono text-cyan-400">{engineResult.metrics.confidence.value.toFixed(0)}%</span>
+                  </div>
+                </div>
+                {/* Timeframe */}
+                <div className="border-t border-ds-border pt-2 mb-3">
+                  <div className="text-[9px] uppercase tracking-widest text-ds-text-dim mb-1">{lang === 'ar' ? 'الإطار الزمني' : 'Timeframe'}</div>
+                  <div className="grid grid-cols-3 gap-1 text-[10px]">
+                    <div className="bg-rose-500/10 rounded px-1.5 py-1 text-center"><div className="text-rose-400 font-bold">{lang === 'ar' ? 'فوري' : 'Imm.'}</div><div className="text-ds-text-dim">{engineResult.timeframe.immediate}</div></div>
+                    <div className="bg-amber-500/10 rounded px-1.5 py-1 text-center"><div className="text-amber-400 font-bold">{lang === 'ar' ? 'قصير' : 'Short'}</div><div className="text-ds-text-dim">{engineResult.timeframe.shortTerm}</div></div>
+                    <div className="bg-cyan-500/10 rounded px-1.5 py-1 text-center"><div className="text-cyan-400 font-bold">{lang === 'ar' ? 'متوسط' : 'Med.'}</div><div className="text-ds-text-dim">{engineResult.timeframe.mediumTerm}</div></div>
+                  </div>
+                </div>
+                {/* Sector Impacts from Engine */}
+                <div className="border-t border-ds-border pt-2 mb-3">
+                  <div className="text-[9px] uppercase tracking-widest text-ds-text-dim mb-1">{lang === 'ar' ? 'تأثيرات القطاعات' : 'Engine Sector Impacts'}</div>
+                  <div className="space-y-1">
+                    {Object.entries(engineResult.sectorImpacts).map(([sector, impact]) => (
+                      <div key={sector}>
+                        <div className="flex items-center gap-1.5 text-[10px]">
+                          <span className="w-20 text-ds-text-muted truncate capitalize">{sector.replace(/_/g, ' ')}</span>
+                          <div className="flex-1 h-1.5 bg-ds-bg-alt rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-rose-500 transition-all duration-500" style={{ width: `${impact.gdpLoss.value}%` }} />
+                          </div>
+                          <span className="font-mono w-10 text-end text-rose-400 text-[10px]">{impact.gdpLoss.value.toFixed(0)}%</span>
+                        </div>
+                        <div className="text-[9px] text-ds-text-dim ps-[5.5rem] -mt-0.5">{lang === 'ar' ? impact.narrative.ar : impact.narrative.en}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Explanation Chain */}
+                <div className="border-t border-ds-border pt-2">
+                  <div className="text-[9px] uppercase tracking-widest text-ds-text-dim mb-1">{lang === 'ar' ? 'سلسلة التفسير' : 'Explanation Chain'}</div>
+                  <div className="space-y-1">
+                    {engineResult.explanation.map((step, i) => (
+                      <div key={i} className="flex items-start gap-1.5 text-[10px]">
+                        <span className="text-violet-400 font-mono mt-0.5">{i + 1}.</span>
+                        <span className="text-ds-text-muted">{lang === 'ar' ? step.ar : step.en}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             )}

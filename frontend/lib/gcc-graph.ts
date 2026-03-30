@@ -85,6 +85,7 @@ export interface GCCScenario {
   simulationType?: 'deterministic' | 'probabilistic' | 'hybrid'
   chokePoints?: string[]
   geospatialAnchors?: string[]
+  engineId?: string
 }
 
 /* ════════════════════════════════════════════════
@@ -530,6 +531,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'hormuz_closure',
+    engineId: 'hormuz_closure',
     title: 'Strait of Hormuz Closure',
     titleAr: 'إغلاق مضيق هرمز',
     description: 'Full or partial closure of the Strait of Hormuz disrupting 21% of global oil transit, triggering multi-sector cascade across the GCC.',
@@ -554,6 +556,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'us_iran_escalation',
+    engineId: 'us_iran_escalation',
     title: 'Limited US\u2013Iran Escalation',
     titleAr: 'تصعيد أمريكي–إيراني محدود',
     description: 'A contained military exchange near the Strait triggers insurance repricing, capital flight, and aviation rerouting without full blockade.',
@@ -583,6 +586,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'military_repositioning',
+    engineId: 'military_repositioning',
     title: 'Military Repositioning in the Gulf',
     titleAr: 'إعادة تموضع عسكري في الخليج',
     description: 'Large-scale military movement near GCC waters triggers precautionary shipping rerouting, port delays, and airspace restrictions.',
@@ -616,6 +620,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'airspace_restriction',
+    engineId: 'airspace_restriction',
     title: 'GCC Airspace Restriction',
     titleAr: 'تقييد المجال الجوي الخليجي',
     description: 'Partial GCC airspace closure forces rerouting of international flights, increasing fuel burn, ticket prices, and airline stress.',
@@ -646,6 +651,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'hajj_disruption',
+    engineId: 'hajj_disruption',
     title: 'Hajj / Umrah Season Disruption',
     titleAr: 'تعطل موسم الحج والعمرة',
     description: 'Major disruption to Hajj season affecting 2M+ pilgrims, cascading through aviation, tourism revenue, JED airport operations, and Saudi GDP.',
@@ -674,6 +680,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'flight_rerouting',
+    engineId: 'flight_rerouting',
     title: 'Flight Re-Routing under Regional Conflict',
     titleAr: 'تحويل مسارات الطيران تحت صراع إقليمي',
     description: 'Active conflict forces airlines to avoid GCC airspace, adding 2-4 hours to East-West routes and spiking fuel and ticket costs.',
@@ -707,6 +714,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'jebel_ali_disruption',
+    engineId: 'jebel_ali_disruption',
     title: 'Jebel Ali Port Disruption',
     titleAr: 'تعطل ميناء جبل علي',
     description: 'Major disruption at Jebel Ali Port affecting 30% of Middle East trade volume, cascading through logistics, insurance, and re-export economy.',
@@ -734,6 +742,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'gcc_port_congestion',
+    engineId: 'gcc_port_congestion',
     title: 'GCC Port Congestion Crisis',
     titleAr: 'أزمة ازدحام الموانئ الخليجية',
     description: 'Simultaneous congestion across GCC ports due to rerouted global shipping, increasing dwell times, insurance costs, and food import delays.',
@@ -765,6 +774,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'food_security_shock',
+    engineId: 'food_security_shock',
     title: 'Gulf Food Security Shock',
     titleAr: 'صدمة الأمن الغذائي الخليجي',
     description: 'Global grain supply disruption combined with Hormuz shipping bottleneck. GCC imports 85% of food — cascading through ports, cost of living, and social stability.',
@@ -797,6 +807,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'liquidity_stress',
+    engineId: 'liquidity_stress',
     title: 'GCC Liquidity Stress',
     titleAr: 'ضغط السيولة الخليجي',
     description: 'Oil revenue collapse triggers sovereign deposit withdrawal, creating GCC-wide banking liquidity crunch affecting commercial lending and business credit.',
@@ -825,6 +836,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'fx_gold_crypto_shock',
+    engineId: 'fx_gold_crypto_shock',
     title: 'FX / Gold / Crypto Market Shock',
     titleAr: 'صدمة أسواق العملات والذهب والعملات الرقمية',
     description: 'Simultaneous dollar strengthening, gold spike, and crypto volatility create cross-asset stress on GCC financial markets and central bank reserves.',
@@ -855,6 +867,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'insurance_repricing',
+    engineId: 'insurance_repricing',
     title: 'Insurance & Reinsurance Risk Repricing',
     titleAr: 'إعادة تسعير مخاطر التأمين وإعادة التأمين',
     description: 'Reinsurance withdrawal from GCC markets following catastrophic loss event, raising premiums across shipping, aviation, and infrastructure sectors.',
@@ -886,6 +899,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'gcc_grid_failure',
+    engineId: 'gcc_grid_failure',
     title: 'GCC Power Grid Failure',
     titleAr: 'انهيار شبكة الكهرباء الخليجية',
     description: 'Peak summer power grid failure cascading through desalination, telecom infrastructure, business operations, and citizen welfare.',
@@ -914,6 +928,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'water_electricity_disruption',
+    engineId: 'water_electricity_disruption',
     title: 'Electricity & Water Disruption',
     titleAr: 'تعطل الكهرباء والمياه',
     description: 'Coordinated infrastructure failure affecting power generation and desalination plants, threatening public health and economic activity.',
@@ -942,6 +957,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'summer_utility_stress',
+    engineId: 'summer_utility_stress',
     title: 'Summer Utility Stress under Conflict',
     titleAr: 'ضغط المرافق الصيفي تحت الصراع',
     description: 'Peak summer demand combined with regional conflict disrupts fuel supply for power generation, creating cascading utility and social stress.',
@@ -975,6 +991,7 @@ export const gccScenarios: GCCScenario[] = [
   // ═══════════════════════════════════════════════
   {
     id: 'vision2030_stress',
+    engineId: 'vision2030_stress',
     title: 'Vision 2030 Stress under Regional Shock',
     titleAr: 'ضغط رؤية 2030 تحت صدمة إقليمية',
     description: 'Regional instability threatens Vision 2030 investment timeline, affecting tourism corridors, mega projects, FDI flows, and employment targets.',
@@ -1004,6 +1021,7 @@ export const gccScenarios: GCCScenario[] = [
   },
   {
     id: 'mega_projects_pressure',
+    engineId: 'mega_projects_pressure',
     title: 'Mega Projects & Tourism Corridor Pressure',
     titleAr: 'ضغط المشاريع الكبرى وممرات السياحة',
     description: 'Construction delays, labor shortages, and financing stress on GCC mega projects create ripple effects through employment, housing, and economic growth.',
