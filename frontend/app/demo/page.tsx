@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import Link from 'next/link'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Play, RotateCcw, Globe as GlobeIcon, ArrowLeft, Loader2, CheckCircle2, Circle,
@@ -213,7 +214,9 @@ function SectorBar({ sector, avgImpact, color, lang }: { sector: string; avgImpa
    ══════════════════════════════════════════════ */
 export default function DemoPage() {
   const [lang, setLang] = useState<Language>('ar')
-  const [scenarioId, setScenarioId] = useState<string>('')
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [scenarioId, setScenarioId] = useState<string>(searchParams.get('scenario') || '')
   const [isRunning, setIsRunning] = useState(false)
   const [processingStep, setProcessingStep] = useState(0)
   const [propagation, setPropagation] = useState<PropagationResult | null>(null)

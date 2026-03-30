@@ -231,6 +231,50 @@ export const gccScenarios: GCCScenario[] = [
       { nodeId: 'fin_ins_risk', impact: 0.75 },
     ],
   },
+  {
+    id: 'cyber_banking',
+    title: 'Cyber Attack on Banking Infrastructure',
+    titleAr: 'هجوم سيبراني على البنية التحتية المصرفية',
+    description: 'Coordinated cyber attack targeting GCC central banking systems and SWIFT gateways, disrupting cross-border transactions and triggering capital flight.',
+    descriptionAr: 'هجوم سيبراني منسق يستهدف أنظمة البنوك المركزية الخليجية وبوابات سويفت، مما يعطل المعاملات عبر الحدود ويؤدي إلى هروب رؤوس الأموال.',
+    category: 'finance',
+    country: 'GCC',
+    shocks: [
+      { nodeId: 'fin_sama', impact: 0.80 },
+      { nodeId: 'fin_cbuae', impact: 0.75 },
+      { nodeId: 'fin_tadawul', impact: 0.70 },
+    ],
+  },
+  {
+    id: 'pandemic_outbreak',
+    title: 'Regional Pandemic Outbreak',
+    titleAr: 'تفشي وباء إقليمي',
+    description: 'Novel respiratory virus outbreak originating in dense urban GCC centers, forcing border closures, grounding aviation, and collapsing tourism revenue.',
+    descriptionAr: 'تفشي فيروس تنفسي جديد ينطلق من المراكز الحضرية المكتظة في الخليج، مما يفرض إغلاق الحدود وتوقف الطيران وانهيار إيرادات السياحة.',
+    category: 'society',
+    country: 'GCC',
+    shocks: [
+      { nodeId: 'soc_citizens', impact: 0.85 },
+      { nodeId: 'eco_tourism', impact: 0.90 },
+      { nodeId: 'inf_ruh', impact: 0.60 },
+      { nodeId: 'inf_dxb', impact: 0.65 },
+    ],
+  },
+  {
+    id: 'climate_flood',
+    title: 'Extreme Flooding Event',
+    titleAr: 'فيضانات كارثية',
+    description: 'Unprecedented rainfall and flash flooding across UAE and Oman (similar to April 2024), damaging port infrastructure, energy facilities, and supply chains.',
+    descriptionAr: 'أمطار غير مسبوقة وفيضانات مفاجئة عبر الإمارات وعُمان (مشابهة لأحداث أبريل 2024)، مما يضر بالبنية التحتية للموانئ ومنشآت الطاقة وسلاسل الإمداد.',
+    category: 'infrastructure',
+    country: 'UAE/Oman',
+    shocks: [
+      { nodeId: 'inf_jebel', impact: 0.80 },
+      { nodeId: 'inf_dxb', impact: 0.70 },
+      { nodeId: 'eco_shipping', impact: 0.65 },
+      { nodeId: 'eco_logistics', impact: 0.75 },
+    ],
+  },
 ]
 
 /* ââââââââââââââââââââââââââââââââââââââââââââââ
