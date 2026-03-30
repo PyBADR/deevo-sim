@@ -107,6 +107,15 @@ export const shippingRoutes: { from: GeoCoordinate; to: GeoCoordinate; label: st
   { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 24.8100, lng: 54.6500 }, label: 'Hormuz → Khalifa Port' },
   { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 29.3500, lng: 47.9200 }, label: 'Hormuz → Shuwaikh Port' },
   { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 24.8100, lng: 54.6500 }, label: 'Jebel Ali → Khalifa' },
+  // ── Intercontinental oil/shipping routes (Hormuz impact visibility) ──
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 12.9000, lng: 45.0000 }, label: 'Hormuz → Gulf of Aden' },
+  { from: { lat: 12.9000, lng: 45.0000 }, to: { lat: 30.0000, lng: 32.5500 }, label: 'Gulf of Aden → Suez' },
+  { from: { lat: 30.0000, lng: 32.5500 }, to: { lat: 51.5074, lng:  1.1278 }, label: 'Suez → Europe (London)' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 19.0760, lng: 72.8777 }, label: 'Hormuz → Mumbai' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 31.2304, lng: 121.474 }, label: 'Hormuz → Shanghai' },
+  { from: { lat: 24.9857, lng: 55.0272 }, to: { lat:  1.3521, lng: 103.820 }, label: 'Jebel Ali → Singapore' },
+  { from: { lat: 26.5944, lng: 56.4667 }, to: { lat: 35.6762, lng: 139.650 }, label: 'Hormuz → Tokyo' },
+  { from: { lat: 24.9857, lng: 55.0272 }, to: { lat: 22.3193, lng: 114.170 }, label: 'Jebel Ali → Hong Kong' },
 ]
 
 /** Aviation routes */

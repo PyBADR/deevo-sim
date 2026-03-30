@@ -114,11 +114,11 @@ export const gccNodes: GCCNode[] = [
   { id: 'eco_aramco',  label: 'Aramco',             labelAr: 'أرامكو',           layer: 'economy', type: 'Organization',  lat: 26.3175, lng: 50.2083, weight: 0.95, sensitivity: 0.5,  damping_factor: 0.03, value: 0.95 },
   { id: 'eco_adnoc',   label: 'ADNOC',              labelAr: 'أدنوك',            layer: 'economy', type: 'Organization',  lat: 24.4539, lng: 54.3773, weight: 0.88, sensitivity: 0.5,  damping_factor: 0.04, value: 0.88 },
   { id: 'eco_kpc',     label: 'KPC',                labelAr: 'مؤسسة البترول الكويتية', layer: 'economy', type: 'Organization', lat: 29.3375, lng: 48.0013, weight: 0.78, sensitivity: 0.55, damping_factor: 0.04, value: 0.78 },
-  { id: 'eco_shipping',label: 'Shipping & Logistics',labelAr: 'الشحن والخدمات اللوجستية', layer: 'economy', type: 'Topic', lat: 25.0000, lng: 55.1000, weight: 0.85, sensitivity: 0.65, damping_factor: 0.05, value: 0.85 },
-  { id: 'eco_aviation',label: 'Aviation Sector',     labelAr: 'قطاع الطيران',      layer: 'economy', type: 'Topic',         lat: 25.0657, lng: 55.1713, weight: 0.82, sensitivity: 0.6,  damping_factor: 0.05, value: 0.82 },
+  { id: 'eco_shipping',label: 'Shipping Cost',labelAr: 'تكلفة الشحن', layer: 'economy', type: 'Topic', lat: 25.0000, lng: 55.1000, weight: 0.85, sensitivity: 0.65, damping_factor: 0.05, value: 0.85 },
+  { id: 'eco_aviation',label: 'Aviation Fuel Cost',   labelAr: 'تكلفة وقود الطيران', layer: 'economy', type: 'Topic',         lat: 25.0657, lng: 55.1713, weight: 0.82, sensitivity: 0.6,  damping_factor: 0.05, value: 0.82 },
   { id: 'eco_fuel',    label: 'Fuel Cost',           labelAr: 'تكلفة الوقود',      layer: 'economy', type: 'Topic',         lat: 24.4700, lng: 54.3700, weight: 0.88, sensitivity: 0.7,  damping_factor: 0.04, value: 0.88 },
   { id: 'eco_gdp',     label: 'GCC GDP',            labelAr: 'الناتج المحلي الخليجي', layer: 'economy', type: 'Topic',      lat: 24.4700, lng: 49.0000, weight: 0.90, sensitivity: 0.4,  damping_factor: 0.02, value: 0.90 },
-  { id: 'eco_tourism', label: 'Tourism Revenue',     labelAr: 'إيرادات السياحة',    layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, damping_factor: 0.05, value: 0.78 },
+  { id: 'eco_tourism', label: 'Tourism Demand',       labelAr: 'الطلب السياحي',      layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, damping_factor: 0.05, value: 0.78 },
   { id: 'eco_food',    label: 'Food Security',       labelAr: 'الأمن الغذائي',      layer: 'economy', type: 'Topic',         lat: 25.0500, lng: 51.0000, weight: 0.88, sensitivity: 0.7,  damping_factor: 0.05, value: 0.88 },
 
   // ── Economy-layer Ministries ──
@@ -137,7 +137,7 @@ export const gccNodes: GCCNode[] = [
   { id: 'fin_om_cb',   label: 'Oman Central Bank',  labelAr: 'البنك المركزي العماني', layer: 'finance', type: 'Organization', lat: 23.5900, lng: 58.3800, weight: 0.65, sensitivity: 0.4,  damping_factor: 0.03, value: 0.65 },
   { id: 'fin_bh_cb',   label: 'Bahrain Central Bank',labelAr: 'مصرف البحرين المركزي', layer: 'finance', type: 'Organization', lat: 26.2200, lng: 50.5900, weight: 0.68, sensitivity: 0.4,  damping_factor: 0.03, value: 0.68 },
   { id: 'fin_banking', label: 'Commercial Banks',   labelAr: 'البنوك التجارية',    layer: 'finance', type: 'Organization',  lat: 24.7200, lng: 46.6900, weight: 0.88, sensitivity: 0.55, damping_factor: 0.04, value: 0.88 },
-  { id: 'fin_insurers',label: 'Insurers',           labelAr: 'شركات التأمين',      layer: 'finance', type: 'Organization',  lat: 24.7500, lng: 46.7200, weight: 0.80, sensitivity: 0.7,  damping_factor: 0.06, value: 0.80 },
+  { id: 'fin_insurers',label: 'Insurance Risk',      labelAr: 'مخاطر التأمين',      layer: 'finance', type: 'Organization',  lat: 24.7500, lng: 46.7200, weight: 0.80, sensitivity: 0.7,  damping_factor: 0.06, value: 0.80 },
   { id: 'fin_reinsure', label: 'Reinsurers',        labelAr: 'إعادة التأمين',      layer: 'finance', type: 'Organization',  lat: 25.1800, lng: 55.2800, weight: 0.75, sensitivity: 0.65, damping_factor: 0.05, value: 0.75 },
   { id: 'fin_ins_risk', label: 'Insurance Risk',    labelAr: 'مخاطر التأمين',      layer: 'finance', type: 'Topic',         lat: 25.2200, lng: 55.2600, weight: 0.82, sensitivity: 0.7,  damping_factor: 0.06, value: 0.82 },
   { id: 'fin_tadawul', label: 'Tadawul Exchange',   labelAr: 'تداول',             layer: 'finance', type: 'Organization',  lat: 24.6900, lng: 46.6900, weight: 0.85, sensitivity: 0.6,  damping_factor: 0.04, value: 0.85 },
@@ -173,11 +173,11 @@ export const gccEdges: GCCEdge[] = [
   // ═══════════════════════════════════
   // HORMUZ → OIL CHAIN (core cascade)
   // ═══════════════════════════════════
-  { id: 'e01', source: 'geo_hormuz',  target: 'eco_oil',      weight: 0.95, polarity: 1, label: 'controls export', labelAr: 'يتحكم بالتصدير',   animated: true },
+  { id: 'e01', source: 'geo_hormuz',  target: 'eco_oil',      weight: 0.95, polarity: -1, label: 'disrupts export', labelAr: 'يعطّل التصدير',   animated: true },
   { id: 'e02', source: 'eco_oil',     target: 'eco_aramco',   weight: 0.90, polarity: 1, label: 'revenue driver', labelAr: 'محرك الإيرادات' },
   { id: 'e03', source: 'eco_oil',     target: 'eco_adnoc',    weight: 0.85, polarity: 1, label: 'revenue driver', labelAr: 'محرك الإيرادات' },
   { id: 'e04', source: 'eco_oil',     target: 'eco_kpc',      weight: 0.80, polarity: 1, label: 'revenue driver', labelAr: 'محرك الإيرادات' },
-  { id: 'e05', source: 'eco_oil',     target: 'eco_shipping',  weight: 0.85, polarity: 1, label: 'shipping volume', labelAr: 'حجم الشحن',  animated: true },
+  { id: 'e05', source: 'eco_oil',     target: 'eco_shipping',  weight: 0.85, polarity: -1, label: 'oil disruption raises shipping cost', labelAr: 'تعطل النفط يرفع تكلفة الشحن', animated: true },
   { id: 'e06', source: 'eco_oil',     target: 'eco_fuel',     weight: 0.88, polarity: 1, label: 'price driver', labelAr: 'محرك الأسعار' },
 
   // ═══════════════════════════════════
@@ -198,12 +198,16 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e11', source: 'fin_ins_risk', target: 'fin_insurers',  weight: 0.80, polarity: 1, label: 'premium impact', labelAr: 'تأثير الأقساط' },
   { id: 'e12', source: 'fin_ins_risk', target: 'fin_reinsure',  weight: 0.75, polarity: 1, label: 'reinsurance cost', labelAr: 'تكلفة إعادة التأمين' },
   { id: 'e13', source: 'fin_insurers', target: 'soc_business',  weight: 0.65, polarity: 1, label: 'cost pass-through', labelAr: 'تمرير التكاليف' },
+  // ── CRITICAL: Insurance Risk → Fuel Cost (completes Hormuz cascade) ──
+  { id: 'e136', source: 'fin_ins_risk', target: 'eco_fuel',     weight: 0.75, polarity: 1, label: 'insurance surcharge', labelAr: 'رسوم التأمين الإضافية', animated: true },
 
   // ═══════════════════════════════════
   // FUEL → AVIATION → TICKET → DEMAND → AIRPORTS
   // ═══════════════════════════════════
   { id: 'e14', source: 'eco_fuel',     target: 'eco_aviation',  weight: 0.90, polarity: 1, label: 'fuel cost', labelAr: 'تكلفة الوقود',       animated: true },
   { id: 'e15', source: 'eco_aviation', target: 'soc_ticket',   weight: 0.85, polarity: 1, label: 'ticket pricing', labelAr: 'تسعير التذاكر' },
+  // ── CRITICAL: Aviation Cost → Tourism (higher cost reduces tourism) ──
+  { id: 'e137', source: 'eco_aviation', target: 'eco_tourism',  weight: 0.70, polarity: -1, label: 'cost dampens tourism', labelAr: 'التكلفة تخفض السياحة', animated: true },
   { id: 'e16', source: 'soc_ticket',   target: 'soc_travel_d', weight: 0.70, polarity: -1, label: 'demand inverse', labelAr: 'عكس الطلب' },
   { id: 'e17', source: 'soc_travel_d', target: 'inf_dxb',     weight: 0.80, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
   { id: 'e18', source: 'soc_travel_d', target: 'inf_ruh',     weight: 0.70, polarity: 1, label: 'passenger flow', labelAr: 'تدفق الركاب' },
@@ -223,7 +227,7 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e23', source: 'eco_shipping', target: 'eco_gdp',     weight: 0.55, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
   { id: 'e46', source: 'eco_aramco',   target: 'eco_gdp',      weight: 0.70, polarity: 1, label: 'revenue', labelAr: 'إيرادات' },
   { id: 'e47', source: 'eco_adnoc',    target: 'eco_gdp',      weight: 0.55, polarity: 1, label: 'revenue', labelAr: 'إيرادات' },
-  { id: 'e50', source: 'eco_tourism',  target: 'eco_gdp',       weight: 0.50, polarity: 1, label: 'tourism GDP', labelAr: 'ناتج السياحة' },
+  { id: 'e50', source: 'eco_tourism',  target: 'eco_gdp',       weight: 0.60, polarity: 1, label: 'tourism GDP', labelAr: 'ناتج السياحة' },
   { id: 'e76', source: 'eco_food',     target: 'eco_gdp',       weight: 0.35, polarity: 1, label: 'food sector GDP', labelAr: 'ناتج قطاع الغذاء' },
   { id: 'e77', source: 'eco_telecom',  target: 'eco_gdp',       weight: 0.40, polarity: 1, label: 'telecom GDP', labelAr: 'ناتج الاتصالات' },
   { id: 'e78', source: 'fin_banking',  target: 'eco_gdp',       weight: 0.60, polarity: 1, label: 'credit multiplier', labelAr: 'مضاعف الائتمان' },
@@ -400,6 +404,13 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e143', source: 'eco_logistics', target: 'eco_gdp',     weight: 0.50, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
   { id: 'e144', source: 'eco_logistics', target: 'eco_food',    weight: 0.60, polarity: 1, label: 'food distribution', labelAr: 'توزيع الغذاء' },
   { id: 'e145', source: 'inf_dmm',      target: 'eco_logistics', weight: 0.45, polarity: 1, label: 'cargo hub', labelAr: 'مركز شحن' },
+
+  // ── Oil + Hormuz Core Chain ──
+  // Shipping Cost → Insurance Risk (disruption raises premiums)
+  { id: 'e146', source: 'eco_shipping', target: 'fin_insurers',  weight: 0.80, polarity: 1, label: 'shipping risk drives premiums', labelAr: 'مخاطر الشحن ترفع الأقساط', animated: true },
+  // Insurance Risk → Aviation Fuel Cost (higher insurance raises fuel cost)
+  { id: 'e147', source: 'fin_insurers', target: 'eco_aviation',  weight: 0.75, polarity: 1, label: 'insurance raises fuel cost', labelAr: 'التأمين يرفع تكلفة الوقود', animated: true },
+  // Aviation Cost → Tourism Demand: already exists as e137 (w=0.70, polarity=-1)
 ]
 
 /* ════════════════════════════════════════════════

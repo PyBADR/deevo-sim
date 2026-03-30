@@ -456,27 +456,42 @@ export function runPropagation(
    Each formula aggregates impacts on the relevant nodes
    and applies domain-specific scaling:
 
-   R_oil            = base × (1 - |I(eco_oil)|) × (1 - 0.5 × |I(geo_hormuz)|)
-   R_tourism        = base × (1 - |I(eco_tourism)|) × (1 - 0.3 × |I(soc_travelers)|)
-   Throughput_airport = base × Π(1 - |I(inf_airport_k)|) for all airports
-   Throughput_port  = base × Π(1 - |I(inf_port_k)|) for all ports
-   Cost_shipping    = base × (1 + |I(eco_shipping)| + 0.5 × |I(geo_hormuz)|)
+   Oil + Hormuz Core Chain (mandatory):
+   F_flow           = 1 - (Severity_hormuz × Dependency_hormuz)
+   Oil_export       = Base_export × F_flow
+   Impact_oil       = 1 - (Oil_export / Base_export)
+   Cost_shipping    = Base_shipping × (1 + Impact_oil × W_oil_to_shipping)
+   Risk_insurance   = Base_risk × (1 + Cost_shipping_impact × W_shipping_to_insurance)
+   Cost_aviation    = Base_fuel × (1 + Risk_insurance_impact × W_insurance_to_aviation)
+   Tourism          = Base_tourism × (1 - Cost_aviation_impact × W_aviation_to_tourism)
+   GDP_loss         = Σ (Sector_impact × Sector_weight)
+
+   Additional sector formulas:
+   Throughput_airport = base × Π(1 - |I(inf_airport_k)|)
+   Throughput_port  = base × Π(1 - |I(inf_port_k)|)
    Stress_banking   = Σ|I(fin_bank_k)| / N_banks
-   Risk_insurance   = base × (1 + 2 × |I(fin_insurers)| + |I(fin_reinsure)|)
    Stress_food      = |I(eco_food)| × 0.5 + |I(soc_food_d)| × 0.5
    Avail_utility    = 1 - (|I(inf_desal)| + |I(inf_power)|) / 2
    ═══════════════════════════════════════════════════ */
 
+export interface SectorFinancialMetric {
+  value: number; base: number; label: string; labelAr: string; unit: string
+  formula?: string  // readable formula for explanation
+  direction?: 'up' | 'down'  // whether this metric rises or falls under stress
+}
+
 export interface SectorFinancials {
-  oilRevenue: { value: number; base: number; label: string; labelAr: string; unit: string }
-  tourismRevenue: { value: number; base: number; label: string; labelAr: string; unit: string }
-  airportThroughput: { value: number; base: number; label: string; labelAr: string; unit: string }
-  portThroughput: { value: number; base: number; label: string; labelAr: string; unit: string }
-  shippingCost: { value: number; base: number; label: string; labelAr: string; unit: string }
-  bankingStress: { value: number; base: number; label: string; labelAr: string; unit: string }
-  insuranceRisk: { value: number; base: number; label: string; labelAr: string; unit: string }
-  foodStress: { value: number; base: number; label: string; labelAr: string; unit: string }
-  utilityAvailability: { value: number; base: number; label: string; labelAr: string; unit: string }
+  oilRevenue: SectorFinancialMetric
+  shippingCost: SectorFinancialMetric
+  insuranceRisk: SectorFinancialMetric
+  aviationCost: SectorFinancialMetric
+  tourismRevenue: SectorFinancialMetric
+  gdpLoss: SectorFinancialMetric
+  airportThroughput: SectorFinancialMetric
+  portThroughput: SectorFinancialMetric
+  bankingStress: SectorFinancialMetric
+  foodStress: SectorFinancialMetric
+  utilityAvailability: SectorFinancialMetric
 }
 
 const AIRPORT_IDS = ['inf_ruh', 'inf_dxb', 'inf_kwi', 'inf_doh', 'inf_jed', 'inf_dmm', 'inf_auh', 'inf_bah', 'inf_mct']
@@ -491,18 +506,55 @@ const FINANCIAL_BASES = {
   portTEU: 45,           // M TEU — GCC combined
   shippingCost: 12,      // $B baseline shipping cost
   insurancePremium: 28,  // $B GCC insurance premiums
+  aviationFuel: 42,      // $B — GCC aviation fuel cost
 }
 
 export function computeSectorFinancials(impacts: Map<string, number>): SectorFinancials {
   const I = (id: string) => Math.abs(impacts.get(id) ?? 0)
+  const raw = (id: string) => impacts.get(id) ?? 0
 
-  // R_oil = base × (1 - |I(eco_oil)|) × (1 - 0.5 × |I(geo_hormuz)|)
-  const oilFactor = (1 - I('eco_oil')) * (1 - 0.5 * I('geo_hormuz'))
-  const oilRevenue = FINANCIAL_BASES.oilRevenue * Math.max(0, oilFactor)
+  // ── Oil + Hormuz Core Chain (mandatory formulas) ──
 
-  // R_tourism = base × (1 - |I(eco_tourism)|) × (1 - 0.3 × |I(soc_travelers)|)
-  const tourismFactor = (1 - I('eco_tourism')) * (1 - 0.3 * I('soc_travelers'))
-  const tourismRevenue = FINANCIAL_BASES.tourismRevenue * Math.max(0, tourismFactor)
+  // F_flow = 1 - (Severity_hormuz × Dependency_hormuz)
+  // Dependency = 0.95 (edge weight), Severity = propagated Hormuz impact
+  const severity_hormuz = I('geo_hormuz')
+  const dependency_hormuz = 0.95
+  const F_flow = Math.max(0, 1 - severity_hormuz * dependency_hormuz)
+
+  // Oil_export = Base_export × F_flow
+  const oilExport = FINANCIAL_BASES.oilRevenue * F_flow
+
+  // Impact_oil = 1 - (Oil_export / Base_export) = 1 - F_flow
+  const impactOil = 1 - F_flow
+
+  // Cost_shipping = Base_shipping × (1 + Impact_oil × W_oil_to_shipping)
+  const W_oil_to_shipping = 0.85
+  const shippingCost = FINANCIAL_BASES.shippingCost * (1 + impactOil * W_oil_to_shipping)
+  const shippingCostImpact = (shippingCost - FINANCIAL_BASES.shippingCost) / FINANCIAL_BASES.shippingCost
+
+  // Risk_insurance = Base_risk × (1 + Cost_shipping_impact × W_shipping_to_insurance)
+  const W_shipping_to_insurance = 0.80
+  const insuranceRisk = FINANCIAL_BASES.insurancePremium * (1 + shippingCostImpact * W_shipping_to_insurance)
+  const insuranceRiskImpact = (insuranceRisk - FINANCIAL_BASES.insurancePremium) / FINANCIAL_BASES.insurancePremium
+
+  // Cost_aviation = Base_fuel × (1 + Risk_insurance_impact × W_insurance_to_aviation)
+  const W_insurance_to_aviation = 0.75
+  const aviationCost = FINANCIAL_BASES.aviationFuel * (1 + insuranceRiskImpact * W_insurance_to_aviation)
+  const aviationCostImpact = (aviationCost - FINANCIAL_BASES.aviationFuel) / FINANCIAL_BASES.aviationFuel
+
+  // Tourism = Base_tourism × (1 - Cost_aviation_impact × W_aviation_to_tourism)
+  const W_aviation_to_tourism = 0.70
+  const tourismDemand = FINANCIAL_BASES.tourismRevenue * Math.max(0, 1 - aviationCostImpact * W_aviation_to_tourism)
+
+  // GDP_loss = Σ (Sector_impact × Sector_weight)
+  const gdpLoss =
+    impactOil * 0.45 +                     // oil sector (45% of GCC GDP)
+    shippingCostImpact * 0.10 +             // shipping (10%)
+    insuranceRiskImpact * 0.05 +            // insurance (5%)
+    aviationCostImpact * 0.08 +             // aviation (8%)
+    (1 - tourismDemand / FINANCIAL_BASES.tourismRevenue) * 0.07  // tourism (7%)
+
+  // ── Additional sector formulas ──
 
   // Throughput_airport = base × Π(1 - |I(airport_k)|)
   let airportProduct = 1
@@ -518,16 +570,10 @@ export function computeSectorFinancials(impacts: Map<string, number>): SectorFin
   }
   const portThroughput = FINANCIAL_BASES.portTEU * Math.max(0, portProduct)
 
-  // Cost_shipping = base × (1 + |I(eco_shipping)| + 0.5 × |I(geo_hormuz)|)
-  const shippingCost = FINANCIAL_BASES.shippingCost * (1 + I('eco_shipping') + 0.5 * I('geo_hormuz'))
-
   // Stress_banking = Σ|I(fin_bank_k)| / N_banks
   let bankSum = 0
   for (const id of BANK_IDS) { bankSum += I(id) }
   const bankingStress = bankSum / BANK_IDS.length
-
-  // Risk_insurance = base × (1 + 2 × |I(fin_insurers)| + |I(fin_reinsure)|)
-  const insuranceRisk = FINANCIAL_BASES.insurancePremium * (1 + 2 * I('fin_insurers') + I('fin_reinsure'))
 
   // Stress_food = |I(eco_food)| × 0.5 + |I(soc_food_d)| × 0.5
   const foodStress = I('eco_food') * 0.5 + I('soc_food_d') * 0.5
@@ -536,16 +582,155 @@ export function computeSectorFinancials(impacts: Map<string, number>): SectorFin
   const utilityAvailability = Math.max(0, 1 - (I('inf_desal') + I('inf_power')) / 2)
 
   return {
-    oilRevenue: { value: oilRevenue, base: FINANCIAL_BASES.oilRevenue, label: 'Oil Revenue (R_oil)', labelAr: 'إيرادات النفط', unit: '$B' },
-    tourismRevenue: { value: tourismRevenue, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Revenue (R_tourism)', labelAr: 'إيرادات السياحة', unit: '$B' },
+    oilRevenue: { value: oilExport, base: FINANCIAL_BASES.oilRevenue, label: 'Oil Export (F_flow)', labelAr: 'تدفق النفط', unit: '$B' },
+    tourismRevenue: { value: tourismDemand, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Demand', labelAr: 'الطلب السياحي', unit: '$B' },
     airportThroughput: { value: airportThroughput, base: FINANCIAL_BASES.airportPax, label: 'Airport Throughput', labelAr: 'إنتاجية المطارات', unit: 'M pax' },
     portThroughput: { value: portThroughput, base: FINANCIAL_BASES.portTEU, label: 'Port Throughput', labelAr: 'إنتاجية الموانئ', unit: 'M TEU' },
     shippingCost: { value: shippingCost, base: FINANCIAL_BASES.shippingCost, label: 'Shipping Cost', labelAr: 'تكلفة الشحن', unit: '$B' },
     bankingStress: { value: bankingStress, base: 0, label: 'Banking Stress', labelAr: 'إجهاد المصارف', unit: 'index' },
-    insuranceRisk: { value: insuranceRisk, base: FINANCIAL_BASES.insurancePremium, label: 'Insurance Risk Premium', labelAr: 'علاوة مخاطر التأمين', unit: '$B' },
+    insuranceRisk: { value: insuranceRisk, base: FINANCIAL_BASES.insurancePremium, label: 'Insurance Risk', labelAr: 'مخاطر التأمين', unit: '$B' },
     foodStress: { value: foodStress, base: 0, label: 'Food Security Stress', labelAr: 'إجهاد الأمن الغذائي', unit: 'index' },
     utilityAvailability: { value: utilityAvailability, base: 1, label: 'Utility Availability', labelAr: 'توفر المرافق', unit: '%' },
   }
+}
+
+/* ══════════════════════════════════════════════
+   HORMUZ CASCADE FORMULA ENGINE
+   Mandatory chain: Hormuz → Oil → Shipping → Insurance → Aviation → Tourism → GDP
+   Each step computes a dollar/index value from the previous step's output.
+   ══════════════════════════════════════════════ */
+
+export interface HormuzChainStep {
+  id: string
+  label: string
+  labelAr: string
+  formula: string
+  formulaAr: string
+  value: number
+  base: number
+  unit: string
+  direction: '↑' | '↓' | '—'
+  impactPct: number  // % change from base
+}
+
+export interface HormuzChainResult {
+  steps: HormuzChainStep[]
+  gdpLoss: number
+  chainNarrative: string
+  chainNarrativeAr: string
+}
+
+const HORMUZ_BASES = {
+  dependency: 0.85,       // GCC Hormuz dependency factor
+  oilExport: 540,         // $B annual GCC oil export
+  shippingCost: 12,       // $B baseline shipping
+  insuranceBase: 0.02,    // 2% base risk premium
+  fuelCost: 45,           // $B annual GCC aviation fuel
+  tourismBase: 85,        // $B annual GCC tourism
+  W_oil: 1.8,             // shipping sensitivity to oil disruption
+  W_shipping: 2.5,        // insurance sensitivity to shipping cost increase
+  W_insurance: 1.2,       // fuel cost sensitivity to insurance risk
+  W_aviation: 0.6,        // tourism sensitivity to aviation cost increase
+}
+
+export function computeHormuzChain(
+  impacts: Map<string, number>,
+  severity: number = 1.0,
+): HormuzChainResult {
+  const I = (id: string) => impacts.get(id) ?? 0
+  const absI = (id: string) => Math.abs(I(id))
+
+  // Step 1: F_flow = 1 - (Severity_hormuz × Dependency_hormuz)
+  const hormuzSeverity = absI('geo_hormuz') * severity
+  const F_flow = Math.max(0, 1 - (hormuzSeverity * HORMUZ_BASES.dependency))
+
+  // Step 2: Oil_export = Base_export × F_flow
+  const oilExport = HORMUZ_BASES.oilExport * F_flow
+  const impactOil = 1 - F_flow  // = 1 - (Oil_export / Base_export)
+
+  // Step 3: Cost_shipping = Base_shipping × (1 + Impact_oil × W_oil)
+  const costShipping = HORMUZ_BASES.shippingCost * (1 + impactOil * HORMUZ_BASES.W_oil)
+  const shippingIncrease = (costShipping - HORMUZ_BASES.shippingCost) / HORMUZ_BASES.shippingCost
+
+  // Step 4: Risk_insurance = Base_risk × (1 + Cost_shipping_increase × W_shipping)
+  const riskInsurance = HORMUZ_BASES.insuranceBase * (1 + shippingIncrease * HORMUZ_BASES.W_shipping)
+
+  // Step 5: Cost_aviation = Base_fuel × (1 + Risk_insurance_increase × W_insurance)
+  const insuranceIncrease = (riskInsurance - HORMUZ_BASES.insuranceBase) / HORMUZ_BASES.insuranceBase
+  const costAviation = HORMUZ_BASES.fuelCost * (1 + insuranceIncrease * HORMUZ_BASES.W_insurance)
+  const aviationIncrease = (costAviation - HORMUZ_BASES.fuelCost) / HORMUZ_BASES.fuelCost
+
+  // Step 6: Tourism = Base_tourism × (1 - Cost_aviation_increase × W_aviation)
+  const tourismRevenue = HORMUZ_BASES.tourismBase * Math.max(0, 1 - aviationIncrease * HORMUZ_BASES.W_aviation)
+  const tourismDecline = (HORMUZ_BASES.tourismBase - tourismRevenue) / HORMUZ_BASES.tourismBase
+
+  // Step 7: GDP_loss = Σ (Sector_impact × Sector_weight)
+  const gdpLoss = (impactOil * 540) + (shippingIncrease * 12) + (tourismDecline * 85)
+
+  const steps: HormuzChainStep[] = [
+    {
+      id: 'hormuz', label: 'Strait of Hormuz', labelAr: 'مضيق هرمز',
+      formula: `F_flow = 1 - (${(hormuzSeverity * 100).toFixed(0)}% × ${(HORMUZ_BASES.dependency * 100).toFixed(0)}%) = ${(F_flow * 100).toFixed(0)}%`,
+      formulaAr: `تدفق = 1 - (${(hormuzSeverity * 100).toFixed(0)}% × ${(HORMUZ_BASES.dependency * 100).toFixed(0)}%) = ${(F_flow * 100).toFixed(0)}%`,
+      value: F_flow, base: 1, unit: 'flow', direction: '↓', impactPct: (1 - F_flow) * 100,
+    },
+    {
+      id: 'oil', label: 'Oil Export', labelAr: 'صادرات النفط',
+      formula: `$${HORMUZ_BASES.oilExport}B × ${(F_flow * 100).toFixed(0)}% = $${oilExport.toFixed(1)}B`,
+      formulaAr: `$${HORMUZ_BASES.oilExport} مليار × ${(F_flow * 100).toFixed(0)}% = $${oilExport.toFixed(1)} مليار`,
+      value: oilExport, base: HORMUZ_BASES.oilExport, unit: '$B', direction: '↓', impactPct: impactOil * 100,
+    },
+    {
+      id: 'shipping', label: 'Shipping Cost', labelAr: 'تكلفة الشحن',
+      formula: `$${HORMUZ_BASES.shippingCost}B × (1 + ${(impactOil * 100).toFixed(0)}% × ${HORMUZ_BASES.W_oil}) = $${costShipping.toFixed(1)}B`,
+      formulaAr: `$${HORMUZ_BASES.shippingCost} مليار × (1 + ${(impactOil * 100).toFixed(0)}% × ${HORMUZ_BASES.W_oil}) = $${costShipping.toFixed(1)} مليار`,
+      value: costShipping, base: HORMUZ_BASES.shippingCost, unit: '$B', direction: '↑', impactPct: shippingIncrease * 100,
+    },
+    {
+      id: 'insurance', label: 'Insurance Risk', labelAr: 'مخاطر التأمين',
+      formula: `${(HORMUZ_BASES.insuranceBase * 100).toFixed(0)}% × (1 + ${(shippingIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_shipping}) = ${(riskInsurance * 100).toFixed(1)}%`,
+      formulaAr: `${(HORMUZ_BASES.insuranceBase * 100).toFixed(0)}% × (1 + ${(shippingIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_shipping}) = ${(riskInsurance * 100).toFixed(1)}%`,
+      value: riskInsurance, base: HORMUZ_BASES.insuranceBase, unit: 'risk', direction: '↑', impactPct: insuranceIncrease * 100,
+    },
+    {
+      id: 'aviation', label: 'Aviation Fuel Cost', labelAr: 'تكلفة وقود الطيران',
+      formula: `$${HORMUZ_BASES.fuelCost}B × (1 + ${(insuranceIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_insurance}) = $${costAviation.toFixed(1)}B`,
+      formulaAr: `$${HORMUZ_BASES.fuelCost} مليار × (1 + ${(insuranceIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_insurance}) = $${costAviation.toFixed(1)} مليار`,
+      value: costAviation, base: HORMUZ_BASES.fuelCost, unit: '$B', direction: '↑', impactPct: aviationIncrease * 100,
+    },
+    {
+      id: 'tourism', label: 'Tourism Revenue', labelAr: 'إيرادات السياحة',
+      formula: `$${HORMUZ_BASES.tourismBase}B × (1 - ${(aviationIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_aviation}) = $${tourismRevenue.toFixed(1)}B`,
+      formulaAr: `$${HORMUZ_BASES.tourismBase} مليار × (1 - ${(aviationIncrease * 100).toFixed(0)}% × ${HORMUZ_BASES.W_aviation}) = $${tourismRevenue.toFixed(1)} مليار`,
+      value: tourismRevenue, base: HORMUZ_BASES.tourismBase, unit: '$B', direction: '↓', impactPct: tourismDecline * 100,
+    },
+    {
+      id: 'gdp', label: 'GDP Loss', labelAr: 'خسائر الناتج المحلي',
+      formula: `Σ sectors = $${gdpLoss.toFixed(1)}B`,
+      formulaAr: `مجموع القطاعات = $${gdpLoss.toFixed(1)} مليار`,
+      value: gdpLoss, base: 0, unit: '$B', direction: '↓', impactPct: gdpLoss > 0 ? (gdpLoss / 2100) * 100 : 0,
+    },
+  ]
+
+  const chainNarrative =
+    `Hormuz blockade (${(hormuzSeverity * 100).toFixed(0)}% severity) reduces oil flow to ${(F_flow * 100).toFixed(0)}%, ` +
+    `cutting exports by $${(HORMUZ_BASES.oilExport - oilExport).toFixed(0)}B. ` +
+    `Shipping costs surge +${(shippingIncrease * 100).toFixed(0)}% to $${costShipping.toFixed(1)}B, ` +
+    `driving insurance risk to ${(riskInsurance * 100).toFixed(1)}%. ` +
+    `Aviation fuel rises +${(aviationIncrease * 100).toFixed(0)}% to $${costAviation.toFixed(1)}B, ` +
+    `depressing tourism by ${(tourismDecline * 100).toFixed(0)}% (−$${(HORMUZ_BASES.tourismBase - tourismRevenue).toFixed(1)}B). ` +
+    `Total GDP exposure: $${gdpLoss.toFixed(1)}B.`
+
+  const chainNarrativeAr =
+    `إغلاق هرمز (حدة ${(hormuzSeverity * 100).toFixed(0)}%) يخفض تدفق النفط إلى ${(F_flow * 100).toFixed(0)}%، ` +
+    `ويقلص الصادرات بمقدار $${(HORMUZ_BASES.oilExport - oilExport).toFixed(0)} مليار. ` +
+    `ترتفع تكاليف الشحن +${(shippingIncrease * 100).toFixed(0)}% إلى $${costShipping.toFixed(1)} مليار، ` +
+    `مما يرفع مخاطر التأمين إلى ${(riskInsurance * 100).toFixed(1)}%. ` +
+    `يرتفع وقود الطيران +${(aviationIncrease * 100).toFixed(0)}% إلى $${costAviation.toFixed(1)} مليار، ` +
+    `مما يخفض السياحة ${(tourismDecline * 100).toFixed(0)}% (−$${(HORMUZ_BASES.tourismBase - tourismRevenue).toFixed(1)} مليار). ` +
+    `إجمالي التعرض: $${gdpLoss.toFixed(1)} مليار.`
+
+  return { steps, gdpLoss, chainNarrative, chainNarrativeAr }
 }
 
 /* ── Compute system energy: E = Σ impact_i² ── */

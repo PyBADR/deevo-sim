@@ -13,7 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import GraphPanel from '@/components/graph/GraphPanel'
 import { gccNodes, gccEdges, gccScenarios, layerMeta } from '@/lib/gcc-graph'
-import { runPropagation, formatPropagationChain, computeSectorFinancials, type PropagationResult, type NodeExplanation, type SectorFinancials } from '@/lib/propagation-engine'
+import { runPropagation, formatPropagationChain, computeSectorFinancials, computeHormuzChain, type PropagationResult, type NodeExplanation, type SectorFinancials, type HormuzChainResult } from '@/lib/propagation-engine'
 import { setLanguage, getLanguage, type Language } from '@/lib/i18n'
 import { shippingRoutes, aviationRoutes, nodeCoordinates } from '@/lib/gcc-coordinates'
 
@@ -102,6 +102,11 @@ const UI: Record<string, { en: string; ar: string }> = {
   bestCase: { en: 'Best Case', ar: 'أفضل حالة' },
   worstCase: { en: 'Worst Case', ar: 'أسوأ حالة' },
   sectorFinancials: { en: 'Sector Financial Formulas', ar: 'المعادلات المالية القطاعية' },
+  hormuzEngine: { en: 'Hormuz Cascade Engine', ar: 'محرك سلسلة هرمز' },
+  hormuzChain: { en: 'Hormuz → Oil → Shipping → Insurance → Aviation → Tourism → GDP', ar: 'هرمز ← النفط ← الشحن ← التأمين ← الطيران ← السياحة ← الناتج المحلي' },
+  chainFormula: { en: 'Formula', ar: 'المعادلة' },
+  chainNarrative: { en: 'Chain Narrative', ar: 'السرد السببي' },
+  gdpExposure: { en: 'GDP Exposure', ar: 'التعرض للناتج المحلي' },
 }
 
 const LAYER_LABELS: Record<string, { en: string; ar: string }> = {
@@ -726,6 +731,11 @@ function DemoPageContent() {
     return computeSectorFinancials(propagation.nodeImpacts)
   }, [propagation])
 
+  const hormuzChain = useMemo(() => {
+    if (!propagation) return null
+    return computeHormuzChain(propagation.nodeImpacts, severityMod)
+  }, [propagation, severityMod])
+
   if (isMobile) {
     return (
       <div className="h-screen w-full bg-ds-bg flex items-center justify-center p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
@@ -823,6 +833,53 @@ function DemoPageContent() {
                 <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
               )}
             </div>
+
+            {/* ═══ HORMUZ CASCADE ENGINE ═══ */}
+            {propagation && hormuzChain && hormuzChain.steps[0].impactPct > 0.1 && (
+              <div className="ds-card rounded-xl p-3 border border-amber-500/20">
+                <h3 className="text-[10px] uppercase tracking-[0.15em] text-amber-400 font-bold mb-2 flex items-center gap-2">
+                  <Anchor size={12} /> {ui('hormuzEngine', lang)}
+                </h3>
+                <div className="text-[9px] font-mono text-ds-text-dim mb-2 leading-relaxed">
+                  {ui('hormuzChain', lang)}
+                </div>
+                <div className="space-y-1.5">
+                  {hormuzChain.steps.map((step, i) => {
+                    const dirColor = step.direction === '↑' ? '#ef4444' : step.direction === '↓' ? '#f59e0b' : '#64748b'
+                    const label = lang === 'ar' ? step.labelAr : step.label
+                    const formula = lang === 'ar' ? step.formulaAr : step.formula
+                    return (
+                      <div key={step.id} className="bg-ds-bg-alt rounded-lg px-2 py-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold" style={{ color: dirColor }}>{step.direction}</span>
+                            <span className="text-[11px] text-ds-text font-medium">{label}</span>
+                          </div>
+                          <span className="text-[10px] font-mono font-bold" style={{ color: dirColor }}>
+                            {step.impactPct > 0 ? (step.direction === '↑' ? '+' : '−') : ''}{step.impactPct.toFixed(0)}%
+                          </span>
+                        </div>
+                        <div className="text-[9px] font-mono text-ds-text-dim mt-0.5">{formula}</div>
+                        {i < hormuzChain.steps.length - 1 && (
+                          <div className="text-center text-[8px] text-ds-text-dim mt-0.5">│</div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="mt-2 pt-2 border-t border-ds-border">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-ds-text-dim font-semibold">{ui('gdpExposure', lang)}</span>
+                    <span className="font-mono text-red-400 font-bold">${hormuzChain.gdpLoss.toFixed(1)}B</span>
+                  </div>
+                </div>
+                <div className="mt-2 pt-2 border-t border-ds-border">
+                  <p className="text-[10px] text-ds-text-muted leading-relaxed">
+                    {lang === 'ar' ? hormuzChain.chainNarrativeAr : hormuzChain.chainNarrative}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Loss Exposure — Deterministic + Probabilistic */}
             <div className="ds-card rounded-xl p-3">
