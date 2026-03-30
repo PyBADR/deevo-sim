@@ -9,7 +9,7 @@ export type Language = 'en' | 'ar'
 
 // — Language State —————————————————————————————
 
-let currentLanguage: Language = 'en'
+let currentLanguage: Language = 'ar'
 
 export function setLanguage(lang: Language) {
   currentLanguage = lang
