@@ -91,11 +91,12 @@ function layerLabel(layer: string, lang: Language): string {
    GLOBE VIEW COMPONENT
    ══════════════════════════════════════════════ */
 function GlobeView({
-  propagation, selectedNode, onSelectNode,
+  propagation, selectedNode, onSelectNode, lang,
 }: {
   propagation: PropagationResult | null
   selectedNode: string | null
   onSelectNode: (id: string | null) => void
+  lang: Language
 }) {
   const globeRef = useRef<any>(null)
 
@@ -106,7 +107,7 @@ function GlobeView({
       const impact = propagation ? Math.abs(propagation.nodeImpacts.get(node.id) || 0) : 0
       return {
         id: node.id, lat: coords.lat, lng: coords.lng,
-        label: node.label, layer: node.layer,
+        label: lang === 'ar' ? (node.labelAr || node.label) : node.label, layer: node.layer,
         impact,
         color: LAYER_COLORS[node.layer] || '#64748b',
         size: 0.3 + impact * 1.5,
@@ -268,10 +269,11 @@ export default function DemoPage() {
     return gccNodes.map(n => {
       const impact = propagation ? Math.abs(propagation.nodeImpacts.get(n.id) || 0) : 0
       const coords = nodeCoordinates[n.id]
+      const nodeLabel = lang === 'ar' ? (n.labelAr || n.label) : n.label
       return {
         id: n.id, type: 'default',
         position: { x: (coords?.lng || 50) * 30 - 1200, y: (coords?.lat || 25) * -30 + 900 },
-        data: { label: n.label, layer: n.layer, impact },
+        data: { label: nodeLabel, layer: n.layer, impact },
         style: {
           background: impact > 0.05 ? LAYER_COLORS[n.layer] : '#1e293b',
           color: '#e2e8f0',
@@ -283,7 +285,7 @@ export default function DemoPage() {
         },
       }
     })
-  }, [propagation, selectedNode])
+  }, [propagation, selectedNode, lang])
 
   const graphEdges = useMemo(() => {
     return gccEdges.map(e => {
@@ -394,7 +396,7 @@ export default function DemoPage() {
                     const node = gccNodes.find(n => n.id === s.nodeId)
                     return (
                       <div key={s.nodeId} className="flex items-center justify-between mt-1 px-2 py-1.5 bg-ds-bg-alt rounded-md text-[11px]">
-                        <span style={{ color: LAYER_COLORS[node?.layer || 'geography'] }}>{node?.label}</span>
+                        <span style={{ color: LAYER_COLORS[node?.layer || 'geography'] }}>{lang === 'ar' ? (node?.labelAr || node?.label) : node?.label}</span>
                         <span className="text-red-400 font-mono font-semibold">{(s.impact * severityMod * 100).toFixed(0)}%</span>
                       </div>
                     )
@@ -501,7 +503,7 @@ export default function DemoPage() {
             )}
             {propagation && !isRunning && viewMode === 'globe' && (
               <div className="h-full p-2">
-                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} />
+                <GlobeView propagation={propagation} selectedNode={selectedNode} onSelectNode={setSelectedNode} lang={lang} />
               </div>
             )}
           </div>

@@ -13,6 +13,7 @@ export type GCCLayer = 'geography' | 'infrastructure' | 'economy' | 'finance' | 
 export interface GCCNode {
   id: string
   label: string
+  labelAr: string       // Arabic label
   layer: GCCLayer
   type: string          // entity sub-type for color mapping
   weight: number        // baseline importance 0â1
@@ -45,49 +46,49 @@ export interface GCCScenario {
    ââââââââââââââââââââââââââââââââââââââââââââââ */
 export const gccNodes: GCCNode[] = [
   // ââ Layer 1: Geography ââ
-  { id: 'geo_sa',      label: 'Saudi Arabia',    layer: 'geography', type: 'Region',       weight: 0.95, sensitivity: 0.3 },
-  { id: 'geo_uae',     label: 'UAE',             layer: 'geography', type: 'Region',       weight: 0.90, sensitivity: 0.3 },
-  { id: 'geo_kw',      label: 'Kuwait',          layer: 'geography', type: 'Region',       weight: 0.75, sensitivity: 0.35 },
-  { id: 'geo_qa',      label: 'Qatar',           layer: 'geography', type: 'Region',       weight: 0.80, sensitivity: 0.3 },
-  { id: 'geo_om',      label: 'Oman',            layer: 'geography', type: 'Region',       weight: 0.65, sensitivity: 0.4 },
-  { id: 'geo_bh',      label: 'Bahrain',         layer: 'geography', type: 'Region',       weight: 0.60, sensitivity: 0.45 },
-  { id: 'geo_hormuz',  label: 'Strait of Hormuz',layer: 'geography', type: 'Event',        weight: 0.98, sensitivity: 0.1 },
+  { id: 'geo_sa',      label: 'Saudi Arabia', labelAr: 'السعودية',    layer: 'geography', type: 'Region',       weight: 0.95, sensitivity: 0.3 },
+  { id: 'geo_uae',     label: 'UAE', labelAr: 'الإمارات',             layer: 'geography', type: 'Region',       weight: 0.90, sensitivity: 0.3 },
+  { id: 'geo_kw',      label: 'Kuwait', labelAr: 'الكويت',          layer: 'geography', type: 'Region',       weight: 0.75, sensitivity: 0.35 },
+  { id: 'geo_qa',      label: 'Qatar', labelAr: 'قطر',           layer: 'geography', type: 'Region',       weight: 0.80, sensitivity: 0.3 },
+  { id: 'geo_om',      label: 'Oman', labelAr: 'عُمان',            layer: 'geography', type: 'Region',       weight: 0.65, sensitivity: 0.4 },
+  { id: 'geo_bh',      label: 'Bahrain', labelAr: 'البحرين',         layer: 'geography', type: 'Region',       weight: 0.60, sensitivity: 0.45 },
+  { id: 'geo_hormuz',  label: 'Strait of Hormuz', labelAr: 'مضيق هرمز',layer: 'geography', type: 'Event',        weight: 0.98, sensitivity: 0.1 },
 
   // ââ Layer 2: Infrastructure ââ
-  { id: 'inf_ruh',     label: 'RUH Airport',     layer: 'infrastructure', type: 'Organization', weight: 0.80, sensitivity: 0.5 },
-  { id: 'inf_dxb',     label: 'DXB Airport',     layer: 'infrastructure', type: 'Organization', weight: 0.88, sensitivity: 0.5 },
-  { id: 'inf_kwi',     label: 'KWI Airport',     layer: 'infrastructure', type: 'Organization', weight: 0.65, sensitivity: 0.55 },
-  { id: 'inf_doh',     label: 'DOH Airport',     layer: 'infrastructure', type: 'Organization', weight: 0.75, sensitivity: 0.5 },
-  { id: 'inf_jebel',   label: 'Jebel Ali Port',  layer: 'infrastructure', type: 'Organization', weight: 0.92, sensitivity: 0.6 },
-  { id: 'inf_dammam',  label: 'Dammam Port',     layer: 'infrastructure', type: 'Organization', weight: 0.78, sensitivity: 0.6 },
-  { id: 'inf_doha_p',  label: 'Doha Port',       layer: 'infrastructure', type: 'Organization', weight: 0.60, sensitivity: 0.55 },
+  { id: 'inf_ruh',     label: 'RUH Airport', labelAr: 'مطار الرياض',     layer: 'infrastructure', type: 'Organization', weight: 0.80, sensitivity: 0.5 },
+  { id: 'inf_dxb',     label: 'DXB Airport', labelAr: 'مطار دبي',     layer: 'infrastructure', type: 'Organization', weight: 0.88, sensitivity: 0.5 },
+  { id: 'inf_kwi',     label: 'KWI Airport', labelAr: 'مطار الكويت',     layer: 'infrastructure', type: 'Organization', weight: 0.65, sensitivity: 0.55 },
+  { id: 'inf_doh',     label: 'DOH Airport', labelAr: 'مطار الدوحة',     layer: 'infrastructure', type: 'Organization', weight: 0.75, sensitivity: 0.5 },
+  { id: 'inf_jebel',   label: 'Jebel Ali Port', labelAr: 'ميناء جبل علي',  layer: 'infrastructure', type: 'Organization', weight: 0.92, sensitivity: 0.6 },
+  { id: 'inf_dammam',  label: 'Dammam Port', labelAr: 'ميناء الدمام',     layer: 'infrastructure', type: 'Organization', weight: 0.78, sensitivity: 0.6 },
+  { id: 'inf_doha_p',  label: 'Doha Port', labelAr: 'ميناء الدوحة',       layer: 'infrastructure', type: 'Organization', weight: 0.60, sensitivity: 0.55 },
 
   // ââ Layer 3: Economy ââ
-  { id: 'eco_oil',     label: 'Oil Export',       layer: 'economy', type: 'Topic',         weight: 0.96, sensitivity: 0.7 },
-  { id: 'eco_aramco',  label: 'Aramco',           layer: 'economy', type: 'Organization',  weight: 0.95, sensitivity: 0.5 },
-  { id: 'eco_adnoc',   label: 'ADNOC',            layer: 'economy', type: 'Organization',  weight: 0.88, sensitivity: 0.5 },
-  { id: 'eco_kpc',     label: 'KPC',              layer: 'economy', type: 'Organization',  weight: 0.78, sensitivity: 0.55 },
-  { id: 'eco_shipping',label: 'Shipping & Logistics', layer: 'economy', type: 'Topic',     weight: 0.85, sensitivity: 0.65 },
-  { id: 'eco_aviation',label: 'Aviation Sector',  layer: 'economy', type: 'Topic',         weight: 0.82, sensitivity: 0.6 },
-  { id: 'eco_fuel',    label: 'Fuel Cost',        layer: 'economy', type: 'Topic',         weight: 0.88, sensitivity: 0.7 },
-  { id: 'eco_gdp',     label: 'GCC GDP',          layer: 'economy', type: 'Topic',         weight: 0.90, sensitivity: 0.4 },
+  { id: 'eco_oil',     label: 'Oil Export', labelAr: 'صادرات النفط',       layer: 'economy', type: 'Topic',         weight: 0.96, sensitivity: 0.7 },
+  { id: 'eco_aramco',  label: 'Aramco', labelAr: 'أرامكو',           layer: 'economy', type: 'Organization',  weight: 0.95, sensitivity: 0.5 },
+  { id: 'eco_adnoc',   label: 'ADNOC', labelAr: 'أدنوك',            layer: 'economy', type: 'Organization',  weight: 0.88, sensitivity: 0.5 },
+  { id: 'eco_kpc',     label: 'KPC', labelAr: 'مؤسسة البترول الكويتية',              layer: 'economy', type: 'Organization',  weight: 0.78, sensitivity: 0.55 },
+  { id: 'eco_shipping',label: 'Shipping & Logistics', labelAr: 'الشحن والخدمات اللوجستية', layer: 'economy', type: 'Topic',     weight: 0.85, sensitivity: 0.65 },
+  { id: 'eco_aviation',label: 'Aviation Sector', labelAr: 'قطاع الطيران',  layer: 'economy', type: 'Topic',         weight: 0.82, sensitivity: 0.6 },
+  { id: 'eco_fuel',    label: 'Fuel Cost', labelAr: 'تكلفة الوقود',        layer: 'economy', type: 'Topic',         weight: 0.88, sensitivity: 0.7 },
+  { id: 'eco_gdp',     label: 'GCC GDP', labelAr: 'الناتج المحلي الخليجي',          layer: 'economy', type: 'Topic',         weight: 0.90, sensitivity: 0.4 },
 
   // ââ Layer 4: Finance ââ
-  { id: 'fin_sama',    label: 'SAMA',             layer: 'finance', type: 'Organization',  weight: 0.92, sensitivity: 0.35 },
-  { id: 'fin_uae_cb',  label: 'UAE Central Bank', layer: 'finance', type: 'Organization',  weight: 0.88, sensitivity: 0.35 },
-  { id: 'fin_kw_cb',   label: 'Kuwait Central Bank', layer: 'finance', type: 'Organization', weight: 0.75, sensitivity: 0.4 },
-  { id: 'fin_insurers',label: 'Insurers',         layer: 'finance', type: 'Organization',  weight: 0.80, sensitivity: 0.7 },
-  { id: 'fin_reinsure', label: 'Reinsurers',      layer: 'finance', type: 'Organization',  weight: 0.75, sensitivity: 0.65 },
-  { id: 'fin_ins_risk', label: 'Insurance Risk',  layer: 'finance', type: 'Topic',         weight: 0.82, sensitivity: 0.7 },
+  { id: 'fin_sama',    label: 'SAMA', labelAr: 'مؤسسة النقد',             layer: 'finance', type: 'Organization',  weight: 0.92, sensitivity: 0.35 },
+  { id: 'fin_uae_cb',  label: 'UAE Central Bank', labelAr: 'مصرف الإمارات المركزي', layer: 'finance', type: 'Organization',  weight: 0.88, sensitivity: 0.35 },
+  { id: 'fin_kw_cb',   label: 'Kuwait Central Bank', labelAr: 'بنك الكويت المركزي', layer: 'finance', type: 'Organization', weight: 0.75, sensitivity: 0.4 },
+  { id: 'fin_insurers',label: 'Insurers', labelAr: 'شركات التأمين',         layer: 'finance', type: 'Organization',  weight: 0.80, sensitivity: 0.7 },
+  { id: 'fin_reinsure', label: 'Reinsurers', labelAr: 'إعادة التأمين',      layer: 'finance', type: 'Organization',  weight: 0.75, sensitivity: 0.65 },
+  { id: 'fin_ins_risk', label: 'Insurance Risk', labelAr: 'مخاطر التأمين',  layer: 'finance', type: 'Topic',         weight: 0.82, sensitivity: 0.7 },
 
   // ââ Layer 5: Society ââ
-  { id: 'soc_citizens', label: 'Citizens',        layer: 'society', type: 'Person',        weight: 0.85, sensitivity: 0.6 },
-  { id: 'soc_travelers',label: 'Travelers',       layer: 'society', type: 'Person',        weight: 0.70, sensitivity: 0.65 },
-  { id: 'soc_business', label: 'Businesses',      layer: 'society', type: 'Organization',  weight: 0.80, sensitivity: 0.55 },
-  { id: 'soc_media',    label: 'Media',           layer: 'society', type: 'Platform',      weight: 0.82, sensitivity: 0.5 },
-  { id: 'soc_social',   label: 'Social Platforms', layer: 'society', type: 'Platform',     weight: 0.78, sensitivity: 0.4 },
-  { id: 'soc_travel_d', label: 'Travel Demand',   layer: 'society', type: 'Topic',         weight: 0.72, sensitivity: 0.7 },
-  { id: 'soc_ticket',   label: 'Ticket Price',    layer: 'society', type: 'Topic',         weight: 0.68, sensitivity: 0.75 },
+  { id: 'soc_citizens', label: 'Citizens', labelAr: 'المواطنون',        layer: 'society', type: 'Person',        weight: 0.85, sensitivity: 0.6 },
+  { id: 'soc_travelers',label: 'Travelers', labelAr: 'المسافرون',       layer: 'society', type: 'Person',        weight: 0.70, sensitivity: 0.65 },
+  { id: 'soc_business', label: 'Businesses', labelAr: 'الشركات',      layer: 'society', type: 'Organization',  weight: 0.80, sensitivity: 0.55 },
+  { id: 'soc_media',    label: 'Media', labelAr: 'الإعلام',           layer: 'society', type: 'Platform',      weight: 0.82, sensitivity: 0.5 },
+  { id: 'soc_social',   label: 'Social Platforms', labelAr: 'المنصات الاجتماعية', layer: 'society', type: 'Platform',     weight: 0.78, sensitivity: 0.4 },
+  { id: 'soc_travel_d', label: 'Travel Demand', labelAr: 'الطلب على السفر',   layer: 'society', type: 'Topic',         weight: 0.72, sensitivity: 0.7 },
+  { id: 'soc_ticket',   label: 'Ticket Price', labelAr: 'أسعار التذاكر',    layer: 'society', type: 'Topic',         weight: 0.68, sensitivity: 0.75 },
 ]
 
 /* ââââââââââââââââââââââââââââââââââââââââââââââ
