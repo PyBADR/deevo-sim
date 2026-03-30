@@ -967,6 +967,7 @@ export const scenarioEngines: Record<string, ScenarioEngine> = {
   hajj_disruption: hajjDisruption,
   jebel_ali_disruption: jebelAliDisruption,
   food_security_shock: foodSecurityShock,
+  liquidity_stress: gccLiquidityStress,
   gcc_liquidity_stress: gccLiquidityStress,
   fx_gold_crypto_shock: fxGoldCryptoShock,
   insurance_repricing: insuranceRepricing,
