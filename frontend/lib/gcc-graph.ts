@@ -18,6 +18,7 @@ export interface GCCNode {
   type: string
   weight: number        // baseline importance 0–1
   sensitivity: number   // reactivity to incoming shocks 0–1
+  damping_factor: number // rate of self-decay per iteration 0–1
   lat: number
   lng: number
   value: number         // base economic/strategic value (normalized 0–1)
@@ -52,53 +53,54 @@ export interface GCCScenario {
    ════════════════════════════════════════════════ */
 export const gccNodes: GCCNode[] = [
   // ── Layer 1: Geography ──
-  { id: 'geo_sa',      label: 'Saudi Arabia',       labelAr: 'السعودية',         layer: 'geography', type: 'Region',       lat: 24.7136, lng: 46.6753, weight: 0.95, sensitivity: 0.3,  value: 0.95 },
-  { id: 'geo_uae',     label: 'UAE',                labelAr: 'الإمارات',          layer: 'geography', type: 'Region',       lat: 25.2048, lng: 55.2708, weight: 0.90, sensitivity: 0.3,  value: 0.90 },
-  { id: 'geo_kw',      label: 'Kuwait',             labelAr: 'الكويت',           layer: 'geography', type: 'Region',       lat: 29.3759, lng: 47.9774, weight: 0.75, sensitivity: 0.35, value: 0.75 },
-  { id: 'geo_qa',      label: 'Qatar',              labelAr: 'قطر',              layer: 'geography', type: 'Region',       lat: 25.2854, lng: 51.5310, weight: 0.80, sensitivity: 0.3,  value: 0.80 },
-  { id: 'geo_om',      label: 'Oman',               labelAr: 'عُمان',            layer: 'geography', type: 'Region',       lat: 23.5880, lng: 58.3829, weight: 0.65, sensitivity: 0.4,  value: 0.65 },
-  { id: 'geo_bh',      label: 'Bahrain',            labelAr: 'البحرين',          layer: 'geography', type: 'Region',       lat: 26.0667, lng: 50.5577, weight: 0.60, sensitivity: 0.45, value: 0.60 },
-  { id: 'geo_hormuz',  label: 'Strait of Hormuz',   labelAr: 'مضيق هرمز',        layer: 'geography', type: 'Event',        lat: 26.5944, lng: 56.4667, weight: 0.98, sensitivity: 0.1,  value: 0.98 },
+  { id: 'geo_sa',      label: 'Saudi Arabia',       labelAr: 'السعودية',         layer: 'geography', type: 'Region',       lat: 24.7136, lng: 46.6753, weight: 0.95, sensitivity: 0.3,  damping_factor: 0.02, value: 0.95 },
+  { id: 'geo_uae',     label: 'UAE',                labelAr: 'الإمارات',          layer: 'geography', type: 'Region',       lat: 25.2048, lng: 55.2708, weight: 0.90, sensitivity: 0.3,  damping_factor: 0.02, value: 0.90 },
+  { id: 'geo_kw',      label: 'Kuwait',             labelAr: 'الكويت',           layer: 'geography', type: 'Region',       lat: 29.3759, lng: 47.9774, weight: 0.75, sensitivity: 0.35, damping_factor: 0.03, value: 0.75 },
+  { id: 'geo_qa',      label: 'Qatar',              labelAr: 'قطر',              layer: 'geography', type: 'Region',       lat: 25.2854, lng: 51.5310, weight: 0.80, sensitivity: 0.3,  damping_factor: 0.02, value: 0.80 },
+  { id: 'geo_om',      label: 'Oman',               labelAr: 'عُمان',            layer: 'geography', type: 'Region',       lat: 23.5880, lng: 58.3829, weight: 0.65, sensitivity: 0.4,  damping_factor: 0.04, value: 0.65 },
+  { id: 'geo_bh',      label: 'Bahrain',            labelAr: 'البحرين',          layer: 'geography', type: 'Region',       lat: 26.0667, lng: 50.5577, weight: 0.60, sensitivity: 0.45, damping_factor: 0.04, value: 0.60 },
+  { id: 'geo_hormuz',  label: 'Strait of Hormuz',   labelAr: 'مضيق هرمز',        layer: 'geography', type: 'Event',        lat: 26.5944, lng: 56.4667, weight: 0.98, sensitivity: 0.1,  damping_factor: 0.01, value: 0.98 },
 
   // ── Layer 2: Infrastructure ──
-  { id: 'inf_ruh',     label: 'RUH Airport',        labelAr: 'مطار الرياض',       layer: 'infrastructure', type: 'Organization', lat: 24.9578, lng: 46.6989, weight: 0.80, sensitivity: 0.5,  value: 0.80 },
-  { id: 'inf_dxb',     label: 'DXB Airport',        labelAr: 'مطار دبي',         layer: 'infrastructure', type: 'Organization', lat: 25.2532, lng: 55.3657, weight: 0.88, sensitivity: 0.5,  value: 0.88 },
-  { id: 'inf_kwi',     label: 'KWI Airport',        labelAr: 'مطار الكويت',       layer: 'infrastructure', type: 'Organization', lat: 29.2266, lng: 47.9689, weight: 0.65, sensitivity: 0.55, value: 0.65 },
-  { id: 'inf_doh',     label: 'DOH Airport',        labelAr: 'مطار الدوحة',       layer: 'infrastructure', type: 'Organization', lat: 25.2731, lng: 51.6081, weight: 0.75, sensitivity: 0.5,  value: 0.75 },
-  { id: 'inf_jebel',   label: 'Jebel Ali Port',     labelAr: 'ميناء جبل علي',     layer: 'infrastructure', type: 'Organization', lat: 24.9857, lng: 55.0272, weight: 0.92, sensitivity: 0.6,  value: 0.92 },
-  { id: 'inf_dammam',  label: 'Dammam Port',        labelAr: 'ميناء الدمام',      layer: 'infrastructure', type: 'Organization', lat: 26.4473, lng: 50.1014, weight: 0.78, sensitivity: 0.6,  value: 0.78 },
-  { id: 'inf_doha_p',  label: 'Doha Port',          labelAr: 'ميناء الدوحة',      layer: 'infrastructure', type: 'Organization', lat: 25.2960, lng: 51.5488, weight: 0.60, sensitivity: 0.55, value: 0.60 },
+  { id: 'inf_ruh',     label: 'RUH Airport',        labelAr: 'مطار الرياض',       layer: 'infrastructure', type: 'Organization', lat: 24.9578, lng: 46.6989, weight: 0.80, sensitivity: 0.5,  damping_factor: 0.05, value: 0.80 },
+  { id: 'inf_dxb',     label: 'DXB Airport',        labelAr: 'مطار دبي',         layer: 'infrastructure', type: 'Organization', lat: 25.2532, lng: 55.3657, weight: 0.88, sensitivity: 0.5,  damping_factor: 0.05, value: 0.88 },
+  { id: 'inf_kwi',     label: 'KWI Airport',        labelAr: 'مطار الكويت',       layer: 'infrastructure', type: 'Organization', lat: 29.2266, lng: 47.9689, weight: 0.65, sensitivity: 0.55, damping_factor: 0.06, value: 0.65 },
+  { id: 'inf_doh',     label: 'DOH Airport',        labelAr: 'مطار الدوحة',       layer: 'infrastructure', type: 'Organization', lat: 25.2731, lng: 51.6081, weight: 0.75, sensitivity: 0.5,  damping_factor: 0.05, value: 0.75 },
+  { id: 'inf_jebel',   label: 'Jebel Ali Port',     labelAr: 'ميناء جبل علي',     layer: 'infrastructure', type: 'Organization', lat: 24.9857, lng: 55.0272, weight: 0.92, sensitivity: 0.6,  damping_factor: 0.04, value: 0.92 },
+  { id: 'inf_dammam',  label: 'Dammam Port',        labelAr: 'ميناء الدمام',      layer: 'infrastructure', type: 'Organization', lat: 26.4473, lng: 50.1014, weight: 0.78, sensitivity: 0.6,  damping_factor: 0.05, value: 0.78 },
+  { id: 'inf_doha_p',  label: 'Doha Port',          labelAr: 'ميناء الدوحة',      layer: 'infrastructure', type: 'Organization', lat: 25.2960, lng: 51.5488, weight: 0.60, sensitivity: 0.55, damping_factor: 0.06, value: 0.60 },
+  // ── Layer 2b: Utilities (new) ──
+  { id: 'inf_desal',   label: 'Desalination Plants', labelAr: 'محطات التحلية',   layer: 'infrastructure', type: 'Organization', lat: 25.6000, lng: 55.5000, weight: 0.82, sensitivity: 0.55, damping_factor: 0.04, value: 0.82 },
+  { id: 'inf_power',   label: 'Power Grid',         labelAr: 'شبكة الكهرباء',     layer: 'infrastructure', type: 'Organization', lat: 25.3000, lng: 55.4000, weight: 0.85, sensitivity: 0.5,  damping_factor: 0.03, value: 0.85 },
 
   // ── Layer 3: Economy ──
-  { id: 'eco_oil',     label: 'Oil Export',          labelAr: 'صادرات النفط',      layer: 'economy', type: 'Topic',         lat: 26.3000, lng: 50.2000, weight: 0.96, sensitivity: 0.7,  value: 0.96 },
-  { id: 'eco_aramco',  label: 'Aramco',             labelAr: 'أرامكو',           layer: 'economy', type: 'Organization',  lat: 26.3175, lng: 50.2083, weight: 0.95, sensitivity: 0.5,  value: 0.95 },
-  { id: 'eco_adnoc',   label: 'ADNOC',              labelAr: 'أدنوك',            layer: 'economy', type: 'Organization',  lat: 24.4539, lng: 54.3773, weight: 0.88, sensitivity: 0.5,  value: 0.88 },
-  { id: 'eco_kpc',     label: 'KPC',                labelAr: 'مؤسسة البترول الكويتية', layer: 'economy', type: 'Organization', lat: 29.3375, lng: 48.0013, weight: 0.78, sensitivity: 0.55, value: 0.78 },
-  { id: 'eco_shipping',label: 'Shipping & Logistics',labelAr: 'الشحن والخدمات اللوجستية', layer: 'economy', type: 'Topic', lat: 25.0000, lng: 55.1000, weight: 0.85, sensitivity: 0.65, value: 0.85 },
-  { id: 'eco_aviation',label: 'Aviation Sector',     labelAr: 'قطاع الطيران',      layer: 'economy', type: 'Topic',         lat: 25.0657, lng: 55.1713, weight: 0.82, sensitivity: 0.6,  value: 0.82 },
-  { id: 'eco_fuel',    label: 'Fuel Cost',           labelAr: 'تكلفة الوقود',      layer: 'economy', type: 'Topic',         lat: 24.4700, lng: 54.3700, weight: 0.88, sensitivity: 0.7,  value: 0.88 },
-  { id: 'eco_gdp',     label: 'GCC GDP',            labelAr: 'الناتج المحلي الخليجي', layer: 'economy', type: 'Topic',      lat: 24.4700, lng: 49.0000, weight: 0.90, sensitivity: 0.4,  value: 0.90 },
-  // ── Layer 3b: Tourism (new entity) ──
-  { id: 'eco_tourism', label: 'Tourism Revenue',     labelAr: 'إيرادات السياحة',    layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, value: 0.78 },
+  { id: 'eco_oil',     label: 'Oil Export',          labelAr: 'صادرات النفط',      layer: 'economy', type: 'Topic',         lat: 26.3000, lng: 50.2000, weight: 0.96, sensitivity: 0.7,  damping_factor: 0.03, value: 0.96 },
+  { id: 'eco_aramco',  label: 'Aramco',             labelAr: 'أرامكو',           layer: 'economy', type: 'Organization',  lat: 26.3175, lng: 50.2083, weight: 0.95, sensitivity: 0.5,  damping_factor: 0.03, value: 0.95 },
+  { id: 'eco_adnoc',   label: 'ADNOC',              labelAr: 'أدنوك',            layer: 'economy', type: 'Organization',  lat: 24.4539, lng: 54.3773, weight: 0.88, sensitivity: 0.5,  damping_factor: 0.04, value: 0.88 },
+  { id: 'eco_kpc',     label: 'KPC',                labelAr: 'مؤسسة البترول الكويتية', layer: 'economy', type: 'Organization', lat: 29.3375, lng: 48.0013, weight: 0.78, sensitivity: 0.55, damping_factor: 0.04, value: 0.78 },
+  { id: 'eco_shipping',label: 'Shipping & Logistics',labelAr: 'الشحن والخدمات اللوجستية', layer: 'economy', type: 'Topic', lat: 25.0000, lng: 55.1000, weight: 0.85, sensitivity: 0.65, damping_factor: 0.05, value: 0.85 },
+  { id: 'eco_aviation',label: 'Aviation Sector',     labelAr: 'قطاع الطيران',      layer: 'economy', type: 'Topic',         lat: 25.0657, lng: 55.1713, weight: 0.82, sensitivity: 0.6,  damping_factor: 0.05, value: 0.82 },
+  { id: 'eco_fuel',    label: 'Fuel Cost',           labelAr: 'تكلفة الوقود',      layer: 'economy', type: 'Topic',         lat: 24.4700, lng: 54.3700, weight: 0.88, sensitivity: 0.7,  damping_factor: 0.04, value: 0.88 },
+  { id: 'eco_gdp',     label: 'GCC GDP',            labelAr: 'الناتج المحلي الخليجي', layer: 'economy', type: 'Topic',      lat: 24.4700, lng: 49.0000, weight: 0.90, sensitivity: 0.4,  damping_factor: 0.02, value: 0.90 },
+  { id: 'eco_tourism', label: 'Tourism Revenue',     labelAr: 'إيرادات السياحة',    layer: 'economy', type: 'Topic',         lat: 25.1970, lng: 55.2744, weight: 0.78, sensitivity: 0.65, damping_factor: 0.05, value: 0.78 },
 
   // ── Layer 4: Finance ──
-  { id: 'fin_sama',    label: 'SAMA',               labelAr: 'مؤسسة النقد',       layer: 'finance', type: 'Organization',  lat: 24.6918, lng: 46.6855, weight: 0.92, sensitivity: 0.35, value: 0.92 },
-  { id: 'fin_uae_cb',  label: 'UAE Central Bank',   labelAr: 'مصرف الإمارات المركزي', layer: 'finance', type: 'Organization', lat: 24.4872, lng: 54.3613, weight: 0.88, sensitivity: 0.35, value: 0.88 },
-  { id: 'fin_kw_cb',   label: 'Kuwait Central Bank',labelAr: 'بنك الكويت المركزي', layer: 'finance', type: 'Organization',  lat: 29.3759, lng: 47.9850, weight: 0.75, sensitivity: 0.4,  value: 0.75 },
-  { id: 'fin_insurers',label: 'Insurers',           labelAr: 'شركات التأمين',      layer: 'finance', type: 'Organization',  lat: 24.7500, lng: 46.7200, weight: 0.80, sensitivity: 0.7,  value: 0.80 },
-  { id: 'fin_reinsure', label: 'Reinsurers',        labelAr: 'إعادة التأمين',      layer: 'finance', type: 'Organization',  lat: 25.1800, lng: 55.2800, weight: 0.75, sensitivity: 0.65, value: 0.75 },
-  { id: 'fin_ins_risk', label: 'Insurance Risk',    labelAr: 'مخاطر التأمين',      layer: 'finance', type: 'Topic',         lat: 25.2200, lng: 55.2600, weight: 0.82, sensitivity: 0.7,  value: 0.82 },
-  // ── Layer 4b: Stock exchange (new entity) ──
-  { id: 'fin_tadawul', label: 'Tadawul Exchange',   labelAr: 'تداول',             layer: 'finance', type: 'Organization',  lat: 24.6900, lng: 46.6900, weight: 0.85, sensitivity: 0.6,  value: 0.85 },
+  { id: 'fin_sama',    label: 'SAMA',               labelAr: 'مؤسسة النقد',       layer: 'finance', type: 'Organization',  lat: 24.6918, lng: 46.6855, weight: 0.92, sensitivity: 0.35, damping_factor: 0.02, value: 0.92 },
+  { id: 'fin_uae_cb',  label: 'UAE Central Bank',   labelAr: 'مصرف الإمارات المركزي', layer: 'finance', type: 'Organization', lat: 24.4872, lng: 54.3613, weight: 0.88, sensitivity: 0.35, damping_factor: 0.02, value: 0.88 },
+  { id: 'fin_kw_cb',   label: 'Kuwait Central Bank',labelAr: 'بنك الكويت المركزي', layer: 'finance', type: 'Organization',  lat: 29.3759, lng: 47.9850, weight: 0.75, sensitivity: 0.4,  damping_factor: 0.03, value: 0.75 },
+  { id: 'fin_insurers',label: 'Insurers',           labelAr: 'شركات التأمين',      layer: 'finance', type: 'Organization',  lat: 24.7500, lng: 46.7200, weight: 0.80, sensitivity: 0.7,  damping_factor: 0.06, value: 0.80 },
+  { id: 'fin_reinsure', label: 'Reinsurers',        labelAr: 'إعادة التأمين',      layer: 'finance', type: 'Organization',  lat: 25.1800, lng: 55.2800, weight: 0.75, sensitivity: 0.65, damping_factor: 0.05, value: 0.75 },
+  { id: 'fin_ins_risk', label: 'Insurance Risk',    labelAr: 'مخاطر التأمين',      layer: 'finance', type: 'Topic',         lat: 25.2200, lng: 55.2600, weight: 0.82, sensitivity: 0.7,  damping_factor: 0.06, value: 0.82 },
+  { id: 'fin_tadawul', label: 'Tadawul Exchange',   labelAr: 'تداول',             layer: 'finance', type: 'Organization',  lat: 24.6900, lng: 46.6900, weight: 0.85, sensitivity: 0.6,  damping_factor: 0.04, value: 0.85 },
 
   // ── Layer 5: Society ──
-  { id: 'soc_citizens', label: 'Citizens',          labelAr: 'المواطنون',         layer: 'society', type: 'Person',        lat: 24.7000, lng: 46.7000, weight: 0.85, sensitivity: 0.6,  value: 0.85 },
-  { id: 'soc_travelers',label: 'Travelers',         labelAr: 'المسافرون',         layer: 'society', type: 'Person',        lat: 25.2000, lng: 55.3000, weight: 0.70, sensitivity: 0.65, value: 0.70 },
-  { id: 'soc_business', label: 'Businesses',        labelAr: 'الشركات',           layer: 'society', type: 'Organization',  lat: 25.0800, lng: 55.1400, weight: 0.80, sensitivity: 0.55, value: 0.80 },
-  { id: 'soc_media',    label: 'Media',             labelAr: 'الإعلام',           layer: 'society', type: 'Platform',      lat: 25.2000, lng: 55.2500, weight: 0.82, sensitivity: 0.5,  value: 0.82 },
-  { id: 'soc_social',   label: 'Social Platforms',  labelAr: 'المنصات الاجتماعية', layer: 'society', type: 'Platform',     lat: 24.7200, lng: 46.6800, weight: 0.78, sensitivity: 0.4,  value: 0.78 },
-  { id: 'soc_travel_d', label: 'Travel Demand',     labelAr: 'الطلب على السفر',    layer: 'society', type: 'Topic',         lat: 25.2500, lng: 55.3500, weight: 0.72, sensitivity: 0.7,  value: 0.72 },
-  { id: 'soc_ticket',   label: 'Ticket Price',      labelAr: 'أسعار التذاكر',      layer: 'society', type: 'Topic',         lat: 25.2532, lng: 55.3600, weight: 0.68, sensitivity: 0.75, value: 0.68 },
+  { id: 'soc_citizens', label: 'Citizens',          labelAr: 'المواطنون',         layer: 'society', type: 'Person',        lat: 24.7000, lng: 46.7000, weight: 0.85, sensitivity: 0.6,  damping_factor: 0.06, value: 0.85 },
+  { id: 'soc_travelers',label: 'Travelers',         labelAr: 'المسافرون',         layer: 'society', type: 'Person',        lat: 25.2000, lng: 55.3000, weight: 0.70, sensitivity: 0.65, damping_factor: 0.07, value: 0.70 },
+  { id: 'soc_business', label: 'Businesses',        labelAr: 'الشركات',           layer: 'society', type: 'Organization',  lat: 25.0800, lng: 55.1400, weight: 0.80, sensitivity: 0.55, damping_factor: 0.05, value: 0.80 },
+  { id: 'soc_media',    label: 'Media',             labelAr: 'الإعلام',           layer: 'society', type: 'Platform',      lat: 25.2000, lng: 55.2500, weight: 0.82, sensitivity: 0.5,  damping_factor: 0.06, value: 0.82 },
+  { id: 'soc_social',   label: 'Social Platforms',  labelAr: 'المنصات الاجتماعية', layer: 'society', type: 'Platform',     lat: 24.7200, lng: 46.6800, weight: 0.78, sensitivity: 0.4,  damping_factor: 0.05, value: 0.78 },
+  { id: 'soc_travel_d', label: 'Travel Demand',     labelAr: 'الطلب على السفر',    layer: 'society', type: 'Topic',         lat: 25.2500, lng: 55.3500, weight: 0.72, sensitivity: 0.7,  damping_factor: 0.07, value: 0.72 },
+  { id: 'soc_ticket',   label: 'Ticket Price',      labelAr: 'أسعار التذاكر',      layer: 'society', type: 'Topic',         lat: 25.2532, lng: 55.3600, weight: 0.68, sensitivity: 0.75, damping_factor: 0.08, value: 0.68 },
 ]
 
 /* ════════════════════════════════════════════════
@@ -185,6 +187,15 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e57', source: 'geo_om',      target: 'geo_hormuz',    weight: 0.70, polarity: 1, label: 'controls strait', labelAr: 'يتحكم بالمضيق' },
   { id: 'e58', source: 'geo_bh',      target: 'fin_insurers',  weight: 0.45, polarity: 1, label: 'insurance hub', labelAr: 'مركز تأمين' },
   { id: 'e59', source: 'geo_bh',      target: 'eco_oil',       weight: 0.40, polarity: 1, label: 'oil production', labelAr: 'إنتاج النفط' },
+
+  // —— Utilities connectivity ——
+  { id: 'e60', source: 'eco_oil',     target: 'inf_power',     weight: 0.70, polarity: 1, label: 'fuel for power', labelAr: 'وقود للطاقة' },
+  { id: 'e61', source: 'inf_power',   target: 'inf_desal',     weight: 0.85, polarity: 1, label: 'powers desalination', labelAr: 'يغذي التحلية' },
+  { id: 'e62', source: 'inf_desal',   target: 'soc_citizens',  weight: 0.75, polarity: 1, label: 'water supply', labelAr: 'إمدادات المياه' },
+  { id: 'e63', source: 'inf_power',   target: 'soc_citizens',  weight: 0.70, polarity: 1, label: 'electricity supply', labelAr: 'إمدادات الكهرباء' },
+  { id: 'e64', source: 'inf_power',   target: 'soc_business',  weight: 0.65, polarity: 1, label: 'business power', labelAr: 'طاقة الأعمال' },
+  { id: 'e65', source: 'geo_sa',      target: 'inf_power',     weight: 0.80, polarity: 1, label: 'national grid', labelAr: 'الشبكة الوطنية' },
+  { id: 'e66', source: 'geo_uae',     target: 'inf_desal',     weight: 0.75, polarity: 1, label: 'water infrastructure', labelAr: 'البنية التحتية للمياه' },
 ]
 
 /* ════════════════════════════════════════════════
