@@ -815,6 +815,18 @@ function DemoPageContent() {
                           <span className="text-ds-text-dim">{ui('variance', lang)}</span>
                           <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
                         </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-ds-text-dim">{lang === 'ar' ? 'الثقة (MC)' : 'Confidence (MC)'}</span>
+                          <span className="font-mono text-emerald-400">{(monteCarlo.confidenceMC * 100).toFixed(0)}%</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-ds-text-dim">{lang === 'ar' ? 'أفضل حالة' : 'Best Case'}</span>
+                          <span className="font-mono text-emerald-400">${monteCarlo.bestCase.toFixed(1)}B</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-ds-text-dim">{lang === 'ar' ? 'أسوأ حالة' : 'Worst Case'}</span>
+                          <span className="font-mono text-red-400">${monteCarlo.worstCase.toFixed(1)}B</span>
+                        </div>
                       </div>
                     </>
                   )}
@@ -1122,6 +1134,10 @@ function DemoPageContent() {
                       <div className="flex items-center justify-between text-[10px]">
                         <span className="text-ds-text-dim">{ui('variance', lang)}</span>
                         <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-ds-text-dim">{lang === 'ar' ? 'الثقة (MC)' : 'Confidence (MC)'}</span>
+                        <span className="font-mono text-emerald-400">{(monteCarlo.confidenceMC * 100).toFixed(0)}%</span>
                       </div>
                     </div>
                   </div>
