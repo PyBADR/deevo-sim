@@ -513,6 +513,205 @@ function computeVision2030Engine(impacts: Map<string, number>, severity: number)
 }
 
 /* ════════════════════════════════════════════════════════════════
+   ENGINE 13: MILITARY REPOSITIONING
+   Movement → Shipping Reroute → Port Delay → Airspace → Insurance → GDP
+   ════════════════════════════════════════════════════════════════ */
+function computeMilitaryEngine(impacts: Map<string, number>, severity: number): ScenarioEngineResult {
+  const h = imp(impacts, 'geo_hormuz', severity * 0.4)
+  const ship = imp(impacts, 'eco_shipping', severity * 0.5)
+  const jebel = imp(impacts, 'inf_jebel', severity * 0.35)
+
+  const shipReroute = clamp(ship * 100 * 0.7)
+  const portDelay = clamp(jebel * 100 * 0.6)
+  const airspaceRestrict = clamp(h * 100 * 0.5)
+  const insSpike = clamp((shipReroute + airspaceRestrict) * 0.4)
+  const shipCost = BASES.shippingCost * (shipReroute / 100)
+  const avCost = BASES.aviationFuel * (airspaceRestrict / 100) * 0.3
+  const gdpLoss = (shipCost + avCost + BASES.insurancePremium * insSpike / 100) * 0.5
+
+  return {
+    engineId: 'military_repositioning',
+    steps: [
+      { id: 'reroute', label: 'Shipping Reroute', labelAr: 'تحويل مسارات الشحن', formula: `Reroute = ${shipReroute.toFixed(0)}%`, formulaAr: `التحويل = ${shipReroute.toFixed(0)}%`, value: shipReroute, base: 100, unit: '%', direction: '↑', impactPct: shipReroute },
+      { id: 'port', label: 'Port Delays', labelAr: 'تأخيرات الموانئ', formula: `Delay = ${portDelay.toFixed(0)}%`, formulaAr: `التأخير = ${portDelay.toFixed(0)}%`, value: portDelay, base: 100, unit: '%', direction: '↑', impactPct: portDelay },
+      { id: 'airspace', label: 'Airspace Restriction', labelAr: 'تقييد المجال الجوي', formula: `Restrict = ${airspaceRestrict.toFixed(0)}%`, formulaAr: `التقييد = ${airspaceRestrict.toFixed(0)}%`, value: airspaceRestrict, base: 100, unit: '%', direction: '↑', impactPct: airspaceRestrict },
+      { id: 'ins', label: 'Insurance Spike', labelAr: 'ارتفاع التأمين', formula: `Ins Δ = +${insSpike.toFixed(0)}%`, formulaAr: `التأمين = +${insSpike.toFixed(0)}%`, value: insSpike, base: 100, unit: '%', direction: '↑', impactPct: insSpike },
+      { id: 'gdp', label: 'GDP Exposure', labelAr: 'التعرض للناتج المحلي', formula: `GDP = $${gdpLoss.toFixed(1)}B`, formulaAr: `الناتج = $${gdpLoss.toFixed(1)}B`, value: gdpLoss, base: BASES.gccGDP, unit: '$B', direction: '↓', impactPct: (gdpLoss / BASES.gccGDP) * 100 },
+    ],
+    totalExposure: gdpLoss,
+    narrative: `Military repositioning reroutes ${shipReroute.toFixed(0)}% of shipping, delays ports by ${portDelay.toFixed(0)}%, restricts airspace ${airspaceRestrict.toFixed(0)}%. Insurance spikes ${insSpike.toFixed(0)}%. GDP exposure: $${gdpLoss.toFixed(1)}B.`,
+    narrativeAr: `إعادة التموضع العسكري تحوّل ${shipReroute.toFixed(0)}% من الشحن، تؤخر الموانئ ${portDelay.toFixed(0)}%، تقيّد المجال الجوي ${airspaceRestrict.toFixed(0)}%. التأمين يرتفع ${insSpike.toFixed(0)}%. التعرض: $${gdpLoss.toFixed(1)}B.`,
+    keyMetrics: [
+      { label: 'Ship Reroute', labelAr: 'تحويل الشحن', value: `${shipReroute.toFixed(0)}%`, color: '#f59e0b' },
+      { label: 'Port Delay', labelAr: 'تأخير الموانئ', value: `${portDelay.toFixed(0)}%`, color: '#ef4444' },
+      { label: 'Airspace', labelAr: 'المجال الجوي', value: `${airspaceRestrict.toFixed(0)}%`, color: '#a78bfa' },
+      { label: 'GDP Exposure', labelAr: 'تعرض الناتج', value: `$${gdpLoss.toFixed(1)}B`, color: '#ef4444' },
+    ],
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ENGINE 14: FLIGHT REROUTING
+   Conflict → Reroute → Fuel +$8M/day → Ticket Surge → Airline Margin → Transit Loss → GDP
+   ════════════════════════════════════════════════════════════════ */
+function computeFlightReroutingEngine(impacts: Map<string, number>, severity: number): ScenarioEngineResult {
+  const av = imp(impacts, 'eco_aviation', severity * 0.65)
+  const fuel = imp(impacts, 'eco_fuel', severity * 0.55)
+  const stress = imp(impacts, 'eco_av_stress', severity * 0.7)
+
+  const reroutePct = clamp(av * 100 * 0.85)
+  const fuelSpike = clamp(fuel * 100 * 0.9)
+  const dailyCost = 8 * reroutePct / 100  // $8M/day per major airline × reroute fraction
+  const ticketSurge = clamp(fuelSpike * 0.55 + 15)
+  const marginCollapse = clamp(stress * 100 * 0.8)
+  const transitLoss = clamp(reroutePct * 0.6)
+  const tourLoss = BASES.tourismRevenue * (transitLoss / 100) * 0.3
+  const avLoss = BASES.aviationFuel * (fuelSpike / 100) * 0.5
+  const gdpLoss = (tourLoss + avLoss) * 0.65
+
+  return {
+    engineId: 'flight_rerouting',
+    steps: [
+      { id: 'reroute', label: 'Flights Rerouted', labelAr: 'رحلات محوّلة', formula: `Reroute = ${reroutePct.toFixed(0)}%`, formulaAr: `التحويل = ${reroutePct.toFixed(0)}%`, value: reroutePct, base: 100, unit: '%', direction: '↑', impactPct: reroutePct },
+      { id: 'fuel', label: 'Fuel Cost Spike', labelAr: 'ارتفاع تكلفة الوقود', formula: `Fuel Δ = +${fuelSpike.toFixed(0)}% (+$${dailyCost.toFixed(0)}M/day)`, formulaAr: `الوقود = +${fuelSpike.toFixed(0)}% (+$${dailyCost.toFixed(0)}M/يوم)`, value: fuelSpike, base: 100, unit: '%', direction: '↑', impactPct: fuelSpike },
+      { id: 'ticket', label: 'Ticket Price Surge', labelAr: 'ارتفاع أسعار التذاكر', formula: `Ticket Δ = +${ticketSurge.toFixed(0)}%`, formulaAr: `التذاكر = +${ticketSurge.toFixed(0)}%`, value: ticketSurge, base: BASES.baseTicket, unit: '$', direction: '↑', impactPct: ticketSurge },
+      { id: 'margin', label: 'Airline Margin Collapse', labelAr: 'انهيار هوامش الطيران', formula: `Margin Δ = −${marginCollapse.toFixed(0)}%`, formulaAr: `الهوامش = −${marginCollapse.toFixed(0)}%`, value: marginCollapse, base: 100, unit: '%', direction: '↓', impactPct: marginCollapse },
+      { id: 'transit', label: 'Transit Revenue Loss', labelAr: 'خسارة إيرادات العبور', formula: `Transit Δ = −${transitLoss.toFixed(0)}%`, formulaAr: `العبور = −${transitLoss.toFixed(0)}%`, value: transitLoss, base: 100, unit: '%', direction: '↓', impactPct: transitLoss },
+      { id: 'gdp', label: 'GDP Exposure', labelAr: 'التعرض للناتج المحلي', formula: `GDP = $${gdpLoss.toFixed(1)}B`, formulaAr: `الناتج = $${gdpLoss.toFixed(1)}B`, value: gdpLoss, base: BASES.gccGDP, unit: '$B', direction: '↓', impactPct: (gdpLoss / BASES.gccGDP) * 100 },
+    ],
+    totalExposure: gdpLoss,
+    narrative: `${reroutePct.toFixed(0)}% of flights rerouted, fuel costs spike ${fuelSpike.toFixed(0)}% (+$${dailyCost.toFixed(0)}M/day per carrier). Tickets surge ${ticketSurge.toFixed(0)}%, airline margins collapse ${marginCollapse.toFixed(0)}%. GDP exposure: $${gdpLoss.toFixed(1)}B.`,
+    narrativeAr: `${reroutePct.toFixed(0)}% من الرحلات محوّلة، الوقود يرتفع ${fuelSpike.toFixed(0)}% (+$${dailyCost.toFixed(0)}M/يوم لكل شركة). التذاكر ترتفع ${ticketSurge.toFixed(0)}%، هوامش الطيران تنهار ${marginCollapse.toFixed(0)}%. التعرض: $${gdpLoss.toFixed(1)}B.`,
+    keyMetrics: [
+      { label: 'Rerouted', labelAr: 'محوّلة', value: `${reroutePct.toFixed(0)}%`, color: '#f59e0b' },
+      { label: 'Daily Cost', labelAr: 'التكلفة اليومية', value: `$${dailyCost.toFixed(0)}M/d`, color: '#ef4444' },
+      { label: 'Margin Drop', labelAr: 'انخفاض الهوامش', value: `−${marginCollapse.toFixed(0)}%`, color: '#ef4444' },
+      { label: 'GDP Exposure', labelAr: 'تعرض الناتج', value: `$${gdpLoss.toFixed(1)}B`, color: '#ef4444' },
+    ],
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ENGINE 15: GCC PORT CONGESTION
+   Surge → Dwell Time → Cascading Delays → Food Import Risk → Insurance → GDP
+   ════════════════════════════════════════════════════════════════ */
+function computePortCongestionEngine(impacts: Map<string, number>, severity: number): ScenarioEngineResult {
+  const jebel = imp(impacts, 'inf_jebel', severity * 0.55)
+  const dammam = imp(impacts, 'inf_dammam', severity * 0.5)
+  const ship = imp(impacts, 'eco_shipping', severity * 0.55)
+
+  const surgePct = clamp((jebel + dammam + ship) * 100 / 3 * 0.8)
+  const dwellIncrease = clamp(surgePct * 1.3)
+  const cascadeDelay = Math.min(45, Math.round(dwellIncrease * 0.5))
+  const foodRisk = clamp(surgePct * 0.55)
+  const insSpike = clamp(surgePct * 0.4)
+  const tradeLoss = BASES.portTEU * (surgePct / 100) * 0.06
+  const foodCost = BASES.foodImports * (foodRisk / 100) * 0.3
+  const gdpLoss = tradeLoss + foodCost + BASES.insurancePremium * (insSpike / 100) * 0.4
+
+  return {
+    engineId: 'gcc_port_congestion',
+    steps: [
+      { id: 'surge', label: 'Vessel Surge', labelAr: 'ارتفاع عدد السفن', formula: `Surge = +${surgePct.toFixed(0)}% capacity`, formulaAr: `الارتفاع = +${surgePct.toFixed(0)}% من الطاقة`, value: surgePct, base: 100, unit: '%', direction: '↑', impactPct: surgePct },
+      { id: 'dwell', label: 'Dwell Time Increase', labelAr: 'زيادة وقت الانتظار', formula: `Dwell Δ = +${dwellIncrease.toFixed(0)}%`, formulaAr: `الانتظار = +${dwellIncrease.toFixed(0)}%`, value: dwellIncrease, base: 100, unit: '%', direction: '↑', impactPct: dwellIncrease },
+      { id: 'cascade', label: 'Cascade Clearance', labelAr: 'فترة التطهير', formula: `Clear = ${cascadeDelay}+ days`, formulaAr: `التطهير = ${cascadeDelay}+ يوم`, value: cascadeDelay, base: 45, unit: 'days', direction: '↑', impactPct: (cascadeDelay / 45) * 100 },
+      { id: 'food', label: 'Food Import Risk', labelAr: 'مخاطر استيراد الغذاء', formula: `Food Risk = ${foodRisk.toFixed(0)}%`, formulaAr: `مخاطر الغذاء = ${foodRisk.toFixed(0)}%`, value: foodRisk, base: 100, unit: '%', direction: '↑', impactPct: foodRisk },
+      { id: 'ins', label: 'Insurance Spike', labelAr: 'ارتفاع التأمين', formula: `Ins Δ = +${insSpike.toFixed(0)}%`, formulaAr: `التأمين = +${insSpike.toFixed(0)}%`, value: insSpike, base: 100, unit: '%', direction: '↑', impactPct: insSpike },
+      { id: 'gdp', label: 'GDP Exposure', labelAr: 'التعرض للناتج المحلي', formula: `GDP = $${gdpLoss.toFixed(1)}B`, formulaAr: `الناتج = $${gdpLoss.toFixed(1)}B`, value: gdpLoss, base: BASES.gccGDP, unit: '$B', direction: '↓', impactPct: (gdpLoss / BASES.gccGDP) * 100 },
+    ],
+    totalExposure: gdpLoss,
+    narrative: `Port vessel surge +${surgePct.toFixed(0)}%, dwell times increase ${dwellIncrease.toFixed(0)}%. Cascade clearance ${cascadeDelay}+ days. Food import risk ${foodRisk.toFixed(0)}%. GDP exposure: $${gdpLoss.toFixed(1)}B.`,
+    narrativeAr: `ارتفاع السفن +${surgePct.toFixed(0)}%، أوقات الانتظار تزداد ${dwellIncrease.toFixed(0)}%. فترة التطهير ${cascadeDelay}+ يوم. مخاطر استيراد الغذاء ${foodRisk.toFixed(0)}%. التعرض: $${gdpLoss.toFixed(1)}B.`,
+    keyMetrics: [
+      { label: 'Vessel Surge', labelAr: 'ارتفاع السفن', value: `+${surgePct.toFixed(0)}%`, color: '#f59e0b' },
+      { label: 'Clearance', labelAr: 'التطهير', value: `${cascadeDelay}+ days`, color: '#ef4444' },
+      { label: 'Food Risk', labelAr: 'مخاطر الغذاء', value: `${foodRisk.toFixed(0)}%`, color: foodRisk > 40 ? '#ef4444' : '#f59e0b' },
+      { label: 'GDP Exposure', labelAr: 'تعرض الناتج', value: `$${gdpLoss.toFixed(1)}B`, color: '#ef4444' },
+    ],
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ENGINE 16: SUMMER UTILITY STRESS
+   Peak Demand + Conflict → Fuel Supply → Power → Water → Telecom → Social → GDP
+   ════════════════════════════════════════════════════════════════ */
+function computeSummerUtilityEngine(impacts: Map<string, number>, severity: number): ScenarioEngineResult {
+  const power = imp(impacts, 'inf_power', severity * 0.75)
+  const desal = imp(impacts, 'inf_desal', severity * 0.65)
+  const fuel = imp(impacts, 'eco_fuel', severity * 0.7)
+  const hormuz = imp(impacts, 'geo_hormuz', severity * 0.45)
+
+  const fuelDisrupt = clamp((fuel + hormuz) * 100 / 2 * 0.85)
+  const gridStress = clamp(power * 100 * 0.9 + fuelDisrupt * 0.3)
+  const desalDrop = clamp(desal * 100 * 0.8 + gridStress * 0.2)
+  const waterCrisis = clamp(desalDrop * 0.9)
+  const socialStress = clamp((gridStress + waterCrisis) / 2 * 0.75)
+  const gdpLoss = BASES.gccGDP * ((gridStress + desalDrop + socialStress) / 300) * 0.07
+
+  return {
+    engineId: 'summer_utility_stress',
+    steps: [
+      { id: 'fuel', label: 'Fuel Supply Disruption', labelAr: 'تعطل إمدادات الوقود', formula: `Fuel Δ = −${fuelDisrupt.toFixed(0)}%`, formulaAr: `الوقود = −${fuelDisrupt.toFixed(0)}%`, value: fuelDisrupt, base: 100, unit: '%', direction: '↓', impactPct: fuelDisrupt },
+      { id: 'grid', label: 'Grid Stress (Peak+Conflict)', labelAr: 'ضغط الشبكة (ذروة+صراع)', formula: `Grid = ${gridStress.toFixed(0)}%`, formulaAr: `الشبكة = ${gridStress.toFixed(0)}%`, value: gridStress, base: 100, unit: '%', direction: '↑', impactPct: gridStress },
+      { id: 'desal', label: 'Desalination Drop', labelAr: 'انخفاض التحلية', formula: `Desal Δ = −${desalDrop.toFixed(0)}%`, formulaAr: `التحلية = −${desalDrop.toFixed(0)}%`, value: desalDrop, base: 100, unit: '%', direction: '↓', impactPct: desalDrop },
+      { id: 'water', label: 'Water Crisis Severity', labelAr: 'شدة أزمة المياه', formula: `Water = ${waterCrisis.toFixed(0)}%`, formulaAr: `المياه = ${waterCrisis.toFixed(0)}%`, value: waterCrisis, base: 100, unit: '%', direction: '↑', impactPct: waterCrisis },
+      { id: 'social', label: 'Social Stress', labelAr: 'الضغط الاجتماعي', formula: `Stress = ${socialStress.toFixed(0)}%`, formulaAr: `الضغط = ${socialStress.toFixed(0)}%`, value: socialStress, base: 100, unit: '%', direction: '↑', impactPct: socialStress },
+      { id: 'gdp', label: 'GDP Exposure', labelAr: 'التعرض للناتج المحلي', formula: `GDP = $${gdpLoss.toFixed(1)}B`, formulaAr: `الناتج = $${gdpLoss.toFixed(1)}B`, value: gdpLoss, base: BASES.gccGDP, unit: '$B', direction: '↓', impactPct: (gdpLoss / BASES.gccGDP) * 100 },
+    ],
+    totalExposure: gdpLoss,
+    narrative: `Summer peak + conflict disrupts fuel ${fuelDisrupt.toFixed(0)}%, grid stress ${gridStress.toFixed(0)}%, desalination drops ${desalDrop.toFixed(0)}%. Water crisis at ${waterCrisis.toFixed(0)}%, social stress ${socialStress.toFixed(0)}%. GDP exposure: $${gdpLoss.toFixed(1)}B.`,
+    narrativeAr: `ذروة الصيف + صراع تعطّل الوقود ${fuelDisrupt.toFixed(0)}%، ضغط الشبكة ${gridStress.toFixed(0)}%، التحلية تنخفض ${desalDrop.toFixed(0)}%. أزمة مياه ${waterCrisis.toFixed(0)}%، ضغط اجتماعي ${socialStress.toFixed(0)}%. التعرض: $${gdpLoss.toFixed(1)}B.`,
+    keyMetrics: [
+      { label: 'Grid Stress', labelAr: 'ضغط الشبكة', value: `${gridStress.toFixed(0)}%`, color: '#ef4444' },
+      { label: 'Water Crisis', labelAr: 'أزمة المياه', value: `${waterCrisis.toFixed(0)}%`, color: waterCrisis > 50 ? '#ef4444' : '#f59e0b' },
+      { label: 'Social Stress', labelAr: 'ضغط اجتماعي', value: `${socialStress.toFixed(0)}%`, color: socialStress > 40 ? '#ef4444' : '#f59e0b' },
+      { label: 'GDP Exposure', labelAr: 'تعرض الناتج', value: `$${gdpLoss.toFixed(1)}B`, color: '#ef4444' },
+    ],
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ENGINE 17: MEGA PROJECTS PRESSURE
+   Construction Delay → Labor Shortage → Housing → Banking Exposure → GDP
+   ════════════════════════════════════════════════════════════════ */
+function computeMegaProjectsEngine(impacts: Map<string, number>, severity: number): ScenarioEngineResult {
+  const employ = imp(impacts, 'soc_employment', severity * 0.55)
+  const housing = imp(impacts, 'soc_housing', severity * 0.5)
+  const bank = imp(impacts, 'fin_banking', severity * 0.4)
+  const tour = imp(impacts, 'eco_tourism', severity * 0.45)
+
+  const constructDelay = clamp(severity * 100 * 0.5)
+  const laborShortage = clamp(employ * 100 * 0.7)
+  const housingOversupply = clamp(housing * 100 * 0.65)
+  const bankExposure = clamp(bank * 100 * 0.5 + constructDelay * 0.3)
+  const tourDrop = clamp(tour * 100 * 0.4)
+  const bankLoss = BASES.bankingAssets * (bankExposure / 100) * 0.02
+  const tourLoss = BASES.tourismRevenue * (tourDrop / 100)
+  const gdpLoss = bankLoss + tourLoss + BASES.gccGDP * (laborShortage / 100) * 0.03
+
+  return {
+    engineId: 'mega_projects_pressure',
+    steps: [
+      { id: 'construct', label: 'Construction Delays', labelAr: 'تأخيرات البناء', formula: `Delay = ${constructDelay.toFixed(0)}%`, formulaAr: `التأخير = ${constructDelay.toFixed(0)}%`, value: constructDelay, base: 100, unit: '%', direction: '↑', impactPct: constructDelay },
+      { id: 'labor', label: 'Labor Shortage', labelAr: 'نقص العمالة', formula: `Labor Δ = −${laborShortage.toFixed(0)}%`, formulaAr: `العمالة = −${laborShortage.toFixed(0)}%`, value: laborShortage, base: 100, unit: '%', direction: '↓', impactPct: laborShortage },
+      { id: 'housing', label: 'Housing Oversupply', labelAr: 'فائض الإسكان', formula: `Oversupply = ${housingOversupply.toFixed(0)}%`, formulaAr: `الفائض = ${housingOversupply.toFixed(0)}%`, value: housingOversupply, base: 100, unit: '%', direction: '↑', impactPct: housingOversupply },
+      { id: 'bank', label: 'Banking Exposure', labelAr: 'تعرض البنوك', formula: `Bank = $${bankLoss.toFixed(1)}B`, formulaAr: `البنوك = $${bankLoss.toFixed(1)}B`, value: bankExposure, base: 100, unit: '%', direction: '↑', impactPct: bankExposure },
+      { id: 'tour', label: 'Tourism Impact', labelAr: 'تأثير السياحة', formula: `Tour Δ = −${tourDrop.toFixed(0)}%`, formulaAr: `السياحة = −${tourDrop.toFixed(0)}%`, value: tourDrop, base: 100, unit: '%', direction: '↓', impactPct: tourDrop },
+      { id: 'gdp', label: 'GDP Exposure', labelAr: 'التعرض للناتج المحلي', formula: `GDP = $${gdpLoss.toFixed(1)}B`, formulaAr: `الناتج = $${gdpLoss.toFixed(1)}B`, value: gdpLoss, base: BASES.gccGDP, unit: '$B', direction: '↓', impactPct: (gdpLoss / BASES.gccGDP) * 100 },
+    ],
+    totalExposure: gdpLoss,
+    narrative: `Construction delays ${constructDelay.toFixed(0)}%, labor shortage ${laborShortage.toFixed(0)}%, housing oversupply ${housingOversupply.toFixed(0)}%. Banking exposure $${bankLoss.toFixed(1)}B. Tourism drops ${tourDrop.toFixed(0)}%. GDP exposure: $${gdpLoss.toFixed(1)}B.`,
+    narrativeAr: `تأخيرات البناء ${constructDelay.toFixed(0)}%، نقص العمالة ${laborShortage.toFixed(0)}%، فائض الإسكان ${housingOversupply.toFixed(0)}%. تعرض البنوك $${bankLoss.toFixed(1)}B. السياحة تنخفض ${tourDrop.toFixed(0)}%. التعرض: $${gdpLoss.toFixed(1)}B.`,
+    keyMetrics: [
+      { label: 'Construction', labelAr: 'البناء', value: `${constructDelay.toFixed(0)}%`, color: '#f59e0b' },
+      { label: 'Labor', labelAr: 'العمالة', value: `−${laborShortage.toFixed(0)}%`, color: '#ef4444' },
+      { label: 'Bank Exposure', labelAr: 'تعرض البنوك', value: `$${bankLoss.toFixed(1)}B`, color: '#ef4444' },
+      { label: 'GDP Exposure', labelAr: 'تعرض الناتج', value: `$${gdpLoss.toFixed(1)}B`, color: '#ef4444' },
+    ],
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    GENERIC FALLBACK ENGINE
    ════════════════════════════════════════════════════════════════ */
 function computeGenericEngine(impacts: Map<string, number>, severity: number, engineId: string): ScenarioEngineResult {
@@ -630,6 +829,36 @@ export const scenarioEngines: Record<string, ScenarioEngine> = {
     chainLabel: 'FDI → Projects → Employment → Tourism → GDP',
     chainLabelAr: 'الاستثمار الأجنبي → المشاريع → التوظيف → السياحة → الناتج',
     compute: computeVision2030Engine,
+  },
+  military_repositioning: {
+    id: 'military_repositioning', label: 'Military Repositioning Engine', labelAr: 'محرك إعادة التموضع العسكري',
+    chainLabel: 'Movement → Shipping Reroute → Port Delay → Airspace → Insurance → GDP',
+    chainLabelAr: 'التحركات → تحويل الشحن → تأخير الموانئ → المجال الجوي → التأمين → الناتج',
+    compute: computeMilitaryEngine,
+  },
+  flight_rerouting: {
+    id: 'flight_rerouting', label: 'Flight Rerouting Engine', labelAr: 'محرك إعادة توجيه الرحلات',
+    chainLabel: 'Conflict → Reroute → Fuel +$8M/day → Ticket Surge → Airline Margin → Transit → GDP',
+    chainLabelAr: 'الصراع → التحويل → الوقود +$8M/يوم → ارتفاع التذاكر → هوامش الطيران → العبور → الناتج',
+    compute: computeFlightReroutingEngine,
+  },
+  gcc_port_congestion: {
+    id: 'gcc_port_congestion', label: 'Port Congestion Engine', labelAr: 'محرك ازدحام الموانئ',
+    chainLabel: 'Vessel Surge → Dwell Time → Cascade → Food Import Risk → Insurance → GDP',
+    chainLabelAr: 'ارتفاع السفن → وقت الانتظار → التأثير المتتالي → مخاطر الغذاء → التأمين → الناتج',
+    compute: computePortCongestionEngine,
+  },
+  summer_utility_stress: {
+    id: 'summer_utility_stress', label: 'Summer Utility Stress Engine', labelAr: 'محرك ضغط المرافق الصيفي',
+    chainLabel: 'Peak Demand + Conflict → Fuel → Power → Water → Social → GDP',
+    chainLabelAr: 'ذروة الطلب + صراع → الوقود → الكهرباء → المياه → الاجتماعي → الناتج',
+    compute: computeSummerUtilityEngine,
+  },
+  mega_projects_pressure: {
+    id: 'mega_projects_pressure', label: 'Mega Projects Engine', labelAr: 'محرك ضغط المشاريع الكبرى',
+    chainLabel: 'Construction Delay → Labor → Housing → Banking Exposure → GDP',
+    chainLabelAr: 'تأخير البناء → العمالة → الإسكان → تعرض البنوك → الناتج',
+    compute: computeMegaProjectsEngine,
   },
 }
 
