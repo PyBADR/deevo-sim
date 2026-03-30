@@ -95,6 +95,12 @@ const UI: Record<string, { en: string; ar: string }> = {
   live: { en: 'LIVE', ar: 'مباشر' },
   delta: { en: 'Change', ar: 'التغيير' },
   version: { en: 'v4.0', ar: 'v4.0' },
+  causalBrief: { en: 'Causal Brief', ar: 'الموجز السببي' },
+  lossExposure: { en: 'Loss Exposure', ar: 'التعرض للخسائر' },
+  layerLegend: { en: 'Layer Legend', ar: 'دليل الطبقات' },
+  confidenceMC: { en: 'Confidence (MC)', ar: 'الثقة (MC)' },
+  bestCase: { en: 'Best Case', ar: 'أفضل حالة' },
+  worstCase: { en: 'Worst Case', ar: 'أسوأ حالة' },
 }
 
 const LAYER_LABELS: Record<string, { en: string; ar: string }> = {
@@ -719,6 +725,8 @@ function DemoPageContent() {
               <span className="text-[10px] text-ds-text-dim">|</span>
               <span className="text-[10px] font-mono text-ds-text-dim">{ui('spread', lang)}: <span className="text-cyan-400">{lang === 'ar' ? propagation.spreadLevelAr : propagation.spreadLevel}</span></span>
               <span className="text-[10px] text-ds-text-dim">|</span>
+              <span className="text-[10px] font-mono text-ds-text-dim">{ui('depth', lang)}: <span className="text-purple-400">{propagation.propagationDepth}</span></span>
+              <span className="text-[10px] text-ds-text-dim">|</span>
               <span className="text-[10px] font-mono text-ds-text-dim">{ui('totalLoss', lang)}: <span className="text-red-400">${propagation.totalLoss.toFixed(1)}B</span></span>
               {monteCarlo && (
                 <>
@@ -816,15 +824,15 @@ function DemoPageContent() {
                           <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-ds-text-dim">{lang === 'ar' ? 'الثقة (MC)' : 'Confidence (MC)'}</span>
+                          <span className="text-ds-text-dim">{ui('confidenceMC', lang)}</span>
                           <span className="font-mono text-emerald-400">{(monteCarlo.confidenceMC * 100).toFixed(0)}%</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-ds-text-dim">{lang === 'ar' ? 'أفضل حالة' : 'Best Case'}</span>
+                          <span className="text-ds-text-dim">{ui('bestCase', lang)}</span>
                           <span className="font-mono text-emerald-400">${monteCarlo.bestCase.toFixed(1)}B</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px]">
-                          <span className="text-ds-text-dim">{lang === 'ar' ? 'أسوأ حالة' : 'Worst Case'}</span>
+                          <span className="text-ds-text-dim">{ui('worstCase', lang)}</span>
                           <span className="font-mono text-red-400">${monteCarlo.worstCase.toFixed(1)}B</span>
                         </div>
                       </div>
@@ -1136,7 +1144,7 @@ function DemoPageContent() {
                         <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
                       </div>
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-ds-text-dim">{lang === 'ar' ? 'الثقة (MC)' : 'Confidence (MC)'}</span>
+                        <span className="text-ds-text-dim">{ui('confidenceMC', lang)}</span>
                         <span className="font-mono text-emerald-400">{(monteCarlo.confidenceMC * 100).toFixed(0)}%</span>
                       </div>
                     </div>
