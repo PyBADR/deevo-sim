@@ -178,7 +178,7 @@ export const gccEdges: GCCEdge[] = [
   { id: 'e03', source: 'eco_oil',     target: 'eco_adnoc',    weight: 0.85, polarity: 1, label: 'revenue driver', labelAr: 'محرك الإيرادات' },
   { id: 'e04', source: 'eco_oil',     target: 'eco_kpc',      weight: 0.80, polarity: 1, label: 'revenue driver', labelAr: 'محرك الإيرادات' },
   { id: 'e05', source: 'eco_oil',     target: 'eco_shipping',  weight: 0.85, polarity: -1, label: 'oil disruption raises shipping cost', labelAr: 'تعطل النفط يرفع تكلفة الشحن', animated: true },
-  { id: 'e06', source: 'eco_oil',     target: 'eco_fuel',     weight: 0.88, polarity: 1, label: 'price driver', labelAr: 'محرك الأسعار' },
+  { id: 'e06', source: 'eco_oil',     target: 'eco_fuel',     weight: 0.88, polarity: -1, label: 'oil disruption raises fuel price', labelAr: 'تعطل النفط يرفع سعر الوقود' },
 
   // ═══════════════════════════════════
   // SHIPPING & LOGISTICS → PORTS
@@ -222,9 +222,9 @@ export const gccEdges: GCCEdge[] = [
   // ═══════════════════════════════════
   // GDP CONTRIBUTIONS
   // ═══════════════════════════════════
-  { id: 'e21', source: 'eco_aviation', target: 'eco_gdp',     weight: 0.60, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
-  { id: 'e22', source: 'eco_oil',     target: 'eco_gdp',      weight: 0.75, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
-  { id: 'e23', source: 'eco_shipping', target: 'eco_gdp',     weight: 0.55, polarity: 1, label: 'GDP contribution', labelAr: 'مساهمة الناتج المحلي' },
+  { id: 'e21', source: 'eco_aviation', target: 'eco_gdp',     weight: 0.60, polarity: -1, label: 'fuel cost drags GDP', labelAr: 'تكلفة الوقود تضغط الناتج' },
+  { id: 'e22', source: 'eco_oil',     target: 'eco_gdp',      weight: 0.75, polarity: 1, label: 'oil revenue drives GDP', labelAr: 'إيرادات النفط تدعم الناتج' },
+  { id: 'e23', source: 'eco_shipping', target: 'eco_gdp',     weight: 0.55, polarity: -1, label: 'shipping cost drags GDP', labelAr: 'تكلفة الشحن تضغط الناتج' },
   { id: 'e46', source: 'eco_aramco',   target: 'eco_gdp',      weight: 0.70, polarity: 1, label: 'revenue', labelAr: 'إيرادات' },
   { id: 'e47', source: 'eco_adnoc',    target: 'eco_gdp',      weight: 0.55, polarity: 1, label: 'revenue', labelAr: 'إيرادات' },
   { id: 'e50', source: 'eco_tourism',  target: 'eco_gdp',       weight: 0.60, polarity: 1, label: 'tourism GDP', labelAr: 'ناتج السياحة' },

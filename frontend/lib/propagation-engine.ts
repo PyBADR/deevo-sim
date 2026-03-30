@@ -582,15 +582,17 @@ export function computeSectorFinancials(impacts: Map<string, number>): SectorFin
   const utilityAvailability = Math.max(0, 1 - (I('inf_desal') + I('inf_power')) / 2)
 
   return {
-    oilRevenue: { value: oilExport, base: FINANCIAL_BASES.oilRevenue, label: 'Oil Export (F_flow)', labelAr: 'تدفق النفط', unit: '$B' },
-    tourismRevenue: { value: tourismDemand, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Demand', labelAr: 'الطلب السياحي', unit: '$B' },
-    airportThroughput: { value: airportThroughput, base: FINANCIAL_BASES.airportPax, label: 'Airport Throughput', labelAr: 'إنتاجية المطارات', unit: 'M pax' },
-    portThroughput: { value: portThroughput, base: FINANCIAL_BASES.portTEU, label: 'Port Throughput', labelAr: 'إنتاجية الموانئ', unit: 'M TEU' },
-    shippingCost: { value: shippingCost, base: FINANCIAL_BASES.shippingCost, label: 'Shipping Cost', labelAr: 'تكلفة الشحن', unit: '$B' },
-    bankingStress: { value: bankingStress, base: 0, label: 'Banking Stress', labelAr: 'إجهاد المصارف', unit: 'index' },
-    insuranceRisk: { value: insuranceRisk, base: FINANCIAL_BASES.insurancePremium, label: 'Insurance Risk', labelAr: 'مخاطر التأمين', unit: '$B' },
-    foodStress: { value: foodStress, base: 0, label: 'Food Security Stress', labelAr: 'إجهاد الأمن الغذائي', unit: 'index' },
-    utilityAvailability: { value: utilityAvailability, base: 1, label: 'Utility Availability', labelAr: 'توفر المرافق', unit: '%' },
+    oilRevenue:         { value: oilExport, base: FINANCIAL_BASES.oilRevenue, label: 'Oil Export', labelAr: 'تدفق النفط', unit: '$B', formula: `F_flow=${F_flow.toFixed(2)} → $${oilExport.toFixed(0)}B`, direction: 'down' as const },
+    shippingCost:       { value: shippingCost, base: FINANCIAL_BASES.shippingCost, label: 'Shipping Cost', labelAr: 'تكلفة الشحن', unit: '$B', formula: `Base×(1+${impactOil.toFixed(2)}×0.85)`, direction: 'up' as const },
+    insuranceRisk:      { value: insuranceRisk, base: FINANCIAL_BASES.insurancePremium, label: 'Insurance Risk', labelAr: 'مخاطر التأمين', unit: '$B', formula: `Base×(1+${shippingCostImpact.toFixed(2)}×0.80)`, direction: 'up' as const },
+    aviationCost:       { value: aviationCost, base: FINANCIAL_BASES.aviationFuel, label: 'Aviation Fuel Cost', labelAr: 'تكلفة وقود الطيران', unit: '$B', formula: `Base×(1+${insuranceRiskImpact.toFixed(2)}×0.75)`, direction: 'up' as const },
+    tourismRevenue:     { value: tourismDemand, base: FINANCIAL_BASES.tourismRevenue, label: 'Tourism Demand', labelAr: 'الطلب السياحي', unit: '$B', formula: `Base×(1-${aviationCostImpact.toFixed(2)}×0.70)`, direction: 'down' as const },
+    gdpLoss:            { value: gdpLoss, base: 0, label: 'GDP Loss', labelAr: 'خسائر الناتج المحلي', unit: 'index', formula: `Σ(sector×weight)=${(gdpLoss*100).toFixed(1)}%`, direction: 'up' as const },
+    airportThroughput:  { value: airportThroughput, base: FINANCIAL_BASES.airportPax, label: 'Airport Throughput', labelAr: 'إنتاجية المطارات', unit: 'M pax', direction: 'down' as const },
+    portThroughput:     { value: portThroughput, base: FINANCIAL_BASES.portTEU, label: 'Port Throughput', labelAr: 'إنتاجية الموانئ', unit: 'M TEU', direction: 'down' as const },
+    bankingStress:      { value: bankingStress, base: 0, label: 'Banking Stress', labelAr: 'إجهاد المصارف', unit: 'index', direction: 'up' as const },
+    foodStress:         { value: foodStress, base: 0, label: 'Food Stress', labelAr: 'إجهاد الأمن الغذائي', unit: 'index', direction: 'up' as const },
+    utilityAvailability:{ value: utilityAvailability, base: 1, label: 'Utility Availability', labelAr: 'توفر المرافق', unit: '%', direction: 'down' as const },
   }
 }
 

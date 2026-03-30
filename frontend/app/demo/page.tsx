@@ -13,7 +13,7 @@ import {
 import dynamic from 'next/dynamic'
 import GraphPanel from '@/components/graph/GraphPanel'
 import { gccNodes, gccEdges, gccScenarios, layerMeta } from '@/lib/gcc-graph'
-import { runPropagation, formatPropagationChain, computeSectorFinancials, computeHormuzChain, type PropagationResult, type NodeExplanation, type SectorFinancials, type HormuzChainResult } from '@/lib/propagation-engine'
+import { runPropagation, formatPropagationChain, computeSectorFinancials, type PropagationResult, type NodeExplanation, type SectorFinancials } from '@/lib/propagation-engine'
 import { setLanguage, getLanguage, type Language } from '@/lib/i18n'
 import { shippingRoutes, aviationRoutes, nodeCoordinates } from '@/lib/gcc-coordinates'
 
@@ -996,41 +996,55 @@ function DemoPageContent() {
               )}
             </div>
 
-            {/* Sector Financial Formulas */}
+            {/* Sector Financial Formulas — Oil + Hormuz Core Chain */}
             {propagation && sectorFinancials && (
               <div className="ds-card rounded-xl p-3">
                 <h3 className="text-[10px] uppercase tracking-[0.15em] text-blue-400 font-bold mb-2 flex items-center gap-2">
                   <TrendingUp size={12} /> {ui('sectorFinancials', lang)}
                 </h3>
-                <div className="space-y-1.5 text-[11px]">
+                <div className="space-y-1 text-[11px]">
                   {Object.values(sectorFinancials).map((metric) => {
                     const label = lang === 'ar' ? metric.labelAr : metric.label
                     const isIndex = metric.unit === 'index'
                     const isPct = metric.unit === '%'
-                    const isRevenue = metric.unit === '$B'
-                    const delta = isIndex ? metric.value : (isPct ? (1 - metric.value) : (metric.base > 0 ? (metric.base - metric.value) / metric.base : 0))
-                    const isStress = metric.label.includes('Stress') || metric.label.includes('Cost') || metric.label.includes('Risk')
-                    const barColor = isStress
-                      ? (delta > 0.3 ? '#ef4444' : delta > 0.1 ? '#f59e0b' : '#22c55e')
-                      : (delta > 0.3 ? '#ef4444' : delta > 0.1 ? '#f59e0b' : '#22c55e')
+                    const isUp = metric.direction === 'up'
+                    let barPct: number
+                    let barColor: string
+                    if (isIndex) {
+                      barPct = Math.min(100, metric.value * 100)
+                      barColor = metric.value > 0.3 ? '#ef4444' : metric.value > 0.1 ? '#f59e0b' : '#22c55e'
+                    } else if (isPct) {
+                      barPct = metric.value * 100
+                      barColor = metric.value < 0.7 ? '#ef4444' : metric.value < 0.9 ? '#f59e0b' : '#22c55e'
+                    } else if (isUp && metric.base > 0) {
+                      const increase = (metric.value - metric.base) / metric.base
+                      barPct = Math.min(100, increase * 100 + 50)
+                      barColor = increase > 0.3 ? '#ef4444' : increase > 0.1 ? '#f59e0b' : '#22c55e'
+                    } else if (metric.base > 0) {
+                      const remaining = metric.value / metric.base
+                      barPct = remaining * 100
+                      barColor = remaining < 0.5 ? '#ef4444' : remaining < 0.8 ? '#f59e0b' : '#22c55e'
+                    } else {
+                      barPct = 50
+                      barColor = '#64748b'
+                    }
+                    const arrow = isUp ? '↑' : '↓'
                     const displayVal = isIndex
                       ? (metric.value * 100).toFixed(0) + '%'
                       : isPct
                         ? (metric.value * 100).toFixed(0) + '%'
                         : metric.value.toFixed(1) + ' ' + metric.unit
                     return (
-                      <div key={metric.label} className="flex items-center gap-2">
-                        <span className="w-28 text-ds-text-muted truncate">{label}</span>
-                        <div className="flex-1 h-2 bg-ds-bg-alt rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all duration-500"
-                            style={{
-                              width: `${Math.min(100, (isStress ? Math.min(delta * 100, 100) : (1 - delta) * 100))}%`,
-                              backgroundColor: barColor,
-                            }}
-                          />
+                      <div key={metric.label}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px]" style={{ color: barColor }}>{arrow}</span>
+                          <span className="w-28 text-ds-text-muted truncate text-[10px]">{label}</span>
+                          <div className="flex-1 h-1.5 bg-ds-bg-alt rounded-full overflow-hidden">
+                            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${barPct}%`, backgroundColor: barColor }} />
+                          </div>
+                          <span className="font-mono w-14 text-end text-[10px]" style={{ color: barColor }}>{displayVal}</span>
                         </div>
-                        <span className="font-mono w-16 text-end text-ds-text-muted">{displayVal}</span>
+                        {metric.formula && <div className="text-[9px] font-mono text-ds-text-dim ps-4 -mt-0.5">{metric.formula}</div>}
                       </div>
                     )
                   })}
