@@ -686,7 +686,13 @@ function DemoPageContent() {
               <span className="text-[10px] text-ds-text-dim">|</span>
               <span className="text-[10px] font-mono text-ds-text-dim">{ui('spread', lang)}: <span className="text-cyan-400">{lang === 'ar' ? propagation.spreadLevelAr : propagation.spreadLevel}</span></span>
               <span className="text-[10px] text-ds-text-dim">|</span>
-              <span className="text-[10px] font-mono text-ds-text-dim">{ui('depth', lang)}: <span className="text-purple-400">{propagation.propagationDepth}</span></span>
+              <span className="text-[10px] font-mono text-ds-text-dim">{ui('totalLoss', lang)}: <span className="text-red-400">${propagation.totalLoss.toFixed(1)}B</span></span>
+              {monteCarlo && (
+                <>
+                  <span className="text-[10px] text-ds-text-dim">|</span>
+                  <span className="text-[10px] font-mono text-amber-400">[P10: ${monteCarlo.p10Loss.toFixed(1)}B — P90: ${monteCarlo.p90Loss.toFixed(1)}B]</span>
+                </>
+              )}
             </>
           )}
         </div>
@@ -719,17 +725,67 @@ function DemoPageContent() {
       {/* ═══ MAIN 3-COLUMN LAYOUT ═══ */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* ═══ LEFT RAIL — Analytical Intelligence ═══ */}
-        <div className="w-[280px] bg-ds-surface border-e border-ds-border overflow-y-auto flex-shrink-0">
+        {/* ═══ LEFT RAIL — Intelligence ═══ */}
+        <div className="w-[310px] bg-ds-surface border-e border-ds-border overflow-y-auto flex-shrink-0">
           <div className="p-3 space-y-3">
 
-            {/* Explanation — FIRST (explanation-first UX) */}
+            {/* Causal Brief — HERO */}
             <div className="ds-card rounded-xl p-3">
-              <h3 className="text-[10px] uppercase tracking-[0.15em] text-purple-400 font-bold mb-2 flex items-center gap-2">
-                <FileText size={12} /> {ui('explanation', lang)}
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-cyan-400 font-bold mb-2 flex items-center gap-2">
+                <FileText size={12} /> {ui('causalBrief', lang)}
               </h3>
               {propagation ? (
                 <p className="text-[12px] text-ds-text-muted leading-relaxed">{propagation.explanation}</p>
+              ) : (
+                <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
+              )}
+            </div>
+
+            {/* Loss Exposure — Deterministic + Probabilistic */}
+            <div className="ds-card rounded-xl p-3">
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-red-400 font-bold mb-2 flex items-center gap-2">
+                <TrendingUp size={12} /> {ui('lossExposure', lang)}
+              </h3>
+              {propagation ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="text-ds-text-dim">{ui('deterministic', lang)}</span>
+                    <span className="font-mono text-red-400 font-semibold">${propagation.totalLoss.toFixed(1)}B</span>
+                  </div>
+                  {monteCarlo && (
+                    <>
+                      <div className="border-t border-ds-border pt-1">
+                        <div className="text-[10px] text-ds-text-dim font-mono mb-1">{ui('monteCarlo', lang)}: {monteCarlo.runs} {ui('runs', lang)}</div>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-emerald-400">{ui('p10', lang)}</span>
+                        <span className="font-mono text-ds-text">${monteCarlo.p10Loss.toFixed(1)}B</span>
+                      </div>
+                      <div className="relative h-3 bg-ds-bg-alt rounded-full overflow-hidden">
+                        <div className="absolute h-full bg-emerald-500/30 rounded-full" style={{ left: `${(monteCarlo.p10Loss / monteCarlo.p90Loss) * 100 * 0.5}%`, right: `${100 - (monteCarlo.p90Loss / monteCarlo.p90Loss) * 100 * 0.9}%` }} />
+                        <div className="absolute h-full w-0.5 bg-amber-400" style={{ left: `${(monteCarlo.p50Loss / monteCarlo.p90Loss) * 90}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-amber-400">{ui('p50', lang)}</span>
+                        <span className="font-mono text-ds-text">${monteCarlo.p50Loss.toFixed(1)}B</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-red-400">{ui('p90', lang)}</span>
+                        <span className="font-mono text-ds-text">${monteCarlo.p90Loss.toFixed(1)}B</span>
+                      </div>
+                      <div className="border-t border-ds-border pt-1 mt-1">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-ds-text-dim">{ui('mean', lang)}</span>
+                          <span className="font-mono text-ds-text-muted">${monteCarlo.meanLoss.toFixed(2)}B</span>
+                        </div>
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="text-ds-text-dim">{ui('variance', lang)}</span>
+                          <span className="font-mono text-ds-text-muted">{monteCarlo.variance.toFixed(3)}</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
               ) : (
                 <p className="text-[11px] text-ds-text-dim">{ui('runToSee', lang)}</p>
               )}
@@ -820,6 +876,22 @@ function DemoPageContent() {
                 )}
               </div>
             )}
+
+            {/* Layer Legend */}
+            <div className="ds-card rounded-xl p-3">
+              <h3 className="text-[10px] uppercase tracking-[0.15em] text-ds-text-dim font-bold mb-2 flex items-center gap-2">
+                <Target size={12} /> {ui('layerLegend', lang)}
+              </h3>
+              <div className="space-y-1">
+                {Object.entries(LAYER_COLORS).map(([layer, color]) => (
+                  <div key={layer} className="flex items-center gap-2 text-[11px]">
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
+                    <span className="text-ds-text-muted">{lang === 'ar' ? (LAYER_LABELS[layer]?.ar || layer) : (LAYER_LABELS[layer]?.en || layer)}</span>
+                    <span className="ms-auto text-[10px] font-mono text-ds-text-dim">{gccNodes.filter(n => n.layer === layer).length}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1089,7 +1161,7 @@ function DemoPageContent() {
             </>
           )}
         </div>
-        <span className="text-ds-text-dim">{ui('title', lang)} {ui('version', lang)} | deevo-sim.vercel.app</span>
+        <span className="text-ds-text-dim">{ui('title', lang)} v4.0 · GCC Regional Command Center</span>
       </div>
     </div>
   )
