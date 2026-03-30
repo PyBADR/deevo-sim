@@ -241,7 +241,7 @@ export default function DemoPage() {
           const modShocks = scenario.shocks.map(s => ({
             ...s, impact: Math.min(1, s.impact * severityMod),
           }))
-          const result = runPropagation(gccNodes, gccEdges, modShocks, 6)
+          const result = runPropagation(gccNodes, gccEdges, modShocks, 6, lang)
           setPropagation(result)
         }
         setIsRunning(false)

@@ -62,12 +62,12 @@ const SECTOR_GDP_BASE: Record<GCCLayer, number> = {
 }
 
 /* ââ Layer labels for display ââ */
-const LAYER_LABELS: Record<GCCLayer, string> = {
-  geography: 'Geography',
-  infrastructure: 'Infrastructure',
-  economy: 'Economy',
-  finance: 'Finance',
-  society: 'Society',
+const LAYER_LABELS: Record<GCCLayer, { en: string; ar: string }> = {
+  geography: { en: 'Geography', ar: 'الجغرافيا' },
+  infrastructure: { en: 'Infrastructure', ar: 'البنية التحتية' },
+  economy: { en: 'Economy', ar: 'الاقتصاد' },
+  finance: { en: 'Finance', ar: 'المالية' },
+  society: { en: 'Society', ar: 'المجتمع' },
 }
 
 const LAYER_COLORS: Record<GCCLayer, string> = {
@@ -86,6 +86,7 @@ export function runPropagation(
   edges: GCCEdge[],
   shocks: { nodeId: string; impact: number }[],
   maxIterations: number = 5,
+  lang: 'ar' | 'en' = 'en',
 ): PropagationResult {
   // Build adjacency: source â [{ target, edge }]
   const adjacency = new Map<string, { target: string; edge: GCCEdge }[]>()
@@ -137,12 +138,12 @@ export function runPropagation(
           const sourceNode = nodeMap.get(sourceId)!
           chain.push({
             from: sourceId,
-            fromLabel: sourceNode.label,
+            fromLabel: lang === 'ar' ? (sourceNode.labelAr || sourceNode.label) : sourceNode.label,
             to: targetId,
-            toLabel: targetNode.label,
+            toLabel: lang === 'ar' ? (targetNode.labelAr || targetNode.label) : targetNode.label,
             weight: edge.weight,
             impact: rawImpact,
-            label: edge.label,
+            label: lang === 'ar' ? (edge.labelAr || edge.label) : edge.label,
           })
 
           if (!visited.has(targetId)) {
@@ -165,7 +166,7 @@ export function runPropagation(
     }
     const group = sectorGroups.get(node.layer)!
     group.impacts.push(impact)
-    group.nodes.push(node.label)
+    group.nodes.push(lang === 'ar' ? (node.labelAr || node.label) : node.label)
   }
 
   const affectedSectors: SectorImpact[] = []
@@ -176,7 +177,7 @@ export function runPropagation(
     if (avg > 0.01) {
       affectedSectors.push({
         sector: layer,
-        sectorLabel: LAYER_LABELS[layer],
+        sectorLabel: lang === 'ar' ? LAYER_LABELS[layer].ar : LAYER_LABELS[layer].en,
         avgImpact: avg,
         maxImpact: max,
         nodeCount: group.impacts.filter(i => i > 0.01).length,
@@ -197,7 +198,7 @@ export function runPropagation(
       const node = nodeMap.get(nodeId)!
       return {
         nodeId,
-        label: node.label,
+        label: lang === 'ar' ? (node.labelAr || node.label) : node.label,
         impact: Math.abs(impacts.get(nodeId) ?? 0),
         layer: node.layer,
         outDegree,
@@ -228,10 +229,16 @@ export function runPropagation(
   const primaryShock = shocks[0]
   const primaryNode = nodeMap.get(primaryShock.nodeId)
   const topSector = affectedSectors[0]
-  const explanation = `Primary shock: ${primaryNode?.label ?? 'Unknown'} (severity ${(primaryShock.impact * 100).toFixed(0)}%). ` +
-    `Propagated through ${chain.length} causal paths across ${affectedSectors.length} sectors. ` +
-    `Most affected: ${topSector?.sectorLabel ?? 'N/A'} (avg impact ${(topSector?.avgImpact * 100).toFixed(0)}%). ` +
-    `Estimated economic exposure: $${(totalLoss).toFixed(1)}B over 72h propagation window.`
+  const primaryLabel = lang === 'ar' ? (primaryNode?.labelAr || primaryNode?.label || 'غير معروف') : (primaryNode?.label ?? 'Unknown')
+  const explanation = lang === 'ar'
+    ? `الصدمة الأساسية: ${primaryLabel} (الحدة ${(primaryShock.impact * 100).toFixed(0)}%). ` +
+      `انتشرت عبر ${chain.length} مسار سببي في ${affectedSectors.length} قطاعات. ` +
+      `الأكثر تأثراً: ${topSector?.sectorLabel ?? 'غير متاح'} (متوسط التأثير ${(topSector?.avgImpact * 100).toFixed(0)}%). ` +
+      `التعرض الاقتصادي المقدر: $${(totalLoss).toFixed(1)} مليار خلال نافذة انتشار 72 ساعة.`
+    : `Primary shock: ${primaryLabel} (severity ${(primaryShock.impact * 100).toFixed(0)}%). ` +
+      `Propagated through ${chain.length} causal paths across ${affectedSectors.length} sectors. ` +
+      `Most affected: ${topSector?.sectorLabel ?? 'N/A'} (avg impact ${(topSector?.avgImpact * 100).toFixed(0)}%). ` +
+      `Estimated economic exposure: $${(totalLoss).toFixed(1)}B over 72h propagation window.`
 
   return {
     nodeImpacts: impacts,
