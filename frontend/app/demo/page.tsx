@@ -640,33 +640,45 @@ function DemoPageContent() {
     return positions
   }, [])
 
+  // Normalized intensity for graph: I_i = |x_i| / max_k |x_k|
+  const maxGraphImpact = useMemo(() => {
+    let max = 0.001
+    for (const val of activeImpacts.values()) {
+      const abs = Math.abs(val)
+      if (abs > max) max = abs
+    }
+    return max
+  }, [activeImpacts])
+
   const graphNodes = useMemo(() => {
     return gccNodes.map(n => {
-      const impact = Math.abs(activeImpacts.get(n.id) || 0)
+      const rawImpact = Math.abs(activeImpacts.get(n.id) || 0)
+      const normalizedI = rawImpact / maxGraphImpact  // I_i = x_i / max_k |x_k|
       const nodeLabel = lang === 'ar' ? (n.labelAr || n.label) : n.label
       const pos = layerNodePositions.get(n.id) || { x: 400, y: 300 }
       return {
         id: n.id, type: 'default',
         position: { x: pos.x, y: pos.y },
-        data: { label: nodeLabel, type: n.layer, weight: impact },
+        data: { label: nodeLabel, type: n.layer, weight: normalizedI },
         style: {
-          background: impact > 0.05 ? LAYER_COLORS[n.layer] : '#1e293b',
+          background: normalizedI > 0.05 ? LAYER_COLORS[n.layer] : '#1e293b',
           color: '#e2e8f0',
-          border: `2px solid ${selectedNode === n.id ? '#fff' : (impact > 0.05 ? LAYER_COLORS[n.layer] : '#334155')}`,
+          border: `2px solid ${selectedNode === n.id ? '#fff' : (normalizedI > 0.05 ? LAYER_COLORS[n.layer] : '#334155')}`,
           borderRadius: '8px', padding: '6px 10px', fontSize: '11px',
-          fontWeight: impact > 0.1 ? '700' : '400',
-          opacity: impact > 0.01 ? 1 : 0.5,
-          boxShadow: impact > 0.2 ? `0 0 ${impact * 20}px ${LAYER_COLORS[n.layer]}40` : 'none',
+          fontWeight: normalizedI > 0.15 ? '700' : '400',
+          opacity: normalizedI > 0.01 ? 1 : 0.5,
+          boxShadow: normalizedI > 0.2 ? `0 0 ${normalizedI * 25}px ${LAYER_COLORS[n.layer]}40` : 'none',
           cursor: 'pointer',
         },
       }
     })
-  }, [activeImpacts, selectedNode, lang])
+  }, [activeImpacts, maxGraphImpact, selectedNode, lang])
 
   const graphEdges = useMemo(() => {
     return gccEdges.map(e => {
       const sourceImpact = Math.abs(activeImpacts.get(e.source) || 0)
-      const strength = e.weight * sourceImpact
+      const normalizedSrc = sourceImpact / maxGraphImpact
+      const strength = e.weight * normalizedSrc
       const edgeLabel = strength > 0.05 ? (lang === 'ar' ? (e.labelAr || e.label) : e.label) : undefined
       const isNegativePolarity = e.polarity < 0
       return {
@@ -681,7 +693,7 @@ function DemoPageContent() {
         },
       }
     })
-  }, [activeImpacts, lang])
+  }, [activeImpacts, maxGraphImpact, lang])
 
   const selectedNodeExpl = useMemo(() => {
     if (!selectedNode || !propagation) return null
