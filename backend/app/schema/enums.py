@@ -18,6 +18,16 @@ class EventType(str, Enum):
     AIRSPACE_CLOSURE = "airspace_closure"
     MARITIME_INCIDENT = "maritime_incident"
     FLIGHT_DISRUPTION = "flight_disruption"
+    MISSILE_THREAT = "missile_threat"
+    NAVAL_BLOCKADE = "naval_blockade"
+    AIRPORT_SHUTDOWN = "airport_shutdown"
+    CONFLICT_SPILLOVER = "conflict_spillover"
+    MARITIME_RISK_SURGE = "maritime_risk_surge"
+    FLIGHT_DIVERSION = "flight_diversion"
+    VESSEL_DIVERSION = "vessel_diversion"
+    PORT_DAMAGE = "port_damage"
+    INSURANCE_RATE_SPIKE = "insurance_rate_spike"
+    LOGISTICS_DELAY = "logistics_delay"
     OTHER = "other"
 
 

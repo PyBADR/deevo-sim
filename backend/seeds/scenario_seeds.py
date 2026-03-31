@@ -31,6 +31,9 @@ class EventType(Enum):
     CYBER_ATTACK = "cyber_attack"
     FUEL_SHORTAGE = "fuel_shortage"
     ECONOMIC_PRESSURE = "economic_pressure"
+    MARITIME_RISK_SURGE = "maritime_risk_surge"
+    PORT_CONGESTION = "port_congestion"
+    COMBINED_DISRUPTION = "combined_disruption"
 
 
 @dataclass
