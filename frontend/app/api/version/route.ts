@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   return NextResponse.json({
-    service: 'dvo7-sim',
+    service: 'decision-core',
     versions: {
       model: MODEL_VERSION,
       engine: ENGINE_VERSION,

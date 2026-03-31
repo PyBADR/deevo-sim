@@ -1,5 +1,5 @@
 /* =================================================
-    Deevo Sim v2 — Internationalization System
+    DecisionCore v2 — Internationalization System
     Bilingual Arabic + English Support
    ================================================= */
 

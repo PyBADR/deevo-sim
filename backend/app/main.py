@@ -32,7 +32,7 @@ except Exception as e:
 
 # ── App ───────────────────────────────────────────────
 app = FastAPI(
-    title="Deevo GCC Shock Intelligence API",
+    title="DecisionCore GCC Shock Intelligence API",
     version="0.2.1",
     description="Structured simulation under uncertainty for GCC shock intelligence.",
 )
@@ -57,7 +57,7 @@ def health() -> dict[str, str]:
     return {
         "status": "ok",
         "version": "0.2.1",
-        "engine": "deevo-sim-pilot",
+        "engine": "decision-core-pilot",
         "demo": "active" if demo_router else "unavailable",
         "api_v1": "active" if api_router else "unavailable",
     }

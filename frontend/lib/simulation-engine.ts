@@ -1,5 +1,5 @@
 /* =================================================
-    Deevo Sim — Simulation Engine
+    DecisionCore — Simulation Engine
     Rule-based Decision Intelligence Logic
    ================================================= */
 

@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DEEVO SIM — ROLE-BASED ACCESS CONTROL (RBAC)
+ * DECISIONCORE INTELLIGENCE — ROLE-BASED ACCESS CONTROL (RBAC)
  * ══════════════════════════════════════════════════════════════
  * Roles: admin, analyst, viewer, api_service
  * Permissions: read_scenarios, run_scenarios, run_decisions,

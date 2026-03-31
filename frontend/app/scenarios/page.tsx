@@ -55,7 +55,7 @@ export default function ScenariosPage() {
       <header className="h-14 border-b border-zinc-800/60 flex items-center justify-between px-6 bg-zinc-950/80 backdrop-blur-sm">
         <div className="flex items-center gap-4">
           <Link href="/" className="text-zinc-500 hover:text-zinc-300 transition-colors"><ArrowLeft className="w-4 h-4" /></Link>
-          <span className="text-xs font-mono font-bold tracking-wider text-cyan-400">{lang === 'ar' ? 'ديفو سيم' : 'DEEVO SIM'}</span>
+          <span className="text-xs font-mono font-bold tracking-wider text-cyan-400">{lang === 'ar' ? 'ديسيجن كور إنتيليجنس' : 'DECISIONCORE INTELLIGENCE'}</span>
           <span className="text-zinc-600">/</span>
           <span className="text-xs text-zinc-400">{t('title', lang)}</span>
         </div>

@@ -1,8 +1,8 @@
-# Deevo Sim (DVO7)
+# DecisionCore Intelligence
 
 **Decision Intelligence Platform for GCC Scenarios**
 
-Deevo Sim runs geopolitical, economic, and infrastructure scenarios through a 76-node, 190-edge GCC entity graph. It produces propagation analysis, sector impact assessment, and decision intelligence — including recommended actions, urgency levels, and mitigation effectiveness.
+DecisionCore Intelligence runs geopolitical, economic, and infrastructure scenarios through a 76-node, 190-edge GCC entity graph. It produces propagation analysis, sector impact assessment, and decision intelligence — including recommended actions, urgency levels, and mitigation effectiveness.
 
 **Live**: https://deevo-sim.vercel.app/demo
 
@@ -53,8 +53,8 @@ See `.env.example` for full list. Key variables:
 
 | Variable | Purpose | Required |
 |---|---|---|
-| `DVO7_TIER` | Environment: `dev`, `pilot`, `prod` | No (default: `pilot`) |
-| `DVO7_API_KEY` | Admin API key | Yes for prod |
+| `DC7_TIER` | Environment: `dev`, `pilot`, `prod` | No (default: `pilot`) |
+| `DC7_API_KEY` | Admin API key | Yes for prod |
 | `NEXT_PUBLIC_USE_API` | Frontend calls backend API | No (default: `false`) |
 
 ---
@@ -66,7 +66,7 @@ See `.env.example` for full list. Key variables:
 ```bash
 curl -X POST https://deevo-sim.vercel.app/api/run-scenario \
   -H "Content-Type: application/json" \
-  -H "X-DVO7-API-Key: YOUR_KEY" \
+  -H "X-DC7-API-Key: YOUR_KEY" \
   -d '{"scenarioId": "hormuz_closure", "severity": 0.7}'
 ```
 
@@ -86,8 +86,8 @@ curl https://deevo-sim.vercel.app/api/scenarios
 
 1. Import repository → set **Root Directory** to `frontend`
 2. Set environment variables in Vercel dashboard:
-   - `DVO7_API_KEY` — your admin API key
-   - `DVO7_TIER` — `pilot` or `prod`
+   - `DC7_API_KEY` — your admin API key
+   - `DC7_TIER` — `pilot` or `prod`
    - `NEXT_PUBLIC_USE_API` — `true` to enable API-backed frontend
 3. Deploy
 

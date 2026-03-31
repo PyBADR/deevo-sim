@@ -4,7 +4,7 @@ import { Eye, EyeOff, ZoomIn, ZoomOut, Maximize } from 'lucide-react'
 import { getNodeColor } from '@/lib/utils'
 
 /* ══════════════════════════════════════════════════
-   Deevo Sim — Pure SVG Graph Panel v3.0
+   DecisionCore — Pure SVG Graph Panel v3.0
    Supports: onNodeClick, edge style pass-through,
    polarity visual encoding, impact glow
    ══════════════════════════════════════════════════ */

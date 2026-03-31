@@ -1,7 +1,7 @@
 version: "3.9"
 
 # ────────────────────────────────────────────────────
-# Deevo Sim — Pilot-Ready Deployment
+# DecisionCore — Pilot-Ready Deployment
 # Profiles: local (M4 Max), cloud (portable)
 # Usage:
 #   docker compose --profile local up -d
@@ -14,15 +14,15 @@ services:
     image: postgres:16-alpine
     profiles: ["local", "cloud"]
     environment:
-      POSTGRES_DB: deevo_sim
-      POSTGRES_USER: deevo
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-deevo_pilot_2026}
+      POSTGRES_DB: decision_core
+      POSTGRES_USER: dc7
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dc7_pilot_2026}
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - "${PG_PORT:-5432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U deevo -d deevo_sim"]
+      test: ["CMD-SHELL", "pg_isready -U dc7 -d decision_core"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -48,10 +48,10 @@ services:
       dockerfile: Dockerfile.backend
     profiles: ["local", "cloud"]
     environment:
-      DATABASE_URL: postgresql://deevo:${POSTGRES_PASSWORD:-deevo_pilot_2026}@postgres:5432/deevo_sim
+      DATABASE_URL: postgresql://dc7:${POSTGRES_PASSWORD:-dc7_pilot_2026}@postgres:5432/decision_core
       REDIS_URL: redis://redis:6379/0
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:3000}
-      DEEVO_ENV: ${DEEVO_ENV:-pilot}
+      DC_ENV: ${DC_ENV:-pilot}
       LOG_LEVEL: ${LOG_LEVEL:-info}
     ports:
       - "${API_PORT:-8000}:8000"

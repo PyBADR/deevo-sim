@@ -32,7 +32,7 @@ const LAYER_COLORS: Record<string, string> = {
 
 /* ── Bilingual labels ── */
 const UI: Record<string, { en: string; ar: string }> = {
-  title: { en: 'Deevo Sim', ar: 'ديفو سيم' },
+  title: { en: 'DecisionCore Intelligence', ar: 'ديسيجن كور إنتيليجنس' },
   controlRoom: { en: 'Regional Command Center', ar: 'مركز القيادة الإقليمي' },
   selectScenario: { en: 'Select Scenario', ar: 'اختر السيناريو' },
   runSim: { en: 'Run Simulation', ar: 'تشغيل المحاكاة' },
@@ -853,7 +853,7 @@ function DemoPageContent() {
           try {
             const res = await fetch('/api/run-scenario', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-DVO7-API-Key': 'dvo7_pilot_key_2026' },
+              headers: { 'Content-Type': 'application/json', 'X-DC7-API-Key': 'dc7_pilot_key_2026' },
               body: JSON.stringify({ scenarioId: scenario.id, severity: severityMod, analysisMode }),
             })
             if (!res.ok) throw new Error(`API ${res.status}`)

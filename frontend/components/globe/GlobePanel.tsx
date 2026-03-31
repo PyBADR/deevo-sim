@@ -7,7 +7,7 @@ import type { GCCNode, GCCEdge, GCCLayer } from '@/lib/gcc-graph'
 import { getLayerColor } from '@/lib/utils'
 
 /* ═══════════════════════════════════════════════════
-   Deevo Sim — Globe Panel (Canvas-based)
+   DecisionCore — Globe Panel (Canvas-based)
    Mathematical Mode: node glow = normalized impact
    ═══════════════════════════════════════════════════ */
 

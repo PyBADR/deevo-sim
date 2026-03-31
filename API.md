@@ -1,4 +1,4 @@
-# DVO7 — API Contract v1.0
+# DecisionCore Intelligence — API Contract v1.0
 
 ## Base URL
 ```
@@ -8,7 +8,7 @@ https://deevo-sim.vercel.app/api
 ## Authentication
 API key via header:
 ```
-X-DVO7-API-Key: <key>
+X-DC7-API-Key: <key>
 ```
 or
 ```
@@ -16,10 +16,10 @@ Authorization: Bearer <key>
 ```
 
 **Pilot keys** (defaults when no env vars set):
-- `dvo7_pilot_key_2026` — admin (run + read + audit)
-- `dvo7_demo_readonly` — viewer (read-only)
+- `dc7_pilot_key_2026` — admin (run + read + audit)
+- `dc7_demo_readonly` — viewer (read-only)
 
-**Production**: Set `DVO7_API_KEY`, `DVO7_ANALYST_KEY`, `DVO7_PILOT_KEY` in Vercel dashboard.
+**Production**: Set `DC7_API_KEY`, `DC7_ANALYST_KEY`, `DC7_PILOT_KEY` in Vercel dashboard.
 
 ## Roles (RBAC)
 | Role | run_scenarios | run_decisions | read_runs | read_audit | manage_users |
@@ -73,9 +73,9 @@ Request:
 Response:
 ```json
 {
-  "runId": "dvo7_run_...",
-  "traceId": "dvo7_trace_...",
-  "auditId": "dvo7_audit_...",
+  "runId": "dc7_run_...",
+  "traceId": "dc7_trace_...",
+  "auditId": "dc7_audit_...",
   "scenarioId": "hormuz_closure",
   "metrics": { "systemEnergy": 1.49, "confidence": 0.98, "propagationDepth": 6, "totalLoss": 187.8 },
   "nodeImpacts": { "geo_hormuz": 0.623, "eco_oil": -0.402, "..." : "..." },

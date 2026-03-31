@@ -36,7 +36,7 @@ export async function GET(
   }
 
   // Try as run_id
-  if (id.startsWith('dvo7_run_')) {
+  if (id.startsWith('dc7_run_')) {
     const entries = getAuditEntriesByRun(id)
     if (entries.length > 0) {
       const filtered = auth.role === 'admin' ? entries : entries.filter(e => e.tenantId === auth.tenantId)
@@ -45,7 +45,7 @@ export async function GET(
   }
 
   // Try as trace_id
-  if (id.startsWith('dvo7_trace_')) {
+  if (id.startsWith('dc7_trace_')) {
     const entries = getAuditEntriesByTrace(id)
     if (entries.length > 0) {
       const filtered = auth.role === 'admin' ? entries : entries.filter(e => e.tenantId === auth.tenantId)

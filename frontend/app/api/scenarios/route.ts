@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
 
   // Allow unauthenticated read for pilot (configurable)
   if (!auth.authenticated) {
-    const env = process.env.DVO7_TIER || 'pilot'
+    const env = process.env.DC7_TIER || 'pilot'
     if (env === 'prod') {
       return NextResponse.json(
         { error: 'Authentication required', code: 'AUTH_REQUIRED' },

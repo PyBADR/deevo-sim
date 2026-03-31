@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════════
- * DEEVO SIM — DECISION INTELLIGENCE ENGINE
+ * DECISIONCORE INTELLIGENCE — DECISION INTELLIGENCE ENGINE
  * ══════════════════════════════════════════════════════════════════
  *
  * Mathematical Model:

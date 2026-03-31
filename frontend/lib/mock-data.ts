@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* =================================================
-    Deevo Sim v2 — Mock Data
+    DecisionCore v2 — Mock Data
     Enterprise Decision Simulation Platform
    ================================================= */
 

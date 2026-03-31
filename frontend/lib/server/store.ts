@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DEEVO SIM — RUN PERSISTENCE STORE
+ * DECISIONCORE INTELLIGENCE — RUN PERSISTENCE STORE
  * ══════════════════════════════════════════════════════════════
  * Stores scenario run results with full provenance.
  * In-memory for pilot; interface designed for DB migration.

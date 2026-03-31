@@ -23,9 +23,9 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-ds bg-ds-accent/12 border border-ds-accent/20 flex items-center justify-center">
-              <span className="text-ds-accent font-bold text-xs">DS</span>
+              <span className="text-ds-accent font-bold text-xs">DC</span>
             </div>
-            <span className="text-ds-text font-semibold tracking-tight">{lang === 'ar' ? 'ديفو سيم' : 'Deevo Sim'}</span>
+            <span className="text-ds-text font-semibold tracking-tight">{lang === 'ar' ? 'ديسيجن كور إنتيليجنس' : 'DecisionCore Intelligence'}</span>
           </div>
           <nav className="flex items-center gap-8 text-[13px] text-ds-text-secondary">
             <Link href="/demo" className="hover:text-ds-text transition-colors duration-200">{t('simulation')}</Link>

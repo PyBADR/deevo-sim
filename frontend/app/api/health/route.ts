@@ -11,7 +11,7 @@ export async function GET() {
 
   return NextResponse.json({
     status: 'healthy',
-    service: 'dvo7-sim',
+    service: 'decision-core',
     environment: env,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),

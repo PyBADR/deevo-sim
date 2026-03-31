@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DEEVO SIM — SERVER-SIDE SCENARIO EXECUTION
+ * DECISIONCORE — SERVER-SIDE SCENARIO EXECUTION
  * ══════════════════════════════════════════════════════════════
  * Runs the full intelligence pipeline server-side:
  *   Scenario → Propagation → Engine → Decision

@@ -3,8 +3,8 @@ import '../styles/globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'Deevo Sim — Simulation Intelligence Engine',
-    template: '%s | Deevo Sim',
+    default: 'DecisionCore Intelligence — Decision Intelligence Engine',
+    template: '%s | DecisionCore Intelligence',
   },
   description:
     'Turn real-world inputs into entity graphs, agent behavior, and predictive simulation across GCC scenarios.',
@@ -20,18 +20,18 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: 'Deevo Analytics' }],
   openGraph: {
-    title: 'Deevo Sim — Simulation Intelligence Engine',
+    title: 'DecisionCore Intelligence — Decision Intelligence Engine',
     description:
       'Simulate public reaction, media spread, and economic impact across GCC scenarios using AI-powered agent modeling.',
-    siteName: 'Deevo Sim',
+    siteName: 'DecisionCore Intelligence',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Deevo Sim — Simulation Intelligence Engine',
+    title: 'DecisionCore Intelligence — Decision Intelligence Engine',
     description:
-      'AI simulation engine for GCC scenarios. Entity graphs, agent personas, predictive intelligence.',
+      'AI decision intelligence for GCC scenarios. Entity graphs, agent personas, predictive intelligence.',
   },
   robots: {
     index: true,

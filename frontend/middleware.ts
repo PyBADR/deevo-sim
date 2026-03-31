@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DEEVO SIM — API MIDDLEWARE
+ * DECISIONCORE INTELLIGENCE — API MIDDLEWARE
  * ══════════════════════════════════════════════════════════════
  * Adds CORS, security headers, request logging, and rate limiting
  * for all /api/* routes. Auth is handled per-route for granularity.
@@ -20,14 +20,14 @@ export function middleware(req: NextRequest) {
   const response = NextResponse.next()
   response.headers.set('Access-Control-Allow-Origin', '*')
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-DVO7-API-Key, X-DVO7-Trace-Id')
-  response.headers.set('Access-Control-Expose-Headers', 'X-DVO7-Trace-Id, X-DVO7-Run-Id')
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-DC7-API-Key, X-DC7-Trace-Id')
+  response.headers.set('Access-Control-Expose-Headers', 'X-DC7-Trace-Id, X-DC7-Run-Id')
 
   // Security headers
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-Frame-Options', 'DENY')
-  response.headers.set('X-DVO7-Environment', process.env.DVO7_TIER || 'pilot')
-  response.headers.set('X-DVO7-API-Version', '1.0.0')
+  response.headers.set('X-DC7-Environment', process.env.DC7_TIER || 'pilot')
+  response.headers.set('X-DC7-API-Version', '1.0.0')
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -36,7 +36,7 @@ export function middleware(req: NextRequest) {
       headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-DVO7-API-Key, X-DVO7-Trace-Id',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-DC7-API-Key, X-DC7-Trace-Id',
         'Access-Control-Max-Age': '86400',
       },
     })
