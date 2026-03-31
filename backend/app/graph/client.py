@@ -4,7 +4,7 @@ import logging
 from typing import Any, Optional
 from dataclasses import asdict
 
-from neo4j import AsyncDriver, AsyncSession, basic_auth, NotFound
+from neo4j import AsyncDriver, AsyncSession, basic_auth
 from neo4j.exceptions import (
     Neo4jError,
     ClientError,
