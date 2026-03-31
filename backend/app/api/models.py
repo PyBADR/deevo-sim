@@ -1,4 +1,4 @@
-from typing import Any, Optional, Generic, TypeVar
+from typing import Any, Optional, Generic, TypeVar, List, Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 from enum import Enum
@@ -247,3 +247,251 @@ class PaginatedResponse(BaseModel, Generic[T]):
     skip: int
     limit: int
     data: list[T]
+
+# Conflict Intelligence models
+class ConflictListResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    data: list[dict]
+
+class ConflictDetailResponse(BaseModel):
+    conflict_id: str
+    region: str
+    conflict_type: str
+    severity: float
+    actors: list[str]
+    latest_event_date: datetime
+    status: str
+    description: str
+
+class ConflictHeatmapResponse(BaseModel):
+    bounds: dict
+    cells: list[dict]
+    total_conflicts: int
+    timestamp: datetime
+
+class ConflictAnalysisResponse(BaseModel):
+    conflict_count: int
+    regions_involved: list[str]
+    types_involved: list[str]
+    actors_involved: list[str]
+    avg_severity: float
+    max_severity: float
+    severity_trend: str
+    temporal_pattern: str
+    escalation_risk: float
+    spillover_risk: float
+    recommended_actions: list[str]
+    analysis_timestamp: datetime
+
+# Incident Intelligence models
+class IncidentListResponse(BaseModel):
+    total: int
+    skip: int
+    limit: int
+    data: list[dict]
+
+class IncidentDetailResponse(BaseModel):
+    incident_id: str
+    incident_type: str
+    severity: float
+    location: str
+    status: str
+    impact_assessment: dict
+    timestamp: datetime
+
+class IncidentTimelineResponse(BaseModel):
+    incident_id: str
+    incident_type: str
+    total_events: int
+    events: list[dict]
+    timeline_period_start: datetime
+    timeline_period_end: datetime
+
+class CorrelationResponse(BaseModel):
+    incident_id_1: str
+    incident_id_2: str
+    correlation_score: float
+    common_factors: list[str]
+    geographic_distance_km: float
+
+# Insurance Portfolio models
+class InsuranceExposureResponse(BaseModel):
+    portfolio_id: str
+    total_exposure_value: float
+    exposure_by_entity_type: dict
+    high_risk_assets: list[dict]
+    time_window_days: int
+    timestamp: datetime
+
+class ClaimsSurgeResponse(BaseModel):
+    surge_detected: bool
+    baseline_claim_rate: float
+    current_claim_rate: float
+    increase_percentage: float
+    claims_count: int
+    affected_policies: int
+    anomaly_score: float
+    timestamp: datetime
+
+class UnderwritingResponse(BaseModel):
+    recommendation: str
+    risk_adjustment_factor: float
+    revised_premium_percentage: float
+    confidence_score: float
+    key_risk_factors: list[str]
+    pricing_notes: str
+
+class SeverityResponse(BaseModel):
+    event_type: str
+    severity_score: float
+    financial_impact_estimate: float
+    affected_assets: int
+    affected_policies: int
+
+class ScenarioInsuranceImpactResponse(BaseModel):
+    scenario_id: str
+    estimated_claims: float
+    estimated_recovery_cost: float
+    timeline_days: int
+    confidence_score: float
+    risk_mitigation_options: list[dict]
+
+# Decision Generation models
+class DecisionOutputResponse(BaseModel):
+    decision_id: str
+    decision_type: str
+    recommended_action: str
+    priority_level: str
+    confidence_score: float
+    rationale: str
+    alternative_actions: list[str]
+    timestamp: datetime
+
+class ExplanationResponse(BaseModel):
+    decision_id: str
+    explanation_text: str
+    contributing_factors: list[dict]
+    data_sources: list[str]
+    confidence_level: float
+
+class RecommendationResponse(BaseModel):
+    recommendation_id: str
+    title: str
+    description: str
+    priority: str
+    estimated_impact: dict
+    implementation_cost: float
+    timeline_hours: int
+    risk_reduction_percentage: float
+
+# Risk Score models (moved from scores.py)
+class ScoreRequest(BaseModel):
+    """Request model for individual score computation."""
+    entity_id: str = Field(..., description="Unique identifier for the entity")
+    entity_type: str = Field(..., description="Type of entity (port, airport, corridor, etc.)")
+    supply_chain_risk: float = Field(..., ge=0, le=1, description="Supply chain risk component")
+    geopolitical_risk: float = Field(..., ge=0, le=1, description="Geopolitical risk component")
+    infrastructure_risk: float = Field(..., ge=0, le=1, description="Infrastructure risk component")
+    demand_disruption_risk: float = Field(..., ge=0, le=1, description="Demand disruption risk component")
+    financial_risk: float = Field(..., ge=0, le=1, description="Financial risk component")
+
+class ComputeScoresRequest(BaseModel):
+    """Request model for batch score computation."""
+    entities: list[ScoreRequest] = Field(..., description="List of entities to compute scores for")
+    scenario_id: Optional[str] = Field(None, description="Optional scenario context for computation")
+
+class ScoreResponse(BaseModel):
+    """Response model for individual risk score."""
+    score_id: str
+    entity_id: str
+    entity_type: str
+    overall_score: float = Field(..., ge=0, le=1, description="Composite risk score 0-1")
+    supply_chain_risk: float
+    geopolitical_risk: float
+    infrastructure_risk: float
+    demand_disruption_risk: float
+    financial_risk: float
+    risk_level: str = Field(..., description="Severity level: critical, high, medium, low")
+    weighted_components: dict
+    timestamp: datetime
+    scenario_id: Optional[str] = None
+
+class ScoresListResponse(BaseModel):
+    """Paginated response for score list."""
+    total: int
+    skip: int
+    limit: int
+    data: list[ScoreResponse]
+
+class ComputeScoresResponse(BaseModel):
+    """Response model for batch score computation."""
+    batch_id: str
+    total_computed: int
+    scores: list[ScoreResponse]
+    timestamp: datetime
+
+class ScoreSummaryResponse(BaseModel):
+    """Response model for aggregate score summary."""
+    summary_id: str
+    total_entities_scored: int
+    average_overall_score: float
+    critical_count: int
+    high_count: int
+    medium_count: int
+    low_count: int
+    risk_distribution: dict
+    component_averages: dict
+    highest_risk_entities: list[dict] = Field(..., description="Top 5 highest risk entities")
+    timestamp: datetime
+
+class ScoreHistoryEntry(BaseModel):
+    """Individual entry in score history."""
+    score_id: str
+    entity_id: str
+    overall_score: float
+    risk_level: str
+    timestamp: datetime
+    scenario_id: Optional[str] = None
+
+class ScoreHistoryResponse(BaseModel):
+    """Response model for historical score data."""
+    entity_id: str
+    entity_type: str
+    total_records: int
+    skip: int
+    limit: int
+    time_range_start: datetime
+    time_range_end: datetime
+    history: list[ScoreHistoryEntry]
+    trend: str = Field(..., description="Trend direction: increasing, decreasing, stable")
+    average_score: float
+
+class AnalyzeScoresRequest(BaseModel):
+    """Request model for score analysis."""
+    risk_threshold: float = Field(default=0.5, ge=0, le=1, description="Threshold for filtering analysis")
+    entity_type_filter: Optional[str] = Field(None, description="Optional entity type filter")
+    scenario_id: Optional[str] = Field(None, description="Optional scenario context")
+
+class ScoreDistribution(BaseModel):
+    """Distribution statistics for scores."""
+    mean: float
+    median: float
+    std_dev: float
+    min: float
+    max: float
+    percentile_25: float
+    percentile_75: float
+    percentile_95: float
+
+class AnalyzeScoresResponse(BaseModel):
+    """Response model for score analysis."""
+    analysis_id: str
+    total_analyzed: int
+    above_threshold_count: int
+    distribution: ScoreDistribution
+    component_analysis: dict
+    correlations: dict
+    outliers: list[dict] = Field(..., description="Entities with outlier scores")
+    timestamp: datetime

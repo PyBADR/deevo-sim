@@ -1,0 +1,34 @@
+[project]
+name = "decisioncore-intelligence"
+version = "1.0.0"
+description = "GCC Decision Intelligence Platform — graph-native, physics-aware risk engine"
+requires-python = ">=3.10"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Deevo Analytics", email = "platform@decisioncore.ai"}
+]
+keywords = ["decision-intelligence", "gcc", "risk", "insurance", "geospatial", "neo4j"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501", "B008", "SIM108"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["tests/*", "seeds/*", "scripts/*"]
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 60

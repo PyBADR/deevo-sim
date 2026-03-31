@@ -28,7 +28,7 @@ polars>=0.20.0
 networkx>=3.2
 
 # Agent-Based Modeling
-mesa>=2.0
+mesa>=3.0
 
 # Configuration
 python-dotenv>=1.0

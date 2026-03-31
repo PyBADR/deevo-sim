@@ -14,8 +14,7 @@ from fastapi.responses import JSONResponse
 
 from app.config.settings import Settings
 from app.graph.client import GraphClient
-from app.graph.schema import GraphSchema
-from app.api import health, scenarios, entities, graph, ingest, auth, pipeline
+from app.api import health, scenarios, entities, graph, ingest, auth, pipeline, conflicts, incidents, insurance, decision, scores
 from app.services.pipeline_status import PipelineStatusTracker
 from app.services.orchestrator import LifecycleOrchestrator
 from app.services.normalization import NormalizationService
@@ -174,6 +173,11 @@ app.include_router(entities.router, prefix=settings.api_prefix, tags=["Entities"
 app.include_router(graph.router, prefix=settings.api_prefix, tags=["Graph Intelligence"])
 app.include_router(ingest.router, prefix=settings.api_prefix, tags=["Data Ingestion"])
 app.include_router(pipeline.router, prefix=settings.api_prefix, tags=["Lifecycle Pipeline"])
+app.include_router(conflicts.router, prefix=settings.api_prefix, tags=["Conflict Intelligence"])
+app.include_router(incidents.router, prefix=settings.api_prefix, tags=["Incident Intelligence"])
+app.include_router(insurance.router, prefix=settings.api_prefix, tags=["Insurance Portfolio"])
+app.include_router(decision.router, prefix=settings.api_prefix, tags=["Decision Generation"])
+app.include_router(scores.router, prefix=settings.api_prefix, tags=["Risk Scores"])
 
 
 # Root endpoint
