@@ -2,15 +2,17 @@ FROM python:3.10-slim AS base
 
 WORKDIR /app
 
-# System deps
+# System deps for scipy/numpy compilation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential && \
     rm -rf /var/lib/apt/lists/*
 
+# Install Python deps first (Docker layer cache)
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip cache purge 2>/dev/null; true
 
-# Copy backend contents (not the folder) so from app.* imports resolve
+# Copy backend source
 COPY backend/ .
 
 ENV PYTHONPATH=/app
@@ -19,5 +21,4 @@ ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8000
 
-# Shell form so $PORT expands (Railway sets PORT env var)
-CMD uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}
+CMD ["sh", "-c", "uvicorn src.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
