@@ -136,3 +136,7 @@ def compute_proximity_continuous(
     else:
         # Band (900, inf) -> score [0.10, 0.30]
         return 0.10
+
+
+# Canonical alias for Master Prompt compliance
+compute_proximity = compute_proximity_score

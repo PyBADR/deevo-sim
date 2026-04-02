@@ -13,7 +13,7 @@ This module provides computational metaphors grounded in physics:
 
 GCC Defaults:
 All modules use consolidated physics parameters from gcc_physics_config.
-Parameters follow DecisionCore Intelligence calibration with production
+Parameters follow Impact Observatory calibration with production
 values for threat field, shockwave, pressure, friction, routing, and stress.
 """
 

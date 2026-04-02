@@ -1,5 +1,6 @@
 """
-Configuration management for DecisionCore Intelligence Platform.
+Configuration management for Impact Observatory | مرصد الأثر.
+Decision Intelligence Platform for GCC Financial Impact.
 Uses Pydantic Settings with environment variable support.
 """
 
@@ -9,11 +10,11 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     """
     Application settings with environment variable overrides.
-    Use DC7_ prefix for environment variables (e.g., DC7_ENVIRONMENT=production)
+    Use IO_ prefix for environment variables (e.g., IO_ENVIRONMENT=production)
     """
 
     # Application
-    app_name: str = "DecisionCore Intelligence"
+    app_name: str = "Impact Observatory"
     app_version: str = "1.0.0"
     environment: str = "development"  # development | pilot | production
     debug: bool = False
@@ -22,9 +23,9 @@ class Settings(BaseSettings):
     # PostgreSQL + PostGIS
     postgres_host: str = "localhost"
     postgres_port: int = 5432
-    postgres_db: str = "decision_core"
-    postgres_user: str = "dc7"
-    postgres_password: str = "dc7_pilot_2026"
+    postgres_db: str = "impact_observatory"
+    postgres_user: str = "io_admin"
+    postgres_password: str = "io_pilot_2026"
     postgres_pool_size: int = 20
     postgres_max_overflow: int = 10
     postgres_pool_pre_ping: bool = True
@@ -33,7 +34,7 @@ class Settings(BaseSettings):
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
-    neo4j_password: str = "dc7_graph_2026"
+    neo4j_password: str = "io_graph_2026"
     neo4j_pool_size: int = 50
 
     # Redis
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
     class Config:
-        env_prefix = "DC7_"
+        env_prefix = "IO_"
         env_file = ".env"
         case_sensitive = False
         extra = "allow"  # Allow extra fields for flexibility

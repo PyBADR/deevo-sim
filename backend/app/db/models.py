@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for DecisionCore Intelligence Platform.
+SQLAlchemy ORM models for Impact Observatory Platform.
 Uses SQLAlchemy 2.0 style with async support and PostGIS geometry.
 """
 

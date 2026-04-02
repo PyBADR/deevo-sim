@@ -1,6 +1,6 @@
 """FastAPI Application - Phase 7
 
-Main application entry point for DecisionCore Intelligence GCC platform.
+Main application entry point for Impact Observatory GCC platform.
 Sets up routes, middleware, and application lifecycle management.
 """
 
@@ -15,6 +15,7 @@ from fastapi.responses import JSONResponse
 from app.config.settings import Settings
 from app.graph.client import GraphClient
 from app.api import health, scenarios, entities, graph, ingest, auth, pipeline, conflicts, incidents, insurance, decision, scores
+from app.api.observatory import router as observatory_router
 from app.services.pipeline_status import PipelineStatusTracker
 from app.services.orchestrator import LifecycleOrchestrator
 from app.services.normalization import NormalizationService
@@ -48,7 +49,7 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events.
     """
     # Startup
-    logger.info("Starting DecisionCore Intelligence application...")
+    logger.info("Starting Impact Observatory application...")
     
     try:
         global graph_client, pipeline_status_tracker, lifecycle_orchestrator
@@ -110,7 +111,7 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
-    logger.info("Shutting down DecisionCore Intelligence application...")
+    logger.info("Shutting down Impact Observatory application...")
     try:
         if graph_client:
             await graph_client.close()
@@ -129,8 +130,8 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title="DecisionCore Intelligence GCC Platform",
-    description="Global Connectivity and Criticality Intelligence Platform",
+    title="Impact Observatory GCC Platform",
+    description="Decision Intelligence Platform for GCC Financial Impact | مرصد الأثر",
     version="1.0.0",
     docs_url="/api/docs",
     redoc_url="/api/redoc",
@@ -179,13 +180,16 @@ app.include_router(insurance.router, prefix=settings.api_prefix, tags=["Insuranc
 app.include_router(decision.router, prefix=settings.api_prefix, tags=["Decision Generation"])
 app.include_router(scores.router, prefix=settings.api_prefix, tags=["Risk Scores"])
 
+# Impact Observatory — Core pipeline router
+app.include_router(observatory_router, prefix=settings.api_prefix, tags=["Observatory"])
+
 
 # Root endpoint
 @app.get("/", tags=["Root"])
 async def root():
     """Root endpoint with API information"""
     return {
-        "service": "DecisionCore Intelligence GCC Platform",
+        "service": "Impact Observatory | مرصد الأثر",
         "version": "1.0.0",
         "status": "operational",
         "endpoints": {

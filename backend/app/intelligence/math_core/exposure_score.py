@@ -259,3 +259,7 @@ def compute_exposure_from_concentration(
     exposure = hhi * (1.0 - diversity_factor)
 
     return float(np.clip(exposure, 0.0, 1.0))
+
+
+# Canonical alias for Master Prompt compliance
+compute_exposure = compute_exposure_score

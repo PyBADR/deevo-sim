@@ -1,5 +1,5 @@
 """
-Scenario Templates for the DecisionCore Intelligence Platform.
+Scenario Templates for the Impact Observatory.
 
 Defines 15 predefined disruption scenarios with comprehensive parameters
 for modeling critical disruption events in GCC infrastructure.

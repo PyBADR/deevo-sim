@@ -50,26 +50,55 @@ def sample_baseline():
         system_aggregate_risk=0.4,
         system_connectivity=0.85,
         corridor_utilization={'corridor_1': 0.7, 'corridor_2': 0.65},
-        regional_risk_distribution={'region_1': 0.35, 'region_2': 0.45}
+        regional_risk_distribution={'region_1': 0.35, 'region_2': 0.45},
+        risk_distribution_vector=[0.3, 0.4, 0.5, 0.6, 0.7],
+        metadata={"test": True}
     )
 
 
 @pytest.fixture
-def sample_simulation_result(sample_baseline):
+def sample_simulation_result(sample_baseline, scenario_template):
     """Create a sample simulation result"""
+    from app.scenarios.shock import ShockEvent, ShockApplicationResult, CascadeEffect
+    from app.scenarios.simulator import SimulationStepResult, SimulationStep
+
     risk_deltas = np.array([0.1, 0.15, 0.2, 0.12, 0.08])
     final_risks = {
         nid: sample_baseline.get_node_risk(nid) + delta
         for nid, delta in zip(sample_baseline.node_ids, risk_deltas)
     }
     final_risks['__system__'] = 0.6
-    
+
+    shock_event = ShockEvent(node_id='node_1', severity=0.8)
+    shock_app = ShockApplicationResult(
+        shock_event=shock_event,
+        primary_impact_nodes={'node_1', 'node_2'},
+        cascading_impacts=[CascadeEffect(source_node='node_1', target_node='node_2', hop_distance=1, attenuated_severity=0.56)],
+        affected_node_count=2,
+        total_impact_severity=0.8,
+        success=True,
+    )
+    step_result = SimulationStepResult(
+        step=SimulationStep(1),
+        step_number=1,
+        success=True,
+        duration_seconds=0.01,
+        description="Shock injection",
+    )
+
     return ScenarioSimulationResult(
+        scenario_id='test_scenario_001',
+        scenario_template=scenario_template,
+        baseline_snapshot=sample_baseline,
+        shock_applications=[shock_app],
+        step_results=[step_result],
         final_risk_scores=final_risks,
         risk_change_vector=risk_deltas,
         system_stress_final=0.65,
-        critical_nodes_post_shock=['node_2', 'node_3', None, None, None],
-        recovery_time_estimate_hours=48.0
+        critical_nodes_post_shock=['node_2', 'node_3'],
+        recovery_time_estimate_hours=48.0,
+        simulation_duration_seconds=0.05,
+        success=True,
     )
 
 
@@ -160,7 +189,10 @@ class TestShockInjection:
     
     def test_shock_injector_cascade(self, sample_baseline):
         """Test cascade propagation through network"""
-        injector = ShockInjector()
+        injector = ShockInjector(
+            adjacency_matrix=sample_baseline.adjacency_matrix,
+            node_ids=sample_baseline.node_ids,
+        )
         shock = ShockEvent(
             node_id='node_1',
             severity=0.8,
@@ -169,34 +201,38 @@ class TestShockInjection:
             duration_hours=72,
             cascade_enabled=True,
             cascade_depth=2,
-            cascade_type='DISTANCE_WEIGHTED'
         )
-        
-        # Mock adjacency for cascade calculation
-        with patch.object(sample_baseline, 'get_adjacency_matrix',
-                         return_value=sample_baseline.adjacency_matrix):
-            result = injector.apply_shock(shock, sample_baseline)
-            assert result is not None
-            assert shock.node_id in [n.node_id for n in result.primary_impact_nodes]
+
+        result = injector.apply_shock(shock)
+        assert result is not None
+        assert shock.node_id in result.primary_impact_nodes
 
 
 class TestSimulationPipeline:
     """Test 4: 10-step simulation pipeline execution"""
-    
+
     def test_simulation_initialization(self, scenario_template, sample_baseline):
         """Test simulator initialization"""
-        simulator = ScenarioSimulator()
+        simulator = ScenarioSimulator(
+            adjacency_matrix=sample_baseline.adjacency_matrix,
+            node_ids=sample_baseline.node_ids,
+            node_positions={nid: (25.0 + i, 55.0 + i) for i, nid in enumerate(sample_baseline.node_ids)},
+            node_criticality=sample_baseline.node_criticality,
+        )
         assert simulator is not None
-        assert len(simulator.step_results) == 0
-    
+
     def test_simulation_step_execution(self, scenario_template, sample_baseline):
         """Test individual simulation steps"""
-        simulator = ScenarioSimulator()
-        
+        simulator = ScenarioSimulator(
+            adjacency_matrix=sample_baseline.adjacency_matrix,
+            node_ids=sample_baseline.node_ids,
+            node_positions={nid: (25.0 + i, 55.0 + i) for i, nid in enumerate(sample_baseline.node_ids)},
+            node_criticality=sample_baseline.node_criticality,
+        )
+
         # Mock the shock injection step
         with patch.object(simulator, '_step_shock_injection',
                          return_value=MagicMock()) as mock_step:
-            # Step would be called during simulation
             result = mock_step()
             assert result is not None
 

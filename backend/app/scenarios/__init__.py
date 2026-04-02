@@ -1,6 +1,6 @@
 """
 Scenario Engine Module - Phase 6
-Complete scenario analysis and simulation framework for DecisionCore Intelligence GCC
+Complete scenario analysis and simulation framework for Impact Observatory
 """
 
 from app.scenarios.templates import (

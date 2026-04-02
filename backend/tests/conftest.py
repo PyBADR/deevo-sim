@@ -1,5 +1,5 @@
 """
-Pytest configuration and shared fixtures for DecisionCore Intelligence Platform tests.
+Pytest configuration and shared fixtures for Impact Observatory tests.
 
 This module provides reusable fixtures for:
 - Sample event data (geospatial)

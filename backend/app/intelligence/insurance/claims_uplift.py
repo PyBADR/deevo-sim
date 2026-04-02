@@ -112,3 +112,7 @@ def compute_expected_claims_uplift(
             "uncertainty": chi3,
         },
     )
+
+
+# Canonical alias for Master Prompt compliance
+compute_claims_uplift = compute_expected_claims_uplift

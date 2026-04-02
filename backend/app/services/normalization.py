@@ -2,7 +2,7 @@
 NormalizationService - Unified data pipeline orchestration for all connectors.
 
 Manages connector registration, pipeline execution, and result aggregation for the
-DecisionCore Intelligence Engine. Provides unified error handling, logging, and
+Impact Observatory Engine. Provides unified error handling, logging, and
 metrics collection across all data sources.
 """
 
@@ -56,8 +56,8 @@ class PipelineMetrics:
 
 class NormalizationService:
     """
-    Unified data pipeline orchestration for DecisionCore Intelligence Engine.
-    
+    Unified data pipeline orchestration for Impact Observatory.
+
     Manages all data connectors, coordinates pipeline execution, aggregates results,
     and provides error handling and metrics collection across all data sources
     (ACLED, Aviation, Maritime, CSV imports).

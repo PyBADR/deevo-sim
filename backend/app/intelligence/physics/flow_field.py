@@ -155,3 +155,44 @@ class FlowField:
                 )
 
         return density_grid
+
+
+def compute_flow_field(
+    routes: List[FlowVector],
+    lat_range: Tuple[float, float] = (-90.0, 90.0),
+    lon_range: Tuple[float, float] = (-180.0, 180.0),
+    resolution: int = 50,
+) -> dict:
+    """
+    Compute flow field density grid for given routes.
+
+    Instantiates FlowField, adds all routes via add_flow,
+    evaluates the flow density grid, and returns comprehensive metrics.
+
+    Args:
+        routes: List of FlowVector routes to add to field
+        lat_range: (min_lat, max_lat) range for grid evaluation (default: global)
+        lon_range: (min_lon, max_lon) range for grid evaluation (default: global)
+        resolution: Grid resolution (points per dimension)
+
+    Returns:
+        Dictionary with flow field metrics:
+            - density_grid: 2D numpy array of flow density
+            - num_flows: Total number of flows in field
+            - total_magnitude: Sum of all flow magnitudes
+    """
+    field = FlowField()
+
+    # Add all routes to the flow field
+    for route in routes:
+        field.add_flow(route)
+
+    # Evaluate flow grid
+    density_grid = field.evaluate_grid(lat_range, lon_range, resolution)
+
+    # Return comprehensive results
+    return {
+        "density_grid": density_grid,
+        "num_flows": len(field.flows),
+        "total_magnitude": sum(f.magnitude for f in field.flows),
+    }

@@ -22,7 +22,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         timestamp=datetime.utcnow(),
-        service="DecisionCore Intelligence GCC",
+        service_name="Impact Observatory",
         version="1.0.0"
     )
 
@@ -40,7 +40,7 @@ async def get_version(api_key: str = Depends(api_key_auth)):
     """
     return VersionResponse(
         version="1.0.0",
-        service="DecisionCore Intelligence GCC",
+        service="Impact Observatory",
         timestamp=datetime.utcnow(),
         build_date="2026-03-31",
         environment="production"

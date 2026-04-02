@@ -1,5 +1,5 @@
 """
-Insurance portfolio analysis endpoints for DecisionCore Intelligence GCC platform.
+Insurance portfolio analysis endpoints for Impact Observatory platform.
 
 Provides comprehensive insurance portfolio exposure assessment, claims surge
 detection, underwriting risk analysis, and scenario-based impact modeling.

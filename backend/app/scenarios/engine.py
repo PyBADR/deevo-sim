@@ -62,10 +62,24 @@ class ScenarioEngine:
     """
     
     def __init__(self):
-        self.simulator = ScenarioSimulator()
+        import numpy as np
+        # Default 5-node placeholder — overridden by execute_scenario with actual baseline data
+        _default_ids = [f'node_{i}' for i in range(1, 6)]
+        _default_adj = np.zeros((5, 5))
+        _default_pos = {nid: (25.0, 55.0) for nid in _default_ids}
+        _default_crit = {nid: 0.5 for nid in _default_ids}
+        self.simulator = ScenarioSimulator(
+            adjacency_matrix=_default_adj,
+            node_ids=_default_ids,
+            node_positions=_default_pos,
+            node_criticality=_default_crit,
+        )
         self.delta_calculator = DeltaCalculator()
         self.explainer = ExplanationGenerator()
-        self.shock_injector = ShockInjector()
+        self.shock_injector = ShockInjector(
+            adjacency_matrix=_default_adj,
+            node_ids=_default_ids,
+        )
         self.execution_history: List[ScenarioExecutionResult] = []
     
     def execute_scenario(

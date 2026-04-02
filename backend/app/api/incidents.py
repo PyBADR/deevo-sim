@@ -1,5 +1,5 @@
 """
-Global incident intelligence endpoints for DecisionCore Intelligence GCC platform.
+Global incident intelligence endpoints for Impact Observatory platform.
 
 Provides comprehensive incident querying, timeline analysis, and correlation
 detection across natural disasters, infrastructure failures, and other events.

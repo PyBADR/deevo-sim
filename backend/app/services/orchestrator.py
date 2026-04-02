@@ -1,5 +1,5 @@
 """
-Lifecycle Orchestration Service - The HEART of the DecisionCore Intelligence GCC platform.
+Lifecycle Orchestration Service - The HEART of the Impact Observatory platform.
 
 Implements the mandatory lifecycle:
 INGEST → NORMALIZE → ENRICH → STORE → GRAPH BUILD → SCORE → PHYSICS UPDATE → INSURANCE UPDATE → SCENARIO RUN → API OUTPUT
@@ -203,8 +203,8 @@ class LifecycleExecutionResult:
 
 class LifecycleOrchestrator:
     """
-    Orchestrates the complete lifecycle of the DecisionCore Intelligence GCC platform.
-    
+    Orchestrates the complete lifecycle of the Impact Observatory.
+
     Executes 10 mandatory steps in strict order with comprehensive logging, error handling,
     status tracking, and SHA-256 audit hashing for compliance.
     """

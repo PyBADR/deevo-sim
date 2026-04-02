@@ -9,7 +9,7 @@ T = TypeVar('T')
 class HealthResponse(BaseModel):
     status: str = Field(..., example="healthy")
     timestamp: datetime
-    service_name: str = Field(..., example="DecisionCore Intelligence GCC")
+    service_name: str = Field(..., example="Impact Observatory")
     version: str = Field(..., example="1.0.0")
 
 class VersionResponse(BaseModel):
@@ -495,3 +495,55 @@ class AnalyzeScoresResponse(BaseModel):
     correlations: dict
     outliers: list[dict] = Field(..., description="Entities with outlier scores")
     timestamp: datetime
+
+# Decision Output Contract (Master Prompt specification)
+class BilingualTextModel(BaseModel):
+    """Bilingual text container for EN/AR content."""
+    en: str = Field(..., description="English text")
+    ar: str = Field(..., description="Arabic text")
+
+class ConfidenceBreakdown(BaseModel):
+    """Confidence breakdown by component."""
+    simulation_confidence: float = Field(..., ge=0, le=1, description="Confidence in simulation results")
+    economic_confidence: float = Field(..., ge=0, le=1, description="Confidence in economic impact estimates")
+    insurance_confidence: float = Field(..., ge=0, le=1, description="Confidence in insurance impact estimates")
+    recommendation_confidence: float = Field(..., ge=0, le=1, description="Confidence in recommendations")
+
+class WeightConfig(BaseModel):
+    """Weight configuration used in analysis."""
+    geopolitical_weight: float = Field(..., ge=0, le=1)
+    infrastructure_weight: float = Field(..., ge=0, le=1)
+    economic_weight: float = Field(..., ge=0, le=1)
+    insurance_weight: float = Field(..., ge=0, le=1)
+
+class Explanation(BaseModel):
+    """Detailed explanation of decision reasoning."""
+    top_causal_factors: list[str] = Field(..., description="Top 3-5 causal factors")
+    propagation_path: list[dict] = Field(..., description="Path of risk propagation through supply chain")
+    confidence_breakdown: ConfidenceBreakdown
+    weight_config_used: WeightConfig
+
+class InsuranceImpactModel(BaseModel):
+    """Insurance portfolio impact assessment."""
+    exposure_score: float = Field(..., ge=0, le=100, description="Portfolio exposure score 0-100")
+    claims_surge_potential: float = Field(..., ge=0, le=1, description="Probability of claims surge")
+    underwriting_class: str = Field(..., description="Underwriting class: standard, restricted, critical")
+    expected_claims_uplift: float = Field(..., description="Expected claims uplift in USD millions")
+
+class DecisionOutputContract(BaseModel):
+    """Master Prompt compliant decision output contract."""
+    event: BilingualTextModel = Field(..., description="What happened event description")
+    timestamp: datetime = Field(..., description="Decision output timestamp")
+    risk_score: float = Field(..., ge=0, le=100, description="Overall risk score 0-100")
+    disruption_score: float = Field(..., ge=0, le=100, description="Disruption severity 0-100")
+    confidence_score: float = Field(..., ge=0, le=1, description="Confidence level 0-1")
+    system_stress: str = Field(..., description="System stress level: nominal, elevated, high, critical")
+    affected_airports: list[str] = Field(default_factory=list, description="List of affected airport codes")
+    affected_ports: list[str] = Field(default_factory=list, description="List of affected port codes")
+    affected_corridors: list[str] = Field(default_factory=list, description="List of affected corridor IDs")
+    affected_routes: list[str] = Field(default_factory=list, description="List of affected trade routes")
+    economic_impact_estimate: float = Field(..., description="Economic impact in USD millions")
+    insurance_impact: InsuranceImpactModel
+    recommended_action: BilingualTextModel = Field(..., description="Recommended action")
+    scenario_horizon: str = Field(..., description="Time horizon: immediate, short-term, medium-term, long-term")
+    explanation: Explanation

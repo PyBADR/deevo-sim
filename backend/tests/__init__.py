@@ -1,5 +1,5 @@
 """
-Test suite for DecisionCore Intelligence GCC Platform
+Test suite for Impact Observatory
 
 This module contains all test cases for:
 - API endpoints (health, scenarios, entities, graph, ingestion)

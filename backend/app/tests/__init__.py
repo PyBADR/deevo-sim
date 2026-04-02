@@ -1,3 +1,3 @@
 """
-Test suite for DecisionCore Intelligence GCC Platform.
+Test suite for Impact Observatory.
 """

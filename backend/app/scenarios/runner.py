@@ -175,26 +175,38 @@ class ScenarioRunner:
 
     def _propagate_event(
         self,
-        event: EventType,
+        event,
         affected_nodes: set,
         cascade_depth: int,
         propagation_coefficient: float,
     ) -> CascadeEvent:
         """
         Propagate a single event through the infrastructure graph.
-        
+
         Args:
-            event: The event type to propagate
+            event: The event (EventType enum or dict with 'event_type' key)
             affected_nodes: Current set of affected nodes
             cascade_depth: Current cascade depth
             propagation_coefficient: Coefficient controlling cascade spread
-            
+
         Returns:
             CascadeEvent with propagation details
         """
+        # Resolve event to EventType enum if it's a dict
+        if isinstance(event, dict):
+            event_type_str = event.get("event_type", "")
+            try:
+                event_type = EventType(event_type_str)
+            except ValueError:
+                event_type = None
+        elif isinstance(event, EventType):
+            event_type = event
+        else:
+            event_type = None
+
         # Determine secondary affected nodes based on event type
-        secondary_nodes = self._get_secondary_nodes_for_event(event)
-        
+        secondary_nodes = self._get_secondary_nodes_for_event(event_type)
+
         # Calculate stress increase based on event type and cascade depth
         base_stress = {
             EventType.NAVAL_BLOCKADE: 0.35,
@@ -211,12 +223,12 @@ class ScenarioRunner:
             EventType.CYBER_ATTACK: 0.25,
             EventType.FUEL_SHORTAGE: 0.24,
             EventType.ECONOMIC_PRESSURE: 0.12,
-        }.get(event, 0.15)
+        }.get(event_type, 0.15)
 
         stress_increase = base_stress * (propagation_coefficient ** (cascade_depth + 1))
 
         return CascadeEvent(
-            event_type=event,
+            event_type=event_type.value if event_type else "unknown",
             source_node="sys-root",
             affected_nodes=secondary_nodes,
             propagation_distance=cascade_depth + 1,

@@ -1,5 +1,5 @@
 """
-DecisionCore Intelligence GCC Platform - Mesa Agent-Based Simulation Module
+Impact Observatory GCC Platform - Mesa Agent-Based Simulation Module
 
 Provides agent-based modeling capabilities for spatial-temporal disruption
 propagation, infrastructure resilience assessment, and scenario impact simulation

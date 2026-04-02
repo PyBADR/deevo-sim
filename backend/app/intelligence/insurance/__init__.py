@@ -1,5 +1,5 @@
 """
-Insurance Intelligence Layer for GCC DecisionCore Intelligence Platform.
+Insurance Intelligence Layer for GCC Impact Observatory platform.
 
 This module provides comprehensive insurance risk assessment, claims projection,
 portfolio management, and severity analysis for GCC-based insurance portfolios.
@@ -114,4 +114,4 @@ __all__ = [
 ]
 
 __version__ = "1.0.0"
-__author__ = "GCC DecisionCore Intelligence Platform"
+__author__ = "GCC Impact Observatory"

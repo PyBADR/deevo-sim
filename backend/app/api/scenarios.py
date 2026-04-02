@@ -12,9 +12,11 @@ from app.api.models import (
     ScenarioRunListResponse
 )
 from app.api.auth import api_key_auth, require_role
+from app.scenarios.templates import SCENARIO_TEMPLATES
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 # In-memory scenario storage (replace with database in production)
 scenarios_db = {}
@@ -62,14 +64,13 @@ async def create_scenario(
     scenario_id = str(uuid.uuid4())
     
     scenario = ScenarioResponse(
-        id=scenario_id,
+        scenario_id=scenario_id,
         name=request.name,
         description=request.description,
         scenario_type=request.scenario_type,
-        events=request.events,
+        parameters=request.parameters,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
-        status="active"
     )
     
     scenarios_db[scenario_id] = scenario
@@ -171,5 +172,76 @@ async def list_scenario_runs(
         total=len(runs_list),
         skip=skip,
         limit=limit,
-        runs=runs_list[skip:skip + limit]
+        data=runs_list[skip:skip + limit]
     )
+
+
+# ============================================================================
+# New Mandatory Endpoints
+# ============================================================================
+
+@router.get(
+    "/scenarios/templates",
+    response_model=dict,
+    summary="Get Scenario Templates",
+    description="Retrieve all available scenario templates for disruption modeling"
+)
+async def get_scenario_templates(
+    disruption_type: Optional[str] = Query(None, description="Filter by disruption type"),
+    api_key: str = Depends(api_key_auth),
+) -> dict:
+    """
+    Get all available scenario templates from the system template library.
+    
+    Templates include pre-configured disruption scenarios for geopolitical events,
+    infrastructure failures, natural disasters, and other supply chain risks.
+    
+    Args:
+        disruption_type: Optional filter by disruption type
+        api_key: API key for authentication
+        
+    Returns:
+        Dictionary with scenario templates and metadata
+    """
+    try:
+        templates_list = []
+        
+        for template_id, template in SCENARIO_TEMPLATES.items():
+            # Apply optional filter by disruption type
+            if disruption_type and template.disruption_type != disruption_type:
+                continue
+            
+            # Convert template to dict using its to_dict method if available
+            if hasattr(template, 'to_dict'):
+                template_dict = template.to_dict()
+            else:
+                # Fallback for templates without to_dict method
+                template_dict = {
+                    "id": template_id,
+                    "name": getattr(template, 'name', template_id),
+                    "title": getattr(template, 'title', ''),
+                    "description": getattr(template, 'description', ''),
+                    "disruption_type": getattr(template, 'disruption_type', ''),
+                    "severity": getattr(template, 'severity', 0.0),
+                    "affected_domains": getattr(template, 'affected_domains', []),
+                    "affected_regions": getattr(template, 'affected_regions', []),
+                    "affected_countries": getattr(template, 'affected_countries', []),
+                    "duration_hours": getattr(template, 'duration_hours', 0),
+                    "propagation_depth": getattr(template, 'propagation_depth', 1),
+                    "scenario_tags": getattr(template, 'scenario_tags', []),
+                }
+            
+            templates_list.append(template_dict)
+        
+        logger.info(f"Retrieved {len(templates_list)} scenario templates")
+        
+        return {
+            "success": True,
+            "explanation": "Available scenario templates for disruption modeling and impact analysis",
+            "total": len(templates_list),
+            "templates": templates_list,
+            "timestamp": datetime.utcnow(),
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving scenario templates: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving scenario templates: {str(e)}")

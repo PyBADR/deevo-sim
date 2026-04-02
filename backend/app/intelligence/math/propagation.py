@@ -152,3 +152,7 @@ def propagate_risk(
         steps_to_converge=steps_to_converge,
         converged=converged,
     )
+
+
+# Canonical alias for Master Prompt compliance
+propagate = propagate_risk

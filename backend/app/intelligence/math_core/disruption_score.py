@@ -234,3 +234,7 @@ def compute_propagation_risk(
 
     risk = node_criticality * network_density * cascade_multiplier
     return float(np.clip(risk, 0.0, 1.0))
+
+
+# Canonical alias for Master Prompt compliance
+compute_disruption = compute_disruption_score

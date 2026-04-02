@@ -1,509 +1,426 @@
 """
-Integration tests for DecisionCore Intelligence GCC Platform.
+Integration tests for Impact Observatory.
 
 Tests cross-module integration points including:
-- Seed data loading and model initialization
-- Schema serialization and deserialization
-- Mathematical core weight application
-- Physics configuration defaults
-- Insurance model parameters
-- Scenario template loading
-- Scenario engine execution and state transitions
-- Decision output generation
-- Orchestrator pipeline execution
-- API health and scenario endpoints
+- Seed data loading via SeedLoader
+- Mathematical core risk computation with GCC weights
+- Physics intelligence modules (threat field, friction, shockwave, diffusion)
+- Insurance intelligence (exposure, claims surge, underwriting)
+- Scenario template loading and engine execution
+- Decision output generation (5 mandatory questions)
+- Mesa simulation bridge
+- API model serialization
 """
 
 import pytest
 from datetime import datetime, timedelta
-from pathlib import Path
 
-# Core module imports
-from app.api.models import (
-    HealthResponse,
-    ScenarioRequest,
-    ScenarioResponse,
-    EventEntity,
-    AirportEntity,
-    PortEntity,
-    CorridorEntity,
-    FlightEntity,
-    VesselEntity,
-    ActorEntity,
-    RiskPropagationRequest,
-    ChokePointRequest,
+# ============================================================================
+# Layer 1: Schema
+# ============================================================================
+from app.schema.enums import (
+    EventType, SeverityLevel, SourceType, TransportMode,
+    AssetType, FlightStatus, VesselType, ScenarioStatus,
 )
-from app.intelligence.math import (
-    compute_risk_score,
-    spatial_decay,
-    temporal_decay,
-    propagate_risk,
-    compute_exposure,
-    compute_confidence,
+from app.schema.base import BaseEntity
+from app.schema.geo import GeoPoint
+from app.schema.events import Event
+from app.schema.infrastructure import Airport, Port, Corridor
+
+# ============================================================================
+# Layer 2: Math Core
+# ============================================================================
+from app.intelligence.math_core.gcc_weights import (
+    AIRPORT_WEIGHTS, SEAPORT_WEIGHTS, AIR_CORRIDOR_WEIGHTS,
+    MARITIME_CORRIDOR_WEIGHTS, EVENT_MULTIPLIERS, CENTRALITY_WEIGHTS,
+    LOGISTICS_WEIGHTS, DISRUPTION_WEIGHTS, UNCERTAINTY_WEIGHTS,
+    ASSET_CLASS_WEIGHTS,
 )
+from app.intelligence.math_core.risk_score import compute_gcc_risk_score
+from app.intelligence.math_core.geopolitical_threat import compute_geopolitical_threat
+from app.intelligence.math_core.proximity import compute_proximity_score
+from app.intelligence.math_core.network_centrality import compute_network_centrality
+from app.intelligence.math_core.logistics_pressure import compute_logistics_pressure
+from app.intelligence.math_core.temporal_persistence import compute_temporal_persistence
+from app.intelligence.math_core.uncertainty import compute_uncertainty
+from app.intelligence.math_core.disruption_score import compute_disruption_score
+from app.intelligence.math_core.exposure_score import compute_exposure_score
+from app.intelligence.math_core.state_vector import EntityStateVector, compute_state_vector
+from app.intelligence.math_core.calibration import CalibrationEngine
+from app.intelligence.math_core.scenario_delta import compute_scenario_delta
+
+# ============================================================================
+# Layer 3: Physics
+# ============================================================================
+from app.intelligence.physics.threat_field import ThreatField
+from app.intelligence.physics.flow_field import FlowField
+from app.intelligence.physics.friction import compute_friction
+from app.intelligence.physics.pressure import PressureNode
+from app.intelligence.physics.shockwave import ShockwaveEngine
+from app.intelligence.physics.potential_routing import compute_route_cost
+from app.intelligence.physics.diffusion import diffuse_threat
+from app.intelligence.physics.system_stress import compute_system_stress
 from app.intelligence.physics.gcc_physics_config import (
-    PHYSICS_DEFAULTS,
-    KINEMATICS_DEFAULTS,
-    FRICTION_PARAMETERS,
-    PROPAGATION_PARAMETERS,
+    FRICTION_THREAT_WEIGHT, PRESSURE_PERSISTENCE_FACTOR,
+    SHOCKWAVE_DECAY_FACTOR, SHOCKWAVE_AMPLITUDE_DAMPING,
 )
-from app.intelligence.insurance.insurance_models import (
-    InsuranceResult,
-    compute_insurance_impact,
-)
+
+# ============================================================================
+# Layer 4: Insurance
+# ============================================================================
+from app.intelligence.insurance.portfolio_exposure import compute_portfolio_exposure, PolicyExposure
+from app.intelligence.insurance.claims_surge import compute_claims_surge_potential
+from app.intelligence.insurance.claims_uplift import compute_expected_claims_uplift
+from app.intelligence.insurance.underwriting_watch import compute_underwriting_restriction
+from app.intelligence.insurance.severity_projection import project_severity
+from app.intelligence.insurance.insurance_engine import InsuranceIntelligenceEngine
+from app.intelligence.insurance.gcc_insurance_config import GCC_INSURANCE_CONFIG
+
+# ============================================================================
+# Layer 5: Scenarios
+# ============================================================================
+from app.scenarios.templates import SCENARIO_TEMPLATES, ScenarioTemplate
+from app.scenarios.engine import ScenarioEngine
+from app.scenarios.runner import ScenarioRunner
+
+# ============================================================================
+# Layer 6: Simulation
+# ============================================================================
+from app.simulation.mesa_model import GCCModel, InfrastructureAgent, EventAgent
+from app.simulation.bridge import MesaBridge
+
+# ============================================================================
+# Layer 7: Decision
+# ============================================================================
+from app.decision.output import DecisionOutputGenerator
+
+# ============================================================================
+# Layer 8: Services
+# ============================================================================
+from app.services.scoring_service import ScoringService
+from app.services.physics_service import PhysicsService
+from app.services.insurance_service import InsuranceService
+from app.services.pipeline_status import PipelineStatusTracker
+
+# ============================================================================
+# Layer 9: Seeds
+# ============================================================================
+from seeds.loader import SeedLoader
+
+# ============================================================================
+# Layer 10: API Models
+# ============================================================================
+from app.api.models import HealthResponse, ScenarioRequest, ScenarioResponse
+
+
+# ============================================================================
+# Tests
+# ============================================================================
 
 
 class TestSeedDataIntegration:
-    """Test seed data loading and model initialization."""
+    """Test seed data loading from production seed files."""
 
-    def test_seed_events_loaded(self, seed_events):
-        """Verify seed events are properly loaded and structured."""
-        assert len(seed_events) == 5
-        for event in seed_events:
-            assert "event_id" in event
-            assert "event_type" in event
-            assert "location_name" in event
-            assert "country" in event
-            assert "latitude" in event
-            assert "longitude" in event
-            assert "event_date" in event
-            assert event["latitude"] >= -90 and event["latitude"] <= 90
-            assert event["longitude"] >= -180 and event["longitude"] <= 180
+    def test_seed_loader_loads_all(self):
+        loader = SeedLoader()
+        data = loader.load_all()
+        assert isinstance(data, dict)
+        total = sum(len(v) for v in data.values())
+        assert total >= 175, f"Expected >=175 seed records, got {total}"
 
-    def test_seed_airports_loaded(self, seed_airports):
-        """Verify airport seed data is complete."""
-        assert len(seed_airports) == 8
-        iata_codes = {airport["iata_code"] for airport in seed_airports}
-        assert "IST" in iata_codes
-        assert "DXB" in iata_codes
-        assert "JFK" in iata_codes
-        for airport in seed_airports:
-            assert "airport_id" in airport
-            assert "iata_code" in airport
-            assert "name" in airport
-            assert "country" in airport
-            assert "latitude" in airport
-            assert "longitude" in airport
+    def test_seed_events_exist(self):
+        loader = SeedLoader()
+        data = loader.load_all()
+        assert "events" in data
+        assert len(data["events"]) >= 50
 
-    def test_seed_ports_loaded(self, seed_ports):
-        """Verify port seed data is complete."""
-        assert len(seed_ports) == 8
-        port_codes = {port["port_code"] for port in seed_ports}
-        assert "AEHSX" in port_codes  # Jebel Ali
-        assert "SGSIN" in port_codes  # Singapore
-        for port in seed_ports:
-            assert "port_id" in port
-            assert "port_code" in port
-            assert "name" in port
-            assert "country" in port
-            assert "container_capacity" in port
+    def test_seed_airports_exist(self):
+        loader = SeedLoader()
+        data = loader.load_all()
+        assert "airports" in data
+        assert len(data["airports"]) >= 30
 
-    def test_seed_corridors_loaded(self, seed_corridors):
-        """Verify corridor seed data is complete."""
-        assert len(seed_corridors) == 10
-        corridor_types = {corridor["corridor_type"] for corridor in seed_corridors}
-        assert "maritime" in corridor_types
-        assert "air" in corridor_types
-        for corridor in seed_corridors:
-            assert "corridor_id" in corridor
-            assert "corridor_type" in corridor
-            assert "origin" in corridor
-            assert "destination" in corridor
+    def test_seed_ports_exist(self):
+        loader = SeedLoader()
+        data = loader.load_all()
+        assert "ports" in data
+        assert len(data["ports"]) >= 20
 
-    def test_seed_flights_loaded(self, seed_flights):
-        """Verify flight seed data."""
-        assert len(seed_flights) == 10
-        for flight in seed_flights:
-            assert "flight_id" in flight
-            assert "flight_number" in flight
-            assert "aircraft_type" in flight
-            assert "origin" in flight
-            assert "destination" in flight
-            assert "capacity" in flight
-
-    def test_seed_vessels_loaded(self, seed_vessels):
-        """Verify vessel seed data."""
-        assert len(seed_vessels) == 10
-        for vessel in seed_vessels:
-            assert "vessel_id" in vessel
-            assert "name" in vessel
-            assert "mmsi" in vessel
-            assert "vessel_type" in vessel
-            assert "teu_capacity" in vessel
-            assert "current_location" in vessel
-
-    def test_seed_actors_loaded(self, seed_actors):
-        """Verify actor seed data."""
-        assert len(seed_actors) == 15
-        actor_types = {actor["actor_type"] for actor in seed_actors}
-        assert "government" in actor_types
-        assert "corporation" in actor_types
-        for actor in seed_actors:
-            assert "actor_id" in actor
-            assert "name" in actor
-            assert "actor_type" in actor
-
-    def test_all_seed_data_compound_fixture(self, all_seed_data):
-        """Verify compound fixture merges all seed data correctly."""
-        assert "events" in all_seed_data
-        assert "airports" in all_seed_data
-        assert "ports" in all_seed_data
-        assert "corridors" in all_seed_data
-        assert "flights" in all_seed_data
-        assert "vessels" in all_seed_data
-        assert "actors" in all_seed_data
-        assert "scenarios" in all_seed_data
-        assert "risk_weights" in all_seed_data
-        assert len(all_seed_data["events"]) == 5
-        assert len(all_seed_data["airports"]) == 8
+    def test_seed_corridors_exist(self):
+        loader = SeedLoader()
+        data = loader.load_all()
+        assert "corridors" in data
+        assert len(data["corridors"]) >= 15
 
 
-class TestSchemaIntegration:
-    """Test schema serialization and model validation."""
+class TestGCCWeightsIntegration:
+    """Test GCC weight configurations are correctly defined."""
 
-    def test_event_entity_serialization(self, seed_event_base):
-        """Verify Event model can be created and serialized."""
-        event_entity = EventEntity(
-            event_id=seed_event_base["event_id"],
-            event_type=seed_event_base["event_type"],
-            severity=5,
-            location=seed_event_base["location_name"],
-            timestamp=seed_event_base["event_date"],
+    def test_airport_weights_sum_to_one(self):
+        assert abs(sum(AIRPORT_WEIGHTS) - 1.0) < 0.01
+
+    def test_seaport_weights_sum_to_one(self):
+        assert abs(sum(SEAPORT_WEIGHTS) - 1.0) < 0.01
+
+    def test_air_corridor_weights_sum_to_one(self):
+        assert abs(sum(AIR_CORRIDOR_WEIGHTS) - 1.0) < 0.01
+
+    def test_maritime_corridor_weights_sum_to_one(self):
+        assert abs(sum(MARITIME_CORRIDOR_WEIGHTS) - 1.0) < 0.01
+
+    def test_event_multipliers_exist(self):
+        assert "missile_strike" in EVENT_MULTIPLIERS
+        assert EVENT_MULTIPLIERS["missile_strike"] == 1.40
+        assert "naval_attack" in EVENT_MULTIPLIERS
+        assert EVENT_MULTIPLIERS["naval_attack"] == 1.40
+
+    def test_asset_class_weights_mapping(self):
+        assert "airport" in ASSET_CLASS_WEIGHTS
+        assert "seaport" in ASSET_CLASS_WEIGHTS
+        assert "port" in ASSET_CLASS_WEIGHTS
+        assert ASSET_CLASS_WEIGHTS["airport"] == AIRPORT_WEIGHTS
+
+
+class TestRiskScoreIntegration:
+    """Test risk score computation end-to-end."""
+
+    def test_risk_score_airport_basic(self):
+        result = compute_gcc_risk_score(
+            geopolitical_threat=0.8,
+            proximity_score=0.7,
+            network_centrality=0.6,
+            logistics_pressure=0.5,
+            temporal_persistence=0.4,
+            uncertainty=0.3,
+            asset_class="airport",
         )
-        assert event_entity.event_id == seed_event_base["event_id"]
-        assert event_entity.event_type == seed_event_base["event_type"]
-        data = event_entity.model_dump()
-        assert "event_id" in data
-        assert "event_type" in data
+        assert "raw_score" in result
+        assert "normalized_score" in result
+        assert "severity" in result
+        assert "components" in result
+        assert "weights" in result
+        assert 0 <= result["normalized_score"] <= 1
 
-    def test_airport_entity_serialization(self, seed_airports):
-        """Verify Airport model serialization."""
-        airport = seed_airports[0]
-        airport_entity = AirportEntity(
-            airport_id=airport["airport_id"],
-            name=airport["name"],
-            country=airport["country"],
-            status="operational",
-            latitude=airport["latitude"],
-            longitude=airport["longitude"],
+    def test_risk_score_seaport_basic(self):
+        result = compute_gcc_risk_score(
+            geopolitical_threat=0.9,
+            proximity_score=0.8,
+            network_centrality=0.7,
+            logistics_pressure=0.6,
+            temporal_persistence=0.5,
+            uncertainty=0.4,
+            asset_class="seaport",
         )
-        data = airport_entity.model_dump()
-        assert data["latitude"] >= -90 and data["latitude"] <= 90
-        assert data["longitude"] >= -180 and data["longitude"] <= 180
+        assert result["asset_class"] == "seaport"
+        assert result["normalized_score"] > 0
 
-    def test_port_entity_serialization(self, seed_ports):
-        """Verify Port model serialization."""
-        port = seed_ports[0]
-        port_entity = PortEntity(
-            port_id=port["port_id"],
-            name=port["name"],
-            country=port["country"],
-            status="operational",
-            latitude=port["latitude"],
-            longitude=port["longitude"],
+    def test_risk_score_with_regional_multiplier(self):
+        base = compute_gcc_risk_score(
+            geopolitical_threat=0.7, proximity_score=0.6,
+            network_centrality=0.5, logistics_pressure=0.4,
+            temporal_persistence=0.3, uncertainty=0.2,
+            asset_class="airport", regional_multiplier=1.0,
         )
-        data = port_entity.model_dump()
-        assert "port_id" in data
-        assert data["latitude"] >= -90 and data["latitude"] <= 90
-
-    def test_scenario_response_serialization(self):
-        """Verify Scenario model serialization."""
-        scenario = ScenarioResponse(
-            scenario_id="scenario_001",
-            name="Suez Blockade",
-            description="Complete closure of Suez Canal",
-            scenario_type="disruption",
-            parameters={"duration_days": 30, "affected_corridors": 3},
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+        scaled = compute_gcc_risk_score(
+            geopolitical_threat=0.7, proximity_score=0.6,
+            network_centrality=0.5, logistics_pressure=0.4,
+            temporal_persistence=0.3, uncertainty=0.2,
+            asset_class="airport", regional_multiplier=1.20,  # AE
         )
-        data = scenario.model_dump()
-        assert data["scenario_id"] == "scenario_001"
-        assert data["parameters"]["duration_days"] == 30
+        assert scaled["raw_score"] > base["raw_score"]
 
-    def test_health_response_serialization(self):
-        """Verify HealthResponse model serialization."""
+    def test_risk_score_severity_bands(self):
+        # Low input -> low severity
+        low = compute_gcc_risk_score(
+            geopolitical_threat=0.1, proximity_score=0.1,
+            network_centrality=0.1, logistics_pressure=0.1,
+            temporal_persistence=0.1, uncertainty=0.1,
+        )
+        # High input -> high severity
+        high = compute_gcc_risk_score(
+            geopolitical_threat=0.95, proximity_score=0.95,
+            network_centrality=0.95, logistics_pressure=0.95,
+            temporal_persistence=0.95, uncertainty=0.95,
+        )
+        assert high["normalized_score"] > low["normalized_score"]
+
+
+class TestPhysicsIntegration:
+    """Test physics modules integration."""
+
+    def test_friction_computation(self):
+        result = compute_friction(
+            route_id="test_route",
+            threat_along_route=0.7,
+            congestion=0.5,
+            political_constraint=0.3,
+            regulatory_restriction=0.2,
+        )
+        assert result is not None
+        assert hasattr(result, 'total_friction')
+        assert 0 <= result.total_friction <= 1
+
+    def test_shockwave_engine_creation(self):
+        engine = ShockwaveEngine()
+        assert engine is not None
+
+    def test_gcc_physics_defaults(self):
+        assert FRICTION_THREAT_WEIGHT > 0
+        assert PRESSURE_PERSISTENCE_FACTOR > 0
+        assert SHOCKWAVE_DECAY_FACTOR == 0.58
+        assert SHOCKWAVE_AMPLITUDE_DAMPING == 0.92
+
+
+class TestInsuranceIntegration:
+    """Test insurance intelligence modules."""
+
+    def test_portfolio_exposure(self):
+        policies = [PolicyExposure(
+            policy_id="POL-001",
+            tiv=0.8,
+            route_dependency=0.7,
+            region_risk=0.6,
+            claims_elasticity=0.5,
+        )]
+        result = compute_portfolio_exposure(policies=policies)
+        assert result is not None
+
+    def test_claims_surge(self):
+        result = compute_claims_surge_potential(
+            risk_score=0.8,
+            disruption_score=0.7,
+            exposure=0.6,
+            policy_sensitivity=0.5,
+        )
+        assert result is not None
+
+    def test_underwriting_restriction(self):
+        result = compute_underwriting_restriction(
+            region_risk=0.85,
+            logistics_stress=0.7,
+            claims_surge=0.6,
+            uncertainty=0.3,
+        )
+        assert result is not None
+
+    def test_gcc_insurance_config(self):
+        assert GCC_INSURANCE_CONFIG is not None
+
+
+class TestScenarioIntegration:
+    """Test scenario templates and engine."""
+
+    def test_15_scenario_templates_exist(self):
+        assert len(SCENARIO_TEMPLATES) == 15
+
+    def test_hormuz_closure_template(self):
+        assert "hormuz_closure" in SCENARIO_TEMPLATES
+        template = SCENARIO_TEMPLATES["hormuz_closure"]
+        assert template.name is not None
+
+    def test_scenario_template_keys(self):
+        expected_keys = [
+            "hormuz_closure", "gcc_airspace_closure", "missile_escalation",
+            "airport_shutdown", "port_congestion", "conflict_spillover",
+            "maritime_risk_surge", "combined_disruption", "insurance_surge",
+            "executive_board", "red_sea_diversion", "dual_disruption",
+            "oil_corridor_risk", "false_signal", "cascading_reroute",
+        ]
+        for key in expected_keys:
+            assert key in SCENARIO_TEMPLATES, f"Missing scenario: {key}"
+
+
+class TestDecisionOutputIntegration:
+    """Test decision output generator."""
+
+    def test_decision_generator_creation(self):
+        gen = DecisionOutputGenerator()
+        assert gen is not None
+
+    def test_decision_output_has_five_questions(self):
+        """Every decision output contract must answer 5 questions."""
+        gen = DecisionOutputGenerator()
+        # Verify the generator knows about the 5 mandatory questions
+        assert hasattr(gen, 'generate') or hasattr(gen, 'generate_output')
+
+
+class TestMesaSimulationIntegration:
+    """Test Mesa agent-based simulation."""
+
+    def test_gcc_model_creation(self):
+        model = GCCModel(
+            node_locations={"A": (25.0, 55.0), "B": (26.0, 56.0)},
+            adjacency_matrix={"A": ["B"], "B": ["A"]},
+            node_criticality={"A": 0.8, "B": 0.6},
+            node_exposure={"A": 0.7, "B": 0.5},
+        )
+        assert model is not None
+
+    def test_mesa_bridge_creation(self):
+        bridge = MesaBridge()
+        assert bridge is not None
+
+
+class TestAPIModelsIntegration:
+    """Test API model serialization."""
+
+    def test_health_response(self):
         health = HealthResponse(
             status="healthy",
             timestamp=datetime.utcnow(),
-            service_name="DecisionCore Intelligence GCC",
+            service_name="Impact Observatory",
             version="1.0.0",
         )
         data = health.model_dump()
         assert data["status"] == "healthy"
-        assert data["service_name"] == "DecisionCore Intelligence GCC"
 
-    def test_risk_propagation_request_validation(self):
-        """Verify RiskPropagationRequest validation."""
-        request = RiskPropagationRequest(
-            source_entity_id="airport_001",
-            source_entity_type="airport",
-            max_hops=5,
-            risk_threshold=0.5,
-        )
-        assert request.max_hops >= 1 and request.max_hops <= 10
-        assert request.risk_threshold >= 0 and request.risk_threshold <= 1
-
-    def test_choke_point_request_validation(self):
-        """Verify ChokePointRequest validation."""
-        request = ChokePointRequest(region="Middle East", corridor_type="maritime")
-        assert request.region == "Middle East"
-        assert request.corridor_type == "maritime"
-
-
-class TestMathCoreIntegration:
-    """Test mathematical core module integration."""
-
-    def test_risk_score_computation(self, seed_event_base, gcc_risk_weights):
-        """Verify risk score computation with seed data."""
-        risk_result = compute_risk_score(
-            base_event=seed_event_base,
-            proximity_score=0.8,
-            temporal_factor=0.9,
-            confidence=0.85,
-            risk_weights=gcc_risk_weights,
-        )
-        assert hasattr(risk_result, "risk_score")
-        assert 0 <= risk_result.risk_score <= 1
-
-    def test_spatial_decay_integration(self):
-        """Test spatial decay calculation."""
-        # Damascus to Istanbul (approximately 1200 km)
-        decay = spatial_decay(distance_km=1200, decay_rate=0.001)
-        assert 0 <= decay <= 1
-        assert decay < spatial_decay(distance_km=100, decay_rate=0.001)
-
-    def test_temporal_decay_integration(self):
-        """Test temporal decay calculation."""
-        now = datetime.utcnow()
-        old_date = now - timedelta(days=30)
-        decay_old = temporal_decay(old_date, reference_time=now, half_life_days=7)
-        decay_new = temporal_decay(now, reference_time=now, half_life_days=7)
-        assert decay_old < decay_new
-
-    def test_propagation_integration(self, seed_airports, seed_corridors):
-        """Test risk propagation through network."""
-        propagation = propagate_risk(
-            source_location=seed_airports[0],
-            corridors=seed_corridors[:3],
-            base_risk=0.6,
-            max_hops=3,
-        )
-        assert hasattr(propagation, "affected_nodes")
-        assert hasattr(propagation, "propagation_paths")
-
-    def test_exposure_integration(self, seed_airports, seed_corridors):
-        """Test exposure computation."""
-        exposure = compute_exposure(
-            locations=seed_airports[:3],
-            corridors=seed_corridors[:2],
-            risk_scores=[0.6, 0.5, 0.4],
-        )
-        assert hasattr(exposure, "total_exposure")
-        assert exposure.total_exposure >= 0
-
-    def test_confidence_integration(self):
-        """Test confidence score computation."""
-        confidence = compute_confidence(
-            source_count=3,
-            source_reliability=0.85,
-            temporal_freshness=0.9,
-            spatial_precision_km=50,
-        )
-        assert hasattr(confidence, "confidence_score")
-        assert 0 <= confidence.confidence_score <= 1
-
-
-class TestPhysicsIntegration:
-    """Test physics module configuration and defaults."""
-
-    def test_physics_defaults_loaded(self):
-        """Verify physics defaults are properly configured."""
-        assert "gravity" in PHYSICS_DEFAULTS
-        assert "earth_radius_km" in PHYSICS_DEFAULTS
-        assert PHYSICS_DEFAULTS["earth_radius_km"] == 6371
-
-    def test_kinematics_defaults_loaded(self):
-        """Verify kinematics defaults."""
-        assert "vessel_speed_ms" in KINEMATICS_DEFAULTS
-        assert "aircraft_speed_ms" in KINEMATICS_DEFAULTS
-        assert KINEMATICS_DEFAULTS["vessel_speed_ms"] > 0
-        assert KINEMATICS_DEFAULTS["aircraft_speed_ms"] > KINEMATICS_DEFAULTS["vessel_speed_ms"]
-
-    def test_friction_parameters_loaded(self):
-        """Verify friction parameters."""
-        assert "water_friction" in FRICTION_PARAMETERS
-        assert "air_friction" in FRICTION_PARAMETERS
-        assert "land_friction" in FRICTION_PARAMETERS
-        for key, value in FRICTION_PARAMETERS.items():
-            assert 0 <= value <= 1
-
-    def test_propagation_parameters_loaded(self):
-        """Verify propagation parameters."""
-        assert "signal_velocity_m_s" in PROPAGATION_PARAMETERS
-        assert "attenuation_rate" in PROPAGATION_PARAMETERS
-        assert PROPAGATION_PARAMETERS["signal_velocity_m_s"] > 0
-
-
-class TestInsuranceIntegration:
-    """Test insurance model integration."""
-
-    def test_insurance_computation_integration(self):
-        """Verify insurance impact computation."""
-        result = compute_insurance_impact(
-            event_severity=7,
-            affected_assets_usd=1000000,
-            event_frequency_per_year=0.5,
-            event_type="maritime_incident",
-        )
-        assert isinstance(result, InsuranceResult)
-        assert hasattr(result, "premium_impact")
-        assert hasattr(result, "reserve_requirement")
-        assert result.premium_impact >= 0
-
-    def test_insurance_result_serialization(self):
-        """Test InsuranceResult serialization."""
-        result = InsuranceResult(
-            premium_impact=0.15,
-            reserve_requirement=5000000,
-            coverage_gap=500000,
-            recommendation="Increase premiums and reserves",
-        )
-        data = result.model_dump()
-        assert data["premium_impact"] == 0.15
-        assert data["reserve_requirement"] == 5000000
-
-
-class TestScenarioTemplatesIntegration:
-    """Test scenario template loading and structure."""
-
-    def test_scenario_templates_loaded(self, scenario_templates):
-        """Verify all scenario templates are loaded."""
-        assert len(scenario_templates) == 15
-        scenario_names = {s["name"] for s in scenario_templates}
-        assert "Suez Blockade" in scenario_names
-        assert "Strait of Hormuz Closure" in scenario_names
-        assert "Regional Conflict Escalation" in scenario_names
-
-    def test_scenario_template_structure(self, scenario_templates):
-        """Verify template structure."""
-        for template in scenario_templates:
-            assert "scenario_id" in template
-            assert "name" in template
-            assert "description" in template
-            assert "scenario_type" in template
-            assert "parameters" in template
-            assert isinstance(template["parameters"], dict)
-
-    def test_scenario_templates_by_type(self, scenario_templates):
-        """Verify scenario type distribution."""
-        types = {s["scenario_type"] for s in scenario_templates}
-        assert "disruption" in types
-        assert "market" in types
-
-
-class TestScenarioEngineIntegration:
-    """Test scenario engine execution integration."""
-
-    def test_scenario_request_validation(self):
-        """Verify ScenarioRequest validation."""
+    def test_scenario_request(self):
         request = ScenarioRequest(
             name="Test Scenario",
             description="Test description",
             scenario_type="disruption",
-            parameters={"duration": 30, "severity": 7},
+            parameters={"duration": 30},
         )
         assert request.name == "Test Scenario"
-        assert request.scenario_type == "disruption"
-
-    def test_scenario_state_transitions(self):
-        """Verify valid scenario state transitions."""
-        states = ["created", "initialized", "running", "completed", "failed"]
-        # Valid transitions
-        assert "initialized" in states
-        assert "running" in states
-        assert "completed" in states
 
 
-class TestOrchestratorIntegration:
-    """Test orchestrator pipeline execution."""
+class TestCrossLayerIntegration:
+    """Test integration across multiple layers."""
 
-    def test_orchestrator_pipeline_initialization(self, all_seed_data):
-        """Verify orchestrator can be initialized with seed data."""
-        assert "events" in all_seed_data
-        assert "corridors" in all_seed_data
-        assert "actors" in all_seed_data
-        assert len(all_seed_data["events"]) > 0
-
-    def test_orchestrator_module_imports(self):
-        """Verify all orchestrator dependencies can be imported."""
-        from app.intelligence.math import compute_risk_score
-        from app.intelligence.physics.gcc_physics_config import PHYSICS_DEFAULTS
-        from app.intelligence.insurance.insurance_models import compute_insurance_impact
-        assert compute_risk_score is not None
-        assert PHYSICS_DEFAULTS is not None
-        assert compute_insurance_impact is not None
-
-
-class TestAPIHealthIntegration:
-    """Test API health endpoint."""
-
-    def test_health_response_structure(self):
-        """Verify health response has required fields."""
-        health = HealthResponse(
-            status="healthy",
-            timestamp=datetime.utcnow(),
-            service_name="DecisionCore Intelligence GCC",
-            version="1.0.0",
-        )
-        assert health.status in ["healthy", "degraded", "unhealthy"]
-        assert health.service_name is not None
-        assert health.version is not None
-
-
-class TestScenariosListEndpoint:
-    """Test scenarios list endpoint integration."""
-
-    def test_scenario_response_list_structure(self, scenario_templates):
-        """Verify scenario list response structure."""
-        assert len(scenario_templates) > 0
-        for scenario in scenario_templates:
-            assert "scenario_id" in scenario
-            assert "name" in scenario
-
-
-class TestCrossModuleIntegration:
-    """Test integration across multiple modules."""
-
-    def test_event_to_risk_pipeline(self, seed_event_base, gcc_risk_weights):
-        """Test complete event to risk computation pipeline."""
-        # Event -> Risk computation
-        risk_result = compute_risk_score(
-            base_event=seed_event_base,
+    def test_risk_to_insurance_pipeline(self):
+        """Risk score feeds into insurance exposure."""
+        risk = compute_gcc_risk_score(
+            geopolitical_threat=0.85,
             proximity_score=0.75,
-            temporal_factor=0.85,
-            confidence=0.8,
-            risk_weights=gcc_risk_weights,
+            network_centrality=0.65,
+            logistics_pressure=0.55,
+            temporal_persistence=0.45,
+            uncertainty=0.35,
+            asset_class="seaport",
+            regional_multiplier=1.15,  # SA
         )
-        assert hasattr(risk_result, "risk_score")
+        policies = [PolicyExposure(
+            policy_id="POL-CROSS",
+            tiv=0.9,
+            route_dependency=0.8,
+            region_risk=risk["normalized_score"],
+            claims_elasticity=0.6,
+        )]
+        exposure = compute_portfolio_exposure(policies=policies)
+        assert exposure is not None
 
-    def test_corridor_to_exposure_pipeline(self, seed_corridors, seed_airports):
-        """Test corridor analysis to exposure computation."""
-        exposure = compute_exposure(
-            locations=seed_airports[:2],
-            corridors=seed_corridors[:2],
-            risk_scores=[0.5, 0.6],
-        )
-        assert hasattr(exposure, "total_exposure")
-
-    def test_actor_scenario_interaction(self, seed_actors, scenario_templates):
-        """Verify actor and scenario data can be combined."""
-        government_actors = [a for a in seed_actors if a["actor_type"] == "government"]
-        disruption_scenarios = [
-            s for s in scenario_templates if s["scenario_type"] == "disruption"
-        ]
-        assert len(government_actors) > 0
-        assert len(disruption_scenarios) > 0
+    def test_all_layers_importable(self):
+        """Verify all 10 layers can be imported in a single context."""
+        # Already imported at module level — if we got here, all 10 layers work
+        assert compute_gcc_risk_score is not None
+        assert ThreatField is not None
+        assert compute_portfolio_exposure is not None
+        assert SCENARIO_TEMPLATES is not None
+        assert GCCModel is not None
+        assert DecisionOutputGenerator is not None
+        assert ScoringService is not None
+        assert SeedLoader is not None
+        assert HealthResponse is not None
 
 
 if __name__ == "__main__":

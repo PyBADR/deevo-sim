@@ -3,7 +3,7 @@ GCC Physics Intelligence Module Configuration.
 
 Consolidated repository of all GCC (Global Coordination Core) physics defaults,
 constants, and parameters used across the physics intelligence system. These
-values are empirically derived from DecisionCore Intelligence calibration
+values are empirically derived from Impact Observatory calibration
 and represent production defaults for all physics-inspired models.
 
 Architecture:

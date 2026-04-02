@@ -2,7 +2,7 @@
 Risk Scoring API Router
 
 Provides comprehensive risk scoring endpoints for computing, analyzing, and
-tracking risk scores across entities in the DecisionCore Intelligence GCC platform.
+tracking risk scores across entities in the Impact Observatory platform.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -773,3 +773,218 @@ async def analyze_scores(
     except Exception as e:
         logger.error(f"Error analyzing scores: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error analyzing scores: {str(e)}")
+
+
+# ============================================================================
+# New Mandatory Endpoints
+# ============================================================================
+
+@router.get(
+    "/risk",
+    response_model=dict,
+    summary="Get Current Risk Scores",
+    description="Retrieve current system-wide risk scores for all entities",
+)
+async def get_risk_scores(
+    entity_type: Optional[str] = Query(None, description="Filter by entity type"),
+    api_key: str = Depends(api_key_auth),
+) -> dict:
+    """
+    Get current system-wide risk scores for all entities or filtered by type.
+    
+    Args:
+        entity_type: Optional entity type filter (port, airport, etc.)
+        api_key: API key for authentication
+        
+    Returns:
+        Dictionary with risk score data and explanation
+    """
+    try:
+        risk_scores = []
+        
+        for score_id, score_data in scores_db.items():
+            if entity_type and score_data.get("entity_type") != entity_type:
+                continue
+                
+            composite, weighted = compute_composite_score(
+                score_data.get("supply_chain_risk", 0),
+                score_data.get("geopolitical_risk", 0),
+                score_data.get("infrastructure_risk", 0),
+                score_data.get("demand_disruption_risk", 0),
+                score_data.get("financial_risk", 0),
+            )
+            
+            risk_scores.append({
+                "score_id": score_id,
+                "entity_id": score_data.get("entity_id"),
+                "entity_type": score_data.get("entity_type"),
+                "overall_score": round(composite, 3),
+                "risk_level": classify_risk_level(composite),
+                "components": {
+                    "supply_chain": round(score_data.get("supply_chain_risk", 0), 3),
+                    "geopolitical": round(score_data.get("geopolitical_risk", 0), 3),
+                    "infrastructure": round(score_data.get("infrastructure_risk", 0), 3),
+                    "demand_disruption": round(score_data.get("demand_disruption_risk", 0), 3),
+                    "financial": round(score_data.get("financial_risk", 0), 3),
+                },
+                "timestamp": score_data.get("timestamp"),
+            })
+        
+        logger.info(f"Retrieved risk scores for {len(risk_scores)} entities")
+        
+        return {
+            "success": True,
+            "explanation": "Current system-wide risk scores across all entities",
+            "data": risk_scores,
+            "timestamp": datetime.utcnow(),
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving risk scores: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving risk scores: {str(e)}")
+
+
+@router.get(
+    "/disruption",
+    response_model=dict,
+    summary="Get Current Disruption Scores",
+    description="Retrieve current disruption scores across the system",
+)
+async def get_disruption_scores(
+    risk_level: Optional[str] = Query(None, description="Filter by risk level"),
+    api_key: str = Depends(api_key_auth),
+) -> dict:
+    """
+    Get current disruption scores for all entities or filtered by risk level.
+    
+    Args:
+        risk_level: Optional risk level filter (critical, high, medium, low)
+        api_key: API key for authentication
+        
+    Returns:
+        Dictionary with disruption score data and explanation
+    """
+    try:
+        disruption_scores = []
+        
+        for score_id, score_data in scores_db.items():
+            composite, _ = compute_composite_score(
+                score_data.get("supply_chain_risk", 0),
+                score_data.get("geopolitical_risk", 0),
+                score_data.get("infrastructure_risk", 0),
+                score_data.get("demand_disruption_risk", 0),
+                score_data.get("financial_risk", 0),
+            )
+            
+            level = classify_risk_level(composite)
+            
+            if risk_level and level != risk_level:
+                continue
+            
+            # Disruption score derived from supply chain and demand disruption components
+            disruption_score = (score_data.get("supply_chain_risk", 0) * 0.6 + 
+                               score_data.get("demand_disruption_risk", 0) * 0.4)
+            
+            disruption_scores.append({
+                "score_id": score_id,
+                "entity_id": score_data.get("entity_id"),
+                "entity_type": score_data.get("entity_type"),
+                "disruption_score": round(disruption_score, 3),
+                "risk_level": level,
+                "supply_chain_impact": round(score_data.get("supply_chain_risk", 0), 3),
+                "demand_impact": round(score_data.get("demand_disruption_risk", 0), 3),
+                "timestamp": score_data.get("timestamp"),
+            })
+        
+        logger.info(f"Retrieved disruption scores for {len(disruption_scores)} entities")
+        
+        return {
+            "success": True,
+            "explanation": "Current disruption scores indicating supply chain and demand disruption impact",
+            "data": disruption_scores,
+            "timestamp": datetime.utcnow(),
+        }
+    except Exception as e:
+        logger.error(f"Error retrieving disruption scores: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving disruption scores: {str(e)}")
+
+
+@router.get(
+    "/system-stress",
+    response_model=dict,
+    summary="Get System Stress Level",
+    description="Retrieve current system-wide stress level indicator",
+)
+async def get_system_stress(
+    api_key: str = Depends(api_key_auth),
+) -> dict:
+    """
+    Get current system-wide stress level based on aggregated risk scores.
+    
+    Args:
+        api_key: API key for authentication
+        
+    Returns:
+        Dictionary with system stress level and analysis
+    """
+    try:
+        if not scores_db:
+            return {
+                "success": True,
+                "explanation": "System stress level calculated from aggregated entity risk scores",
+                "stress_level": "low",
+                "stress_percentage": 0.0,
+                "critical_count": 0,
+                "high_count": 0,
+                "medium_count": 0,
+                "low_count": 0,
+                "total_entities": 0,
+                "timestamp": datetime.utcnow(),
+            }
+        
+        all_scores = []
+        risk_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
+        
+        for score_data in scores_db.values():
+            composite, _ = compute_composite_score(
+                score_data.get("supply_chain_risk", 0),
+                score_data.get("geopolitical_risk", 0),
+                score_data.get("infrastructure_risk", 0),
+                score_data.get("demand_disruption_risk", 0),
+                score_data.get("financial_risk", 0),
+            )
+            
+            all_scores.append(composite)
+            level = classify_risk_level(composite)
+            risk_counts[level] += 1
+        
+        # Calculate system stress as average of all scores
+        avg_stress = sum(all_scores) / len(all_scores) if all_scores else 0.0
+        stress_percentage = round(avg_stress * 100, 2)
+        
+        # Determine stress level
+        if avg_stress >= 0.75:
+            stress_level = "critical"
+        elif avg_stress >= 0.50:
+            stress_level = "high"
+        elif avg_stress >= 0.25:
+            stress_level = "medium"
+        else:
+            stress_level = "low"
+        
+        logger.info(f"System stress level: {stress_level} ({stress_percentage}%)")
+        
+        return {
+            "success": True,
+            "explanation": "System-wide stress level aggregated from all entity risk scores",
+            "stress_level": stress_level,
+            "stress_percentage": stress_percentage,
+            "critical_count": risk_counts["critical"],
+            "high_count": risk_counts["high"],
+            "medium_count": risk_counts["medium"],
+            "low_count": risk_counts["low"],
+            "total_entities": len(scores_db),
+            "timestamp": datetime.utcnow(),
+        }
+    except Exception as e:
+        logger.error(f"Error calculating system stress: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error calculating system stress: {str(e)}")
