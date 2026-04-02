@@ -18,5 +18,8 @@ class BankingStress(VersionedModel):
     time_to_liquidity_breach_hours: float = Field(float("inf"), description="Hours until liquidity breach")
     capital_adequacy_impact_pct: float = Field(0.0, description="Impact on CAR in percentage points")
     aggregate_stress: float = Field(0.0, ge=0.0, le=1.0, description="Weighted aggregate stress")
+    liquidity_stress_ratio: float = Field(0.0, description="CashOutflows / AvailableLiquidity")
+    capital_stress_ratio: float = Field(0.0, description="Loss / Capital (Basel III)")
+    time_to_liquidity_breach_estimated_hours: float = Field(float("inf"), description="Estimated hours until liquidity_stress_ratio > 1.0")
     classification: str = Field("NOMINAL")
     affected_institutions: list[dict] = Field(default_factory=list)

@@ -91,6 +91,26 @@ def compute_flow_states(
             1.0,
         )
 
+        # Route efficiency: Flow(t) = Capacity × Availability × RouteEfficiency
+        route_efficiency = 1.0 - friction
+
+        # Delay(t) = BaseDelay × CongestionFactor
+        # BaseDelay depends on entity type
+        entity_type = entity.get("type", "").lower()
+        if entity_type in ("maritime", "shipping", "port", "vessel"):
+            base_delay = 48.0
+        elif entity_type in ("aviation", "airline", "airport", "flight"):
+            base_delay = 6.0
+        elif entity_type in ("financial", "bank", "insurance", "finance"):
+            base_delay = 2.0
+        elif entity_type in ("energy", "infrastructure", "pipeline", "grid", "power"):
+            base_delay = 24.0
+        else:
+            base_delay = 12.0
+        # CongestionFactor ranges from 1.0 to 4.0
+        congestion_factor = min(1.0 + congestion_proxy * 3.0, 4.0)
+        delay_hours = base_delay * congestion_factor
+
         results.append(FlowState(
             entity_id=eid,
             timestep_hours=float(horizon_hours),
@@ -100,6 +120,8 @@ def compute_flow_states(
             shockwave_amplitude=round(shockwave, 4),
             friction=round(friction, 4),
             system_stress=round(system_stress, 4),
+            route_efficiency=round(route_efficiency, 4),
+            delay_hours=round(delay_hours, 2),
         ))
 
     return results

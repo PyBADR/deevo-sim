@@ -17,3 +17,5 @@ class FlowState(VersionedModel):
     shockwave_amplitude: float = Field(0.0, description="Shockwave amplitude at this node")
     friction: float = Field(0.0, description="Resistance/friction coefficient")
     system_stress: float = Field(0.0, description="Aggregate system stress 0.0–1.0")
+    route_efficiency: float = Field(1.0, description="Route efficiency = 1.0 - friction")
+    delay_hours: float = Field(0.0, description="Delay(t) = BaseDelay × CongestionFactor")

@@ -114,6 +114,40 @@ def compute_banking_stress(
         bank_stress = aggregate * (bank["assets_usd"] / TOTAL_BANKING_ASSETS_USD) * 5  # scale up for visibility
         bank_stress = min(bank_stress, 1.0)
         bank_car = bank["car_pct"] - car_impact * (bank["assets_usd"] / TOTAL_BANKING_ASSETS_USD) * 3
+
+        # V1 Liquidity stress ratio: CashOutflows / AvailableLiquidity
+        # CashOutflows ~ exposure × stress_factor × 0.3
+        # AvailableLiquidity ~ exposure × (1 - stress) × 0.5
+        bank_cash_outflows = bank_exposure * bank_stress * 0.3
+        bank_avail_liquidity = bank_exposure * (1.0 - bank_stress) * 0.5
+        if bank_avail_liquidity > 0:
+            bank_liq_stress_ratio = bank_cash_outflows / bank_avail_liquidity
+        else:
+            bank_liq_stress_ratio = float("inf") if bank_cash_outflows > 0 else 0.0
+
+        # V1 Capital stress ratio: Loss / Capital
+        # Loss = exposure × stress
+        # Capital = exposure × 0.12 (Basel III minimum CAR proxy)
+        bank_loss = bank_exposure * bank_stress
+        bank_capital = bank_exposure * 0.12
+        if bank_capital > 0:
+            bank_cap_stress_ratio = bank_loss / bank_capital
+        else:
+            bank_cap_stress_ratio = 0.0
+
+        # Time to liquidity breach: hours until liquidity_stress_ratio > 1.0
+        # Model: ratio grows linearly from current value at rate proportional to severity
+        # ratio(t) = bank_liq_stress_ratio + severity * t / horizon_hours
+        # Solve for ratio(t) = 1.0
+        if bank_liq_stress_ratio >= 1.0:
+            bank_ttlb = 0.0
+        elif severity > 0:
+            growth_rate = severity / max(horizon_hours, 1)
+            gap = 1.0 - bank_liq_stress_ratio
+            bank_ttlb = gap / growth_rate if growth_rate > 0 else float("inf")
+        else:
+            bank_ttlb = float("inf")
+
         if bank_stress > 0.05:
             affected.append({
                 "id": bank["id"],
@@ -123,7 +157,36 @@ def compute_banking_stress(
                 "exposure_usd": round(bank_exposure, 2),
                 "stress": round(bank_stress, 4),
                 "projected_car_pct": round(max(bank_car, 0), 2),
+                "liquidity_stress_ratio": round(bank_liq_stress_ratio, 4),
+                "capital_stress_ratio": round(bank_cap_stress_ratio, 4),
+                "time_to_liquidity_breach_hours": round(bank_ttlb, 1),
             })
+
+    # Aggregate liquidity stress ratio: CashOutflows / AvailableLiquidity
+    agg_cash_outflows = total_banking_loss * liquidity_stress * 0.3
+    agg_avail_liquidity = total_banking_loss * (1.0 - liquidity_stress) * 0.5
+    if agg_avail_liquidity > 0:
+        agg_liq_stress_ratio = agg_cash_outflows / agg_avail_liquidity
+    else:
+        agg_liq_stress_ratio = float("inf") if agg_cash_outflows > 0 else 0.0
+
+    # Aggregate capital stress ratio: Loss / Capital (Basel III 12% proxy)
+    agg_loss = total_banking_loss * aggregate
+    agg_capital = total_banking_loss * 0.12
+    if agg_capital > 0:
+        agg_cap_stress_ratio = agg_loss / agg_capital
+    else:
+        agg_cap_stress_ratio = 0.0
+
+    # Aggregate time to liquidity breach (hours until ratio > 1.0)
+    if agg_liq_stress_ratio >= 1.0:
+        agg_ttlb_est = 0.0
+    elif severity > 0:
+        growth_rate = severity / max(horizon_hours, 1)
+        gap = 1.0 - agg_liq_stress_ratio
+        agg_ttlb_est = gap / growth_rate if growth_rate > 0 else float("inf")
+    else:
+        agg_ttlb_est = float("inf")
 
     return BankingStress(
         run_id=run_id,
@@ -135,6 +198,9 @@ def compute_banking_stress(
         time_to_liquidity_breach_hours=round(ttlb, 1),
         capital_adequacy_impact_pct=round(car_impact, 2),
         aggregate_stress=round(aggregate, 4),
+        liquidity_stress_ratio=round(agg_liq_stress_ratio, 4),
+        capital_stress_ratio=round(agg_cap_stress_ratio, 4),
+        time_to_liquidity_breach_estimated_hours=round(agg_ttlb_est, 1),
         classification=classification,
         affected_institutions=affected,
     )

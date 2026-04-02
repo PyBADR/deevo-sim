@@ -1,9 +1,13 @@
 """Service 9: decision_service — Decision Actions (قرارات الإجراء).
 
 Computes:
-    Urgency = Time_to_failure / Time_to_act
-    Value = Loss_avoided - Cost
-    Priority = Value + Urgency + RegulatoryRisk
+    Urgency = max(0, 1 - time_to_failure / time_to_act)  capped [0, 1]
+    Value = (loss_avoided - cost) / loss_baseline          normalized
+    RegRisk = penalty_expected / max_penalty               [0, 1]
+    Feasibility = execution_probability * resource_availability  [0, 1]
+    TimeEffect = exp(-lambda * time_to_effect)             exponential decay
+
+    Priority = 0.25*Urgency + 0.30*Value + 0.20*RegRisk + 0.15*Feasibility + 0.10*TimeEffect
 
 Outputs top 3 actions only.
 
@@ -13,6 +17,7 @@ Target users: CRO, Treasury, Actuary, Ops, Regulator.
 from __future__ import annotations
 
 import logging
+import math
 import uuid
 
 from src.schemas.decision import DecisionAction, DecisionPlan
@@ -153,10 +158,13 @@ def compute_decision_plan(
 ) -> DecisionPlan:
     """Compute prioritized decision actions.
 
-    Priority = Value + Urgency + RegulatoryRisk
+    Priority = 0.25*Urgency + 0.30*Value + 0.20*RegRisk + 0.15*Feasibility + 0.10*TimeEffect
     where:
-        Urgency = time_to_failure / time_to_act
-        Value = loss_avoided - cost
+        Urgency = max(0, 1 - time_to_failure / time_to_act)  capped [0, 1]
+        Value = (loss_avoided - cost) / loss_baseline          normalized
+        RegRisk = regulatory_risk                              [0, 1]
+        Feasibility = execution_probability * resource_availability
+        TimeEffect = exp(-lambda * time_to_act)                decay
     """
     total_loss = sum(i.loss_usd for i in financial_impacts)
     peak_day = max((i.peak_day for i in financial_impacts), default=0)
@@ -186,18 +194,42 @@ def compute_decision_plan(
         cost = template["cost_usd"]
         regulatory_risk = template["regulatory_risk"]
 
-        # Urgency = time_to_failure / time_to_act (higher = more urgent)
-        urgency = time_to_failure / max(time_to_act, 1) if time_to_failure < float("inf") else 1.0
-        urgency = min(urgency, 100.0)  # cap
+        # V1 defaults for new components
+        execution_probability = 0.8
+        resource_availability = 0.7
+        lambda_decay = 0.01
 
-        # Value = loss_avoided - cost (normalized to billions for scoring)
-        value = (loss_avoided - cost) / 1e9
+        # Urgency = max(0, 1 - time_to_failure / time_to_act), capped [0, 1]
+        if time_to_failure < float("inf") and time_to_act > 0:
+            urgency = max(0.0, 1.0 - time_to_failure / time_to_act)
+        else:
+            urgency = 0.0
+        urgency = min(urgency, 1.0)
 
-        # Priority = Value + Urgency + RegulatoryRisk
-        priority = value + urgency + regulatory_risk
+        # Value = (loss_avoided - cost) / loss_baseline, normalized
+        loss_baseline = total_loss if total_loss > 0 else 1.0
+        value = (loss_avoided - cost) / loss_baseline
+
+        # RegRisk = regulatory_risk (already normalized [0, 1])
+        reg_risk = regulatory_risk
+
+        # Feasibility = execution_probability * resource_availability [0, 1]
+        feasibility = execution_probability * resource_availability
+
+        # TimeEffect = exp(-lambda * time_to_effect), using time_to_act as proxy
+        time_effect = math.exp(-lambda_decay * time_to_act)
+
+        # Priority = 0.25*Urgency + 0.30*Value + 0.20*RegRisk + 0.15*Feasibility + 0.10*TimeEffect
+        priority = (
+            0.25 * urgency
+            + 0.30 * value
+            + 0.20 * reg_risk
+            + 0.15 * feasibility
+            + 0.10 * time_effect
+        )
 
         # Confidence based on data quality
-        confidence = 0.7 if urgency > 10 else 0.8
+        confidence = 0.7 if urgency > 0.5 else 0.8
 
         action = DecisionAction(
             id=f"act-{uuid.uuid4().hex[:8]}",
@@ -205,9 +237,11 @@ def compute_decision_plan(
             action_ar=template["action_ar"],
             sector=template["sector"],
             owner=template["owner"],
-            urgency=round(urgency, 2),
+            urgency=round(urgency, 4),
             value=round(value, 4),
             regulatory_risk=regulatory_risk,
+            feasibility=round(feasibility, 4),
+            time_effect=round(time_effect, 4),
             priority=round(priority, 4),
             time_to_act_hours=time_to_act,
             time_to_failure_hours=time_to_failure,
