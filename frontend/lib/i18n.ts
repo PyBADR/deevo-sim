@@ -1,5 +1,5 @@
 /* =================================================
-    DecisionCore v2 — Internationalization System
+    Impact Observatory v2 — Internationalization System
     Bilingual Arabic + English Support
    ================================================= */
 

@@ -6,11 +6,11 @@ import { Menu, X, Languages } from 'lucide-react'
 import { getLanguage, setLanguage, type Language } from '@/lib/i18n'
 
 const NAV_LABELS: Record<string, { en: string; ar: string }> = {
-  getStarted: { en: 'Get Started', ar: 'ابدأ' },
-  simulation: { en: 'Simulation', ar: 'المحاكاة' },
-  architecture: { en: 'Architecture', ar: 'البنية' },
+  home: { en: 'Home', ar: 'الرئيسية' },
+  dashboard: { en: 'Dashboard', ar: 'لوحة القيادة' },
   scenarios: { en: 'Scenarios', ar: 'السيناريوهات' },
-  about: { en: 'About', ar: 'حول' },
+  decisions: { en: 'Decisions', ar: 'القرارات' },
+  reports: { en: 'Reports', ar: 'التقارير' },
 }
 
 function nl(key: string, lang: Language): string {
@@ -35,11 +35,11 @@ export default function Navbar() {
   }
 
   const navLinks = [
-    { href: '/#hero', key: 'getStarted' },
-    { href: '/demo', key: 'simulation' },
-    { href: '/architecture', key: 'architecture' },
+    { href: '/', key: 'home' },
+    { href: '/dashboard', key: 'dashboard' },
     { href: '/scenarios', key: 'scenarios' },
-    { href: '/#about', key: 'about' },
+    { href: '/decisions', key: 'decisions' },
+    { href: '/reports', key: 'reports' },
   ]
 
   return (
@@ -55,9 +55,9 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-[72px]">
           <Link href="/" className="flex items-center gap-3 group">
             <div className="w-9 h-9 rounded-ds bg-ds-accent/12 border border-ds-accent/20 flex items-center justify-center transition-all duration-300 group-hover:bg-ds-accent/18 group-hover:border-ds-accent/30 group-hover:shadow-ds-glow">
-              <span className="text-ds-accent font-bold text-sm">DC</span>
+              <span className="text-ds-accent font-bold text-sm">IO</span>
             </div>
-            <span className="text-ds-text font-semibold text-[17px] tracking-tight">{lang === 'ar' ? 'ديسيجن كور إنتيليجنس' : 'DecisionCore Intelligence'}</span>
+            <span className="text-ds-text font-semibold text-[17px] tracking-tight">{lang === 'ar' ? 'مرصد الأثر' : 'Impact Observatory'}</span>
           </Link>
 
           <div className="hidden lg:flex items-center gap-1 bg-ds-surface/50 backdrop-blur-sm border border-ds-border/40 rounded-full px-1.5 py-1">

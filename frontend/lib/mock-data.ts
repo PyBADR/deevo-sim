@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* =================================================
-    DecisionCore v2 — Mock Data
+    Impact Observatory v2 — Mock Data
     Enterprise Decision Simulation Platform
    ================================================= */
 

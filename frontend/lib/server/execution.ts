@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DECISIONCORE — SERVER-SIDE SCENARIO EXECUTION
+ * IMPACT OBSERVATORY — SERVER-SIDE SCENARIO EXECUTION
  * ══════════════════════════════════════════════════════════════
  * Runs the full intelligence pipeline server-side:
  *   Scenario → Propagation → Engine → Decision

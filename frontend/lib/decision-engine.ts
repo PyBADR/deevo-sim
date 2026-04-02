@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════════
- * DECISIONCORE INTELLIGENCE — DECISION INTELLIGENCE ENGINE
+ * IMPACT OBSERVATORY — DECISION INTELLIGENCE ENGINE
  * ══════════════════════════════════════════════════════════════════
  *
  * Mathematical Model:

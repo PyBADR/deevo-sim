@@ -1,248 +1,216 @@
 'use client'
-
-import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
-import {
-  Play, ArrowRight, MessageSquare, Radio, TrendingUp, AlertTriangle,
-  Shield, Network, Layers, GitBranch, Users, BarChart3, Cpu, Terminal, Activity,
-} from 'lucide-react'
+import Link from 'next/link'
+import { getLanguage, setLanguage, type Language } from '@/lib/i18n'
 import Navbar from '@/components/ui/Navbar'
 import Footer from '@/components/ui/Footer'
-import SectionHeading from '@/components/ui/SectionHeading'
-import { getLanguage, type Language } from '@/lib/i18n'
 
-const HP: Record<string, { en: string; ar: string }> = {
-  badge: { en: 'Simulation Intelligence Engine', ar: 'محرك ذكاء المحاكاة' },
-  heroLine1: { en: 'Simulate What', ar: 'حاكِ ما' },
-  heroLine2: { en: 'Happens Next', ar: 'سيحدث لاحقاً' },
-  heroDesc: { en: 'Turn real-world inputs into entity graphs, agent behavior, and predictive simulation across GCC scenarios. See the future before it unfolds.', ar: 'حوّل المدخلات الواقعية إلى رسوم بيانية للكيانات وسلوك العملاء ومحاكاة تنبؤية عبر سيناريوهات دول الخليج. شاهد المستقبل قبل أن يتكشف.' },
-  enterSystem: { en: 'Enter the System', ar: 'ادخل النظام' },
-  viewArch: { en: 'View Architecture', ar: 'عرض البنية' },
-  systemOnline: { en: 'System Online', ar: 'النظام متصل' },
-  agents: { en: '76 Graph Nodes', ar: '76 عقدة بيانية' },
-  gccReady: { en: '5-Layer Model', ar: 'نموذج 5 طبقات' },
-  demoTag: { en: 'Demo', ar: 'عرض' },
-  demoTitle: { en: 'Watch DecisionCore Intelligence in Action', ar: 'شاهد ديسيجن كور إنتيليجنس في العمل' },
-  pipeTag: { en: 'Pipeline', ar: 'خط المعالجة' },
-  pipeTitle: { en: 'Simulate in 5 Steps', ar: 'محاكاة في 5 خطوات' },
-  pipeSub: { en: 'From raw scenario input to explainable prediction — built as a layered intelligence pipeline.', ar: 'من مدخلات السيناريو إلى التنبؤ القابل للتفسير — مبني كخط معالجة استخباراتي متعدد الطبقات.' },
-  useCaseTag: { en: 'Use Cases', ar: 'حالات الاستخدام' },
-  useCaseTitle: { en: 'Built for GCC Scenarios', ar: 'مصمم لسيناريوهات الخليج' },
-  aboutTag: { en: 'About', ar: 'حول' },
-  aboutTitle: { en: 'Built to Rehearse Reality', ar: 'مصمم لاستباق الواقع' },
-  aboutDesc: { en: 'DecisionCore Intelligence creates a digital simulation layer from real-world scenarios, helping teams understand how reactions may spread, evolve, and intensify across connected audiences. Built with GCC context at its core, the platform combines entity extraction, relationship mapping, causal propagation, and predictive analytics into a single intelligence pipeline.', ar: 'يُنشئ ديسيجن كور إنتيليجنس طبقة محاكاة رقمية من سيناريوهات العالم الحقيقي، مما يساعد الفرق على فهم كيف يمكن أن تنتشر ردود الفعل وتتطور وتشتد عبر الجماهير المترابطة. مبني بسياق خليجي في جوهره، يجمع المنصة بين استخراج الكيانات ورسم العلاقات والانتشار السببي والتحليلات التنبؤية في خط معالجة استخباراتي واحد.' },
-  enterSim: { en: 'Enter the Simulation', ar: 'ادخل المحاكاة' },
-  enterSimDesc: { en: 'Experience the full pipeline — from scenario input to predictive intelligence.', ar: 'اختبر خط المعالجة الكامل — من مدخلات السيناريو إلى الذكاء التنبؤي.' },
-  launchSystem: { en: 'Launch System', ar: 'تشغيل النظام' },
-  exploreArch: { en: 'Explore Architecture', ar: 'استكشف البنية' },
-  seePipeline: { en: 'See the full simulation pipeline', ar: 'شاهد خط المحاكاة الكامل' },
+/* ════════════════════════════════════════════════════
+   Impact Observatory | مرصد الأثر — Landing Page
+   Boardroom executive entry. White, clean, financial-first.
+   ════════════════════════════════════════════════════ */
+
+const L = {
+  title_en: 'Impact Observatory',
+  title_ar: 'مرصد الأثر',
+  headline_en: 'Understand financial impact before it happens',
+  headline_ar: 'افهم الأثر المالي قبل حدوثه',
+  sub_en: 'GCC Decision Intelligence Platform — Transform complex events into financial loss quantification, sector stress analysis, and actionable decisions.',
+  sub_ar: 'منصة ذكاء القرار في دول الخليج — حوّل الأحداث المعقدة إلى قياس الخسائر المالية وتحليل ضغط القطاعات وقرارات قابلة للتنفيذ.',
+  cta_en: 'Run Scenario',
+  cta_ar: 'تشغيل سيناريو',
+  cta2_en: 'View Dashboard',
+  cta2_ar: 'عرض لوحة القيادة',
+
+  // What it does
+  what_title_en: 'What It Does',
+  what_title_ar: 'ماذا يفعل',
+  what_desc_en: 'Impact Observatory maps the chain reaction from any major event — geopolitical disruption, natural disaster, or economic shock — through a 10-stage analytical pipeline, producing quantified financial impact across every GCC financial sector.',
+  what_desc_ar: 'مرصد الأثر يرسم سلسلة التأثير من أي حدث كبير — اضطراب جيوسياسي أو كارثة طبيعية أو صدمة اقتصادية — عبر خط تحليلي من 10 مراحل، لإنتاج أثر مالي كمّي عبر كل القطاعات المالية الخليجية.',
+
+  // Sections
+  fin_title_en: 'Financial Impact',
+  fin_title_ar: 'الأثر المالي',
+  fin_desc_en: 'Headline loss quantification in billions USD. Peak stress day. Time-to-failure countdown. Severity classification from LOW to CRITICAL.',
+  fin_desc_ar: 'قياس الخسارة الرئيسية بمليارات الدولارات. يوم الذروة. العد التنازلي للانهيار. تصنيف الشدة من منخفض إلى حرج.',
+
+  bank_title_en: 'Banking Stress',
+  bank_title_ar: 'ضغط القطاع البنكي',
+  bank_desc_en: 'Capital adequacy ratio vs Basel III floor. Liquidity gap. Interbank rate spike. FX reserve drawdown. Time-to-liquidity-breach.',
+  bank_desc_ar: 'نسبة كفاية رأس المال مقابل حد بازل 3. فجوة السيولة. ارتفاع سعر الإنتربنك. سحب الاحتياطيات الأجنبية.',
+
+  ins_title_en: 'Insurance Stress',
+  ins_title_ar: 'ضغط التأمين',
+  ins_desc_en: 'Claims surge percentage. Reinsurance treaty trigger. Combined ratio. Solvency margin. Time-to-insolvency.',
+  ins_desc_ar: 'نسبة ارتفاع المطالبات. تفعيل إعادة التأمين. النسبة المجمعة. هامش الملاءة. الوقت للإعسار.',
+
+  fin_tech_title_en: 'Fintech Disruption',
+  fin_tech_title_ar: 'اضطراب الفنتك',
+  fin_tech_desc_en: 'Payment failure rate. Settlement delay hours. Gateway downtime. Digital banking disruption score. Time-to-payment-failure.',
+  fin_tech_desc_ar: 'معدل فشل المدفوعات. تأخير التسوية. توقف البوابة. اضطراب البنوك الرقمية. الوقت لفشل المدفوعات.',
+
+  dec_title_en: 'Decision Intelligence',
+  dec_title_ar: 'ذكاء القرار',
+  dec_desc_en: 'Multi-objective optimization producing top 3 actions. Cost vs loss avoided. Priority scoring. Regulatory risk assessment. Execution timeline.',
+  dec_desc_ar: 'تحسين متعدد الأهداف ينتج أفضل 3 إجراءات. التكلفة مقابل الخسارة المتجنبة. تسجيل الأولوية. تقييم المخاطر التنظيمية.',
+
+  // Pipeline section
+  pipe_title_en: '10-Stage Analytical Pipeline',
+  pipe_title_ar: 'خط تحليلي من 10 مراحل',
+
+  // V1
+  v1_badge_en: 'V1 PROGRAM',
+  v1_badge_ar: 'البرنامج الأول',
+  v1_title_en: 'Hormuz Strait Closure',
+  v1_title_ar: 'إغلاق مضيق هرمز',
+  v1_desc_en: '14-day blockage, severity 0.85. $624.75B headline loss. CRITICAL across banking and fintech. 3 coordinated response actions.',
+  v1_desc_ar: 'إغلاق 14 يوم، شدة 0.85. خسارة 624.75 مليار دولار. حرج عبر البنوك والفنتك. 3 إجراءات استجابة منسقة.',
 }
 
-function t(key: string, lang: Language): string {
-  return HP[key]?.[lang] || key
-}
+const PIPELINE_STAGES = [
+  { id: 'scenario',       en: 'Event Scenario',    ar: 'سيناريو الحدث' },
+  { id: 'physics',        en: 'System Stress',     ar: 'ضغط النظام' },
+  { id: 'graph_snapshot', en: 'Graph Snapshot',     ar: 'لقطة الرسم' },
+  { id: 'propagation',    en: 'Impact Chain',       ar: 'سلسلة الأثر' },
+  { id: 'financial',      en: 'Financial Impact',   ar: 'الأثر المالي' },
+  { id: 'sector_risk',    en: 'Sector Risk',        ar: 'مخاطر القطاع' },
+  { id: 'regulatory',     en: 'Regulatory Check',   ar: 'الفحص التنظيمي' },
+  { id: 'decision',       en: 'Decision Actions',   ar: 'إجراءات القرار' },
+  { id: 'explanation',    en: 'Explanation',         ar: 'التفسير' },
+  { id: 'output',         en: 'Output',             ar: 'المخرجات' },
+]
 
-export default function HomePage() {
+const CAPABILITY_CARDS = [
+  { key: 'fin',      icon: '📊' },
+  { key: 'bank',     icon: '🏦' },
+  { key: 'ins',      icon: '🛡' },
+  { key: 'fin_tech', icon: '💳' },
+  { key: 'dec',      icon: '🎯' },
+]
+
+export default function LandingPage() {
   const [lang, setLang] = useState<Language>('ar')
   useEffect(() => { setLang(getLanguage()) }, [])
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.2 } },
-  }
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] } },
-  }
-
-  const steps = [
-    { icon: Layers, step: '01', title: { en: 'Input Scenario', ar: 'إدخال السيناريو' }, desc: { en: 'Provide a real-world scenario in Arabic or English — policy changes, market events, social triggers.', ar: 'أدخل سيناريو واقعي بالعربية أو الإنجليزية — تغييرات سياسية، أحداث سوقية، محفزات اجتماعية.' } },
-    { icon: Cpu, step: '02', title: { en: 'Extract Entities', ar: 'استخراج الكيانات' }, desc: { en: 'Identify organizations, topics, regions, and platforms from the input.', ar: 'تحديد المنظمات والمواضيع والمناطق والمنصات من المدخلات.' } },
-    { icon: GitBranch, step: '03', title: { en: 'Build Graph', ar: 'بناء الرسم البياني' }, desc: { en: 'Map causal relationships — influence, amplification, disruption — into a weighted directed graph.', ar: 'رسم العلاقات السببية — التأثير، التضخيم، التعطيل — في رسم بياني موجه مرجح.' } },
-    { icon: Users, step: '04', title: { en: 'Propagate Impact', ar: 'نشر التأثير' }, desc: { en: 'Run BFS propagation: impact(node) = Σ(weight × source_impact) × sensitivity across 5 layers.', ar: 'تشغيل الانتشار: تأثير(عقدة) = مجموع(الوزن × تأثير_المصدر) × الحساسية عبر 5 طبقات.' } },
-    { icon: BarChart3, step: '05', title: { en: 'Generate Intelligence', ar: 'إنشاء التقرير الاستخباراتي' }, desc: { en: 'Produce impact analysis, sector breakdowns, causal chains, and confidence-scored predictions.', ar: 'إنتاج تحليل التأثير وتفصيلات القطاعات وسلاسل السببية وتنبؤات مسجلة الثقة.' } },
-  ]
-
-  const useCases = [
-    { icon: MessageSquare, title: { en: 'Public Reaction', ar: 'ردود الفعل العامة' }, desc: { en: 'Model citizen response to policy changes and government announcements across Gulf demographics.', ar: 'نمذجة استجابة المواطنين لتغييرات السياسات والإعلانات الحكومية عبر التركيبة السكانية الخليجية.' } },
-    { icon: Radio, title: { en: 'Media Spread', ar: 'انتشار الإعلام' }, desc: { en: 'Track how news amplifies through media networks, influencer chains, and social platforms.', ar: 'تتبع كيف تنتشر الأخبار عبر شبكات الإعلام وسلاسل المؤثرين والمنصات الاجتماعية.' } },
-    { icon: TrendingUp, title: { en: 'Economic Response', ar: 'الاستجابة الاقتصادية' }, desc: { en: 'Simulate market and sentiment shifts following economic events and pricing reforms.', ar: 'محاكاة تحولات السوق والمشاعر بعد الأحداث الاقتصادية وإصلاحات الأسعار.' } },
-    { icon: AlertTriangle, title: { en: 'Crisis Cascade', ar: 'تسلسل الأزمات' }, desc: { en: 'Predict how disruptions propagate through infrastructure, finance, and society layers.', ar: 'التنبؤ بكيفية انتشار الاضطرابات عبر طبقات البنية التحتية والمالية والمجتمع.' } },
-    { icon: Shield, title: { en: 'Policy Perception', ar: 'تصور السياسات' }, desc: { en: 'Understand how government policies are received across different demographic segments.', ar: 'فهم كيف يتم استقبال السياسات الحكومية عبر شرائح سكانية مختلفة.' } },
-    { icon: Network, title: { en: 'Signal Mapping', ar: 'رسم الإشارات' }, desc: { en: 'Map causal pathways and impact propagation across the GCC dependency graph.', ar: 'رسم المسارات السببية وانتشار التأثير عبر رسم التبعية الخليجي.' } },
-  ]
-
-  const stats = [
-    { value: '76', label: { en: 'Graph Nodes', ar: 'عقدة بيانية' } },
-    { value: '190', label: { en: 'Causal Edges', ar: 'رابط سببي' } },
-    { value: '5', label: { en: 'System Layers', ar: 'طبقات النظام' } },
-  ]
-
-  const demos = [
-    { num: '01', title: { en: 'Hormuz Strait Closure', ar: 'إغلاق مضيق هرمز' }, desc: { en: 'Full cascade: oil transit → shipping costs → insurance repricing → aviation fuel → tourism collapse → GDP loss.', ar: 'سلسلة كاملة: عبور النفط ← تكاليف الشحن ← إعادة تسعير التأمين ← وقود الطيران ← انهيار السياحة ← خسارة الناتج المحلي.' } },
-    { num: '02', title: { en: 'GCC Airspace Restriction', ar: 'تقييد المجال الجوي الخليجي' }, desc: { en: '40% of East-West air traffic rerouted. 6 airlines face margin collapse while 9 airports lose transit revenue.', ar: '40% من حركة الطيران بين الشرق والغرب تُعاد توجيهها. 6 شركات طيران تواجه انهيار هوامش و9 مطارات تفقد إيرادات العبور.' } },
-    { num: '03', title: { en: 'Gulf Food Security Shock', ar: 'صدمة الأمن الغذائي الخليجي' }, desc: { en: 'GCC imports 85% of calories. Shipping disruption depletes food buffers within 40 days, triggering social instability.', ar: 'دول الخليج تستورد 85% من السعرات. تعطل الشحن يستنفد المخزون الغذائي خلال 40 يوماً ويُطلق عدم استقرار اجتماعي.' } },
-  ]
+  const isAR = lang === 'ar'
+  const t = (key: string) => (L as any)[`${key}_${lang}`] ?? (L as any)[`${key}_en`] ?? key
 
   return (
-    <div className="min-h-screen bg-ds-bg text-ds-text" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
+    <div dir={isAR ? 'rtl' : 'ltr'} className="min-h-screen bg-ds-bg">
       <Navbar />
 
-      {/* HERO */}
-      <section id="hero" className="relative min-h-screen flex items-center justify-center pt-20 overflow-hidden">
-        <div className="absolute inset-0 ds-grid-bg opacity-60" />
-        <div className="absolute w-[600px] h-[600px] -top-20 -left-40 rounded-full bg-ds-accent/8 blur-[160px] pointer-events-none" />
-        <div className="absolute w-[500px] h-[500px] bottom-0 right-0 rounded-full bg-purple-600/5 blur-[140px] pointer-events-none" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#06060A_75%)]" />
-
-        <motion.div className="relative z-10 ds-container max-w-5xl mx-auto px-6 text-center" variants={containerVariants} initial="hidden" animate="visible">
-          <motion.div variants={itemVariants}>
-            <div className="ds-badge-accent inline-flex items-center gap-2 mb-8">
-              <Terminal className="w-3.5 h-3.5" />
-              <span>{t('badge', lang)}</span>
+      {/* ══════ HERO ══════ */}
+      <section className="ds-container pt-32 pb-20 lg:pt-40 lg:pb-28">
+        <div className="max-w-3xl mx-auto text-center">
+          <div className="inline-flex items-center gap-2 mb-6">
+            <div className="w-10 h-10 rounded-ds-lg bg-ds-accent/10 border border-ds-accent/20 flex items-center justify-center">
+              <span className="text-ds-accent font-bold text-base">IO</span>
             </div>
-          </motion.div>
+            <span className="text-body-lg font-semibold text-ds-text tracking-tight">
+              {t('title')}
+            </span>
+          </div>
 
-          <motion.h1 variants={itemVariants} className="text-display-sm lg:text-display font-bold leading-[1.02] tracking-tight mb-8">
-            {t('heroLine1', lang)}<br /><span className="text-ds-accent">{t('heroLine2', lang)}</span>
-          </motion.h1>
+          <h1 className="text-display text-ds-text mb-6 leading-tight">
+            {t('headline')}
+          </h1>
 
-          <motion.p variants={itemVariants} className="text-body-lg text-ds-text-secondary max-w-2xl mx-auto mb-12 leading-relaxed">
-            {t('heroDesc', lang)}
-          </motion.p>
+          <p className="text-body-lg text-ds-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed">
+            {t('sub')}
+          </p>
 
-          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/demo" className="ds-btn-primary text-[15px] px-8 py-4">
-              {t('enterSystem', lang)} <ArrowRight className="w-4 h-4" />
+          <div className="flex items-center justify-center gap-4">
+            <Link href="/dashboard" className="ds-btn-primary text-body">
+              {t('cta')}
             </Link>
-            <Link href="/architecture" className="ds-btn-secondary text-[15px] px-8 py-4">
-              {t('viewArch', lang)}
+            <Link href="/dashboard" className="ds-btn-secondary text-body">
+              {t('cta2')}
             </Link>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="mt-20 flex items-center justify-center gap-4 text-ds-text-dim">
-            <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-ds-success animate-pulse" />
-              <span className="text-nano font-mono uppercase tracking-wider">{t('systemOnline', lang)}</span>
-            </div>
-            <span className="text-nano">\u00b7</span>
-            <span className="text-nano font-mono uppercase tracking-wider">{t('agents', lang)}</span>
-            <span className="text-nano">\u00b7</span>
-            <span className="text-nano font-mono uppercase tracking-wider">{t('gccReady', lang)}</span>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
       </section>
 
-      {/* DEMO SECTION */}
+      {/* ══════ V1 PROGRAM BANNER ══════ */}
+      <section className="ds-container pb-16">
+        <div className="max-w-4xl mx-auto bg-ds-card border border-ds-accent/15 rounded-ds-xl p-8 shadow-ds-md">
+          <div className="flex items-start gap-6">
+            <div className="flex-shrink-0">
+              <span className="ds-badge-accent text-micro font-bold tracking-widest">
+                {t('v1_badge')}
+              </span>
+            </div>
+            <div>
+              <h3 className="text-h3 text-ds-text mb-2">{t('v1_title')}</h3>
+              <p className="text-body text-ds-text-secondary">{t('v1_desc')}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ WHAT IT DOES ══════ */}
+      <section className="ds-section bg-ds-surface border-y border-ds-border">
+        <div className="ds-container">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h2 className="text-h1 text-ds-text mb-4">{t('what_title')}</h2>
+            <p className="text-body-lg text-ds-text-secondary leading-relaxed">
+              {t('what_desc')}
+            </p>
+          </div>
+
+          {/* Capability Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {CAPABILITY_CARDS.map(({ key, icon }) => (
+              <div key={key} className="ds-card p-6 hover:shadow-ds-md transition-shadow">
+                <div className="text-2xl mb-4">{icon}</div>
+                <h3 className="text-h4 text-ds-text mb-2">{t(`${key}_title`)}</h3>
+                <p className="text-caption text-ds-text-secondary leading-relaxed">
+                  {t(`${key}_desc`)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ══════ PIPELINE ══════ */}
       <section className="ds-section">
         <div className="ds-container">
-          <SectionHeading tag={t('demoTag', lang)} title={t('demoTitle', lang)} />
-          <motion.div className="grid grid-cols-1 lg:grid-cols-5 gap-6" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }}>
-            <div className="lg:col-span-2 flex flex-col gap-5">
-              {demos.map((item) => (
-                <div key={item.num} className="ds-card-interactive p-7 group">
-                  <div className="text-nano font-mono text-ds-accent bg-ds-accent-muted px-2.5 py-1 rounded-md inline-block">{item.num}</div>
-                  <h3 className="text-h4 mt-5 group-hover:text-ds-text transition-colors">{item.title[lang]}</h3>
-                  <p className="text-caption text-ds-text-secondary mt-3 leading-relaxed">{item.desc[lang]}</p>
+          <h2 className="text-h1 text-ds-text text-center mb-12">{t('pipe_title')}</h2>
+          <div className="max-w-4xl mx-auto">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {PIPELINE_STAGES.map((stage, i) => (
+                <div key={stage.id} className="flex items-center gap-3">
+                  <div className="ds-flow-stage">
+                    <span className="w-5 h-5 rounded-full bg-ds-accent/10 text-ds-accent text-[10px] font-bold flex items-center justify-center flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <span>{isAR ? stage.ar : stage.en}</span>
+                  </div>
+                  {i < PIPELINE_STAGES.length - 1 && (
+                    <svg className="w-4 h-4 text-ds-text-dim flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isAR ? "M19 12H5M5 12l4 4M5 12l4-4" : "M5 12h14M19 12l-4-4M19 12l-4 4"} />
+                    </svg>
+                  )}
                 </div>
               ))}
             </div>
-            <div className="lg:col-span-3">
-              <div className="ds-gradient-border p-[1px] h-full">
-                <div className="bg-ds-surface rounded-ds-xl h-full min-h-[360px] flex flex-col items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 ds-grid-bg opacity-30" />
-                  <div className="relative z-10 flex flex-col items-center">
-                    <Link href="/demo" className="w-18 h-18 rounded-full bg-ds-accent/10 border border-ds-accent/25 flex items-center justify-center cursor-pointer hover:bg-ds-accent/18 hover:border-ds-accent/40 transition-all duration-300 hover:shadow-ds-glow-accent">
-                      <Play className="w-7 h-7 text-ds-accent ml-0.5" />
-                    </Link>
-                    <p className="text-caption text-ds-text-secondary mt-5">{t('seePipeline', lang)}</p>
-                  </div>
-                  <div className="absolute bottom-5 right-5 flex items-center gap-2 text-nano font-mono bg-ds-bg/80 backdrop-blur-sm px-3 py-1.5 rounded-ds border border-ds-border/50">
-                    <Activity className="w-3 h-3 text-ds-accent" />
-                    LIVE
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* 5-STEP PIPELINE */}
-      <section className="ds-section bg-ds-bg-alt">
-        <div className="ds-container">
-          <SectionHeading tag={t('pipeTag', lang)} title={t('pipeTitle', lang)} subtitle={t('pipeSub', lang)} />
-          <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }}>
-            {steps.map((item, idx) => {
-              const IconComponent = item.icon
-              return (
-                <motion.div key={idx} className="ds-card p-7 flex flex-col group hover:border-ds-accent/15 transition-all duration-300" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.08, duration: 0.6 }}>
-                  <div className="w-10 h-10 rounded-ds bg-ds-surface-raised border border-ds-border flex items-center justify-center mb-5 group-hover:border-ds-accent/20 transition-colors">
-                    <IconComponent className="w-[18px] h-[18px] text-ds-text-muted group-hover:text-ds-accent transition-colors" />
-                  </div>
-                  <div className="text-nano font-mono text-ds-accent-dim">{item.step}</div>
-                  <h3 className="text-h4 mt-2">{item.title[lang]}</h3>
-                  <p className="text-caption text-ds-text-secondary mt-2.5 flex-grow leading-relaxed">{item.desc[lang]}</p>
-                </motion.div>
-              )
-            })}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* USE CASES */}
-      <section className="ds-section">
-        <div className="ds-container">
-          <SectionHeading tag={t('useCaseTag', lang)} title={t('useCaseTitle', lang)} />
-          <motion.div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }}>
-            {useCases.map((item, idx) => {
-              const IconComponent = item.icon
-              return (
-                <motion.div key={idx} className="ds-card-interactive p-7" initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.06, duration: 0.6 }}>
-                  <div className="w-11 h-11 rounded-ds bg-ds-accent-muted flex items-center justify-center">
-                    <IconComponent className="w-5 h-5 text-ds-accent" />
-                  </div>
-                  <h3 className="text-h4 mt-5">{item.title[lang]}</h3>
-                  <p className="text-caption text-ds-text-secondary mt-2.5 leading-relaxed">{item.desc[lang]}</p>
-                </motion.div>
-              )
-            })}
-          </motion.div>
-        </div>
-      </section>
-
-      {/* ABOUT */}
-      <section id="about" className="ds-section bg-ds-bg-alt">
-        <div className="ds-container">
-          <SectionHeading tag={t('aboutTag', lang)} title={t('aboutTitle', lang)} />
-          <motion.div className="max-w-3xl mx-auto" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }}>
-            <p className="text-body-lg text-ds-text-secondary leading-relaxed text-center">{t('aboutDesc', lang)}</p>
-            <div className="mt-16 grid grid-cols-1 sm:grid-cols-3 gap-6">
-              {stats.map((stat, idx) => (
-                <motion.div key={idx} className="ds-card p-6 text-center" initial={{ opacity: 0, y: 12 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1, duration: 0.5 }}>
-                  <div className="text-h1 text-ds-accent font-mono font-bold">{stat.value}</div>
-                  <div className="text-micro text-ds-text-muted mt-2 uppercase tracking-wider">{stat.label[lang]}</div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="ds-section">
-        <div className="ds-container">
-          <motion.div className="ds-gradient-border p-[1px] max-w-3xl mx-auto" initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-60px' }} transition={{ duration: 0.7 }}>
-            <div className="ds-card p-14 lg:p-20 rounded-ds-xl text-center bg-gradient-to-br from-ds-surface to-ds-bg">
-              <h2 className="text-h2 lg:text-h1 text-ds-text">{t('enterSim', lang)}</h2>
-              <p className="text-body-lg text-ds-text-secondary mt-4 max-w-xl mx-auto">{t('enterSimDesc', lang)}</p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mt-10">
-                <Link href="/demo" className="ds-btn-primary text-[15px] px-8 py-4">{t('launchSystem', lang)} <ArrowRight className="w-4 h-4" /></Link>
-                <Link href="/architecture" className="ds-btn-secondary text-[15px] px-8 py-4">{t('exploreArch', lang)}</Link>
-              </div>
-            </div>
-          </motion.div>
+      {/* ══════ CTA FOOTER ══════ */}
+      <section className="ds-section bg-ds-surface border-t border-ds-border">
+        <div className="ds-container text-center">
+          <h2 className="text-h2 text-ds-text mb-4">
+            {isAR ? 'ابدأ بتحليل أول سيناريو' : 'Start your first scenario analysis'}
+          </h2>
+          <p className="text-body text-ds-text-secondary mb-8 max-w-lg mx-auto">
+            {isAR
+              ? 'قم بتشغيل سيناريو إغلاق مضيق هرمز لرؤية الأثر المالي عبر جميع القطاعات.'
+              : 'Run the Hormuz Strait Closure scenario to see financial impact across all sectors.'}
+          </p>
+          <Link href="/dashboard" className="ds-btn-primary text-body">
+            {t('cta')}
+          </Link>
         </div>
       </section>
 

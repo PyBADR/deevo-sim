@@ -3,35 +3,35 @@ import '../styles/globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'DecisionCore Intelligence — Decision Intelligence Engine',
-    template: '%s | DecisionCore Intelligence',
+    default: 'Impact Observatory | مرصد الأثر — Decision Intelligence for Financial Impact',
+    template: '%s | Impact Observatory',
   },
   description:
-    'Turn real-world inputs into entity graphs, agent behavior, and predictive simulation across GCC scenarios.',
+    'Decision intelligence platform transforming complex events into financial loss, banking stress, insurance stress, and decision actions across GCC markets.',
   keywords: [
-    'simulation',
-    'AI',
-    'GCC',
-    'agent-based modeling',
-    'entity graph',
     'decision intelligence',
+    'financial impact',
+    'GCC',
+    'banking stress',
+    'insurance risk',
+    'fintech disruption',
     'Saudi Arabia',
-    'Kuwait',
+    'impact observatory',
   ],
-  authors: [{ name: 'Deevo Analytics' }],
+  authors: [{ name: 'Impact Observatory' }],
   openGraph: {
-    title: 'DecisionCore Intelligence — Decision Intelligence Engine',
+    title: 'Impact Observatory | مرصد الأثر — Decision Intelligence for Financial Impact',
     description:
-      'Simulate public reaction, media spread, and economic impact across GCC scenarios using AI-powered agent modeling.',
-    siteName: 'DecisionCore Intelligence',
+      'Transform complex events into financial loss, banking stress, and decision actions across GCC markets.',
+    siteName: 'Impact Observatory',
     type: 'website',
     locale: 'en_US',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'DecisionCore Intelligence — Decision Intelligence Engine',
+    title: 'Impact Observatory | مرصد الأثر',
     description:
-      'AI decision intelligence for GCC scenarios. Entity graphs, agent personas, predictive intelligence.',
+      'AI decision intelligence for GCC financial impact. Banking stress, insurance risk, fintech disruption.',
   },
   robots: {
     index: true,
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#06060A',
+  themeColor: '#F8FAFC',
 }
 
 export default function RootLayout({
@@ -56,8 +56,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="min-h-screen bg-ds-bg text-ds-text antialiased">
+    <html lang="en" dir="ltr" className="light">
+      <body className="min-h-screen bg-ds-bg text-ds-text antialiased font-en">
         {children}
       </body>
     </html>

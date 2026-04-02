@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       {
         error: 'Authentication required',
         code: 'AUTH_REQUIRED',
-        hint: 'Provide X-DC7-API-Key header or Authorization: Bearer <key>',
+        hint: 'Provide X-IO-API-Key header or Authorization: Bearer <key>',
       },
       { status: 401 }
     )

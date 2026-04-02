@@ -4,7 +4,7 @@ import { Eye, EyeOff, ZoomIn, ZoomOut, Maximize } from 'lucide-react'
 import { getNodeColor } from '@/lib/utils'
 
 /* ══════════════════════════════════════════════════
-   DecisionCore — Pure SVG Graph Panel v3.0
+   Impact Observatory — Pure SVG Graph Panel v3.0
    Supports: onNodeClick, edge style pass-through,
    polarity visual encoding, impact glow
    ══════════════════════════════════════════════════ */
@@ -337,7 +337,7 @@ export default function GraphPanel({ initialNodes, initialEdges, onNodeClick }: 
         <div className="ds-panel-header-title">
           <div className="w-2 h-2 rounded-full bg-ds-success animate-pulse" />
           <span className="text-caption font-semibold text-ds-text tracking-tight">Entity Graph</span>
-          <span className="text-nano text-ds-text-dim font-mono ml-1">LIVE</span>
+          <span className="text-nano text-ds-text-dim font-mono ms-1">LIVE</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="ds-panel-header-meta">{nodes.length} V · {initialEdges.length} E</span>

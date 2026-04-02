@@ -1,5 +1,5 @@
 /* =================================================
-    DecisionCore — Simulation Engine
+    Impact Observatory — Simulation Engine
     Rule-based Decision Intelligence Logic
    ================================================= */
 

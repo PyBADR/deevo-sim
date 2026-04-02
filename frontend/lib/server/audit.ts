@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DECISIONCORE INTELLIGENCE — AUDIT LOGGING
+ * IMPACT OBSERVATORY — AUDIT LOGGING
  * ══════════════════════════════════════════════════════════════
  * Every API action produces an audit entry with SHA-256 hash.
  * Entries are immutable, append-only.

@@ -1,6 +1,6 @@
 /**
  * ══════════════════════════════════════════════════════════════
- * DECISIONCORE INTELLIGENCE — RUN PERSISTENCE STORE
+ * IMPACT OBSERVATORY — RUN PERSISTENCE STORE
  * ══════════════════════════════════════════════════════════════
  * Stores scenario run results with full provenance.
  * In-memory for pilot; interface designed for DB migration.
