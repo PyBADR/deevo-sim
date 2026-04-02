@@ -28,6 +28,8 @@ const SCENARIOS = [
   { id: "oil_price_shock", label: "Oil Price Shock", label_ar: "صدمة أسعار النفط", desc: "Sudden oil price collapse — GDP impact, banking stress, fiscal reserves", desc_ar: "انهيار مفاجئ في أسعار النفط — أثر على الناتج المحلي والاحتياطيات", loss: "$4.5B", severity: 0.8, icon: "📉" },
   { id: "banking_stress", label: "Banking Stress", label_ar: "ضغط بنكي إقليمي", desc: "Regional banking contagion — liquidity crisis, CAR deterioration", desc_ar: "عدوى بنكية إقليمية — أزمة سيولة وتدهور كفاية رأس المال", loss: "$2.1B", severity: 0.7, icon: "🏦" },
   { id: "port_disruption", label: "Port Disruption", label_ar: "تعطل ميناء رئيسي", desc: "Major port shutdown — trade flow, supply chain cascade, insurance", desc_ar: "توقف ميناء رئيسي — تدفق التجارة وتأثيرات سلسلة التوريد", loss: "$1.5B", severity: 0.6, icon: "🚢" },
+  { id: "iran_sanctions", label: "Iran Sanctions", label_ar: "عقوبات إيران", desc: "New sanctions wave — trade rerouting, compliance costs, banking exposure", desc_ar: "موجة عقوبات جديدة — إعادة توجيه التجارة وتكاليف الامتثال والتعرض البنكي", loss: "$2.8B", severity: 0.7, icon: "⚖️" },
+  { id: "gulf_airspace", label: "Gulf Airspace Closure", label_ar: "إغلاق المجال الجوي", desc: "Regional airspace restrictions — aviation disruption, cargo delays, tourism impact", desc_ar: "قيود المجال الجوي الإقليمي — تعطل الطيران وتأخر الشحن وأثر السياحة", loss: "$1.2B", severity: 0.6, icon: "✈️" },
 ];
 
 // ── Capability Cards ─────────────────────────────────────────────────
