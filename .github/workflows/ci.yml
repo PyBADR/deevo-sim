@@ -36,9 +36,9 @@ jobs:
           cd backend
           PYTHONPATH=. pytest tests/ -v --tb=short -x
         env:
-          DC7_POSTGRES_HOST: localhost
-          DC7_NEO4J_URI: bolt://localhost:7687
-          DC7_REDIS_URL: redis://localhost:6379
+          IO_POSTGRES_HOST: localhost
+          IO_NEO4J_URI: bolt://localhost:7687
+          IO_REDIS_URL: redis://localhost:6379
 
   test-frontend:
     runs-on: ubuntu-latest

@@ -178,59 +178,82 @@ export const api = {
     }>(`/entity/${entityId}`),
 
   // ================================================================
-  // Impact Observatory v1 API
+  // Impact Observatory v4 API — v4 §4 envelope: { data, trace_id, generated_at, warnings }
   // ================================================================
 
-  /** List scenario templates */
   observatory: {
-    templates: () =>
-      fetchJSON<{ count: number; templates: import("@/types/observatory").ScenarioTemplate[] }>(
-        "/api/v1/scenarios"
-      ),
-
-    /** Execute a full run through all 12 services */
-    run: (body: import("@/types/observatory").ScenarioCreate) =>
-      fetchJSON<import("@/types/observatory").RunResult>("/api/v1/runs", {
+    /** POST /api/v1/runs — Execute pipeline against a scenario/template */
+    run: (body: { scenario_id?: string; template_id?: string }) =>
+      fetchJSON<{ data: Record<string, unknown> }>("/api/v1/runs", {
         method: "POST",
         body: JSON.stringify(body),
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
       }),
 
-    /** Get full run result */
-    getResult: (runId: string) =>
-      fetchJSON<import("@/types/observatory").RunResult>(`/api/v1/runs/${runId}`),
+    /** GET /api/v1/runs/{id}/status — Poll run status */
+    status: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/status`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get financial impacts */
+    /** GET /api/v1/runs/{id}/financial — Financial impacts + aggregate */
     financial: (runId: string) =>
-      fetchJSON<{ run_id: string; headline: import("@/types/observatory").RunHeadline; financial: import("@/types/observatory").FinancialImpact[] }>(
-        `/api/v1/runs/${runId}/financial`
-      ),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/financial`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get banking stress */
+    /** GET /api/v1/runs/{id}/banking — Banking stress */
     banking: (runId: string) =>
-      fetchJSON<import("@/types/observatory").BankingStress>(`/api/v1/runs/${runId}/banking`),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/banking`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get insurance stress */
+    /** GET /api/v1/runs/{id}/insurance — Insurance stress */
     insurance: (runId: string) =>
-      fetchJSON<import("@/types/observatory").InsuranceStress>(`/api/v1/runs/${runId}/insurance`),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/insurance`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get fintech stress */
+    /** GET /api/v1/runs/{id}/fintech — Fintech stress */
     fintech: (runId: string) =>
-      fetchJSON<import("@/types/observatory").FintechStress>(`/api/v1/runs/${runId}/fintech`),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/fintech`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get decision plan (top 3 actions) */
+    /** GET /api/v1/runs/{id}/decision — Decision plan (top-3 actions) */
     decision: (runId: string) =>
-      fetchJSON<import("@/types/observatory").DecisionPlan>(`/api/v1/runs/${runId}/decision`),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/decision`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get explanation pack (bilingual) */
+    /** GET /api/v1/runs/{id}/explanation — Explanation pack */
     explanation: (runId: string) =>
-      fetchJSON<import("@/types/observatory").ExplanationPack>(`/api/v1/runs/${runId}/explanation`),
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/explanation`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get report in mode: executive | analyst | regulatory */
-    report: (runId: string, mode: string, lang: string = "en") =>
-      fetchJSON<Record<string, unknown>>(`/api/v1/runs/${runId}/report/${mode}?lang=${lang}`),
+    /** GET /api/v1/runs/{id}/business-impact — Business impact summary */
+    businessImpact: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/business-impact`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
 
-    /** Get bilingual labels */
-    labels: (lang: string = "en") =>
-      fetchJSON<Record<string, string>>(`/api/v1/runs/labels?lang=${lang}`),
+    /** GET /api/v1/runs/{id}/timeline — Timestep-by-timestep simulation */
+    timeline: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown>[] }>(`/api/v1/runs/${runId}/timeline`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
+
+    /** GET /api/v1/runs/{id}/regulatory-timeline — Regulatory breach events */
+    regulatoryTimeline: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/regulatory-timeline`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
+
+    /** GET /api/v1/runs/{id}/executive-explanation — Executive narrative */
+    executiveExplanation: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/executive-explanation`, {
+        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      }),
   },
 };

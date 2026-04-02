@@ -142,5 +142,7 @@ VALUES
 ON CONFLICT (template_id) DO NOTHING;
 
 -- Grant privileges
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO observatory_admin;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO observatory_admin;
+-- Grants are a no-op when running as the owning user (io_admin),
+-- but kept for forward compatibility with multi-role setups.
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO io_admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO io_admin;

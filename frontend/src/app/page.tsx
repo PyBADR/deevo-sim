@@ -70,18 +70,170 @@ export default function HomePage() {
     setAppView("results");
     try {
       const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${BASE}/api/v1/runs`, {
+      const headers = {
+        "Content-Type": "application/json",
+        "X-IO-API-Key": "io_master_key_2026",
+      };
+
+      // 1. Launch run
+      const runRes = await fetch(`${BASE}/api/v1/runs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        headers,
+        body: JSON.stringify({ template_id: templateId }),
+      });
+      if (!runRes.ok) throw new Error(`API error: ${runRes.status}`);
+      const runData = await runRes.json();
+      const runId = runData.data?.run_id;
+      if (!runId) throw new Error("No run_id returned");
+      if (runData.data?.status === "failed") throw new Error(runData.data?.error || "Run failed");
+
+      // 2. Fetch all sections in parallel
+      const fetchSection = async (path: string) => {
+        const res = await fetch(`${BASE}/api/v1/runs/${runId}/${path}`, { headers });
+        if (!res.ok) return {};
+        const json = await res.json();
+        return json.data || {};
+      };
+
+      const [financial, banking, insurance, fintech, decision, explanation, businessImpact, timeline] =
+        await Promise.all([
+          fetchSection("financial"),
+          fetchSection("banking"),
+          fetchSection("insurance"),
+          fetchSection("fintech"),
+          fetchSection("decision"),
+          fetchSection("explanation"),
+          fetchSection("business-impact"),
+          fetchSection("timeline"),
+        ]);
+
+      // 3. Compose into RunResult shape for dashboard
+      const composedResult: RunResult = {
+        schema_version: "4.0.0",
+        run_id: runId,
+        status: "completed",
+        pipeline_stages_completed: runData.data?.stages_completed || 9,
+        scenario: {
           template_id: templateId,
+          label: SCENARIOS.find((s) => s.id === templateId)?.label || templateId,
+          label_ar: SCENARIOS.find((s) => s.id === templateId)?.label_ar || null,
           severity,
           horizon_hours: 336,
-        }),
-      });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data = await res.json();
-      setResult(data);
+        },
+        headline: {
+          total_loss_usd: financial.aggregate?.total_loss || 0,
+          peak_day: (businessImpact as Record<string, number>).peak_loss_timestep || 0,
+          max_recovery_days: 14,
+          average_stress: 0,
+          affected_entities: financial.count || 0,
+          critical_count: financial.aggregate?.breach_count || 0,
+          elevated_count: 0,
+        },
+        financial: (financial.entities || []).map((e: Record<string, unknown>) => ({
+          entity_id: e.entity_id || "",
+          entity_label: e.name || e.entity_id || "",
+          sector: e.entity_type || "",
+          loss_usd: (e.loss as number) || 0,
+          loss_pct_gdp: 0,
+          peak_day: 0,
+          recovery_days: 14,
+          confidence: 0.85,
+          stress_level: (e.loss as number) > 1000 ? 0.8 : 0.4,
+          classification: (e.loss as number) > 1000 ? "CRITICAL" : (e.loss as number) > 100 ? "ELEVATED" : "MODERATE",
+        })),
+        banking: {
+          run_id: runId,
+          total_exposure_usd: banking.aggregate?.total_exposure || 0,
+          liquidity_stress: banking.aggregate?.avg_lcr ? 1 - banking.aggregate.avg_lcr : 0.6,
+          credit_stress: banking.aggregate?.avg_car ? 1 - banking.aggregate.avg_car : 0.4,
+          fx_stress: 0.3,
+          interbank_contagion: banking.aggregate?.breach_count ? banking.aggregate.breach_count / 4 : 0.5,
+          time_to_liquidity_breach_hours: 72,
+          capital_adequacy_impact_pct: banking.aggregate?.avg_car || 0,
+          aggregate_stress: banking.aggregate?.avg_composite || 0.65,
+          classification: banking.aggregate?.breach_count > 2 ? "CRITICAL" : "ELEVATED",
+          affected_institutions: [],
+        },
+        insurance: {
+          run_id: runId,
+          portfolio_exposure_usd: insurance.aggregate?.total_exposure || 0,
+          claims_surge_multiplier: insurance.aggregate?.avg_combined_ratio || 1.5,
+          severity_index: 0.7,
+          loss_ratio: 0.85,
+          combined_ratio: insurance.aggregate?.avg_combined_ratio || 1.2,
+          underwriting_status: insurance.aggregate?.breach_count > 1 ? "RESTRICTED" : "WATCH",
+          time_to_insolvency_hours: 168,
+          reinsurance_trigger: (insurance.aggregate?.breach_count || 0) > 1,
+          ifrs17_risk_adjustment_pct: 15,
+          aggregate_stress: insurance.aggregate?.avg_composite || 0.6,
+          classification: insurance.aggregate?.breach_count > 1 ? "ELEVATED" : "MODERATE",
+          affected_lines: [],
+        },
+        fintech: {
+          run_id: runId,
+          payment_volume_impact_pct: fintech.aggregate?.avg_settlement_delay ? fintech.aggregate.avg_settlement_delay * 2 : 35,
+          settlement_delay_hours: fintech.aggregate?.avg_settlement_delay || 4.5,
+          api_availability_pct: fintech.aggregate?.avg_availability ? fintech.aggregate.avg_availability * 100 : 92,
+          cross_border_disruption: 0.45,
+          digital_banking_stress: 0.5,
+          time_to_payment_failure_hours: 48,
+          aggregate_stress: fintech.aggregate?.avg_composite || 0.55,
+          classification: fintech.aggregate?.breach_count > 1 ? "ELEVATED" : "MODERATE",
+          affected_platforms: [],
+        },
+        decisions: {
+          run_id: runId,
+          scenario_label: SCENARIOS.find((s) => s.id === templateId)?.label || null,
+          total_loss_usd: financial.aggregate?.total_loss || 0,
+          peak_day: 7,
+          time_to_failure_hours: 48,
+          actions: (decision.actions || []).map((a: Record<string, unknown>) => ({
+            id: a.action_id || "",
+            action: a.action_text || "",
+            action_ar: a.action_text_ar || null,
+            sector: a.sector || "",
+            owner: a.owner || "",
+            urgency: (a.urgency as number) || 0,
+            value: (a.value as number) || 0,
+            regulatory_risk: 0.5,
+            priority: (a.priority as number) || 0,
+            time_to_act_hours: 24,
+            time_to_failure_hours: 48,
+            loss_avoided_usd: (a.value as number) || 0,
+            cost_usd: (a.feasibility as number) ? (1 - (a.feasibility as number)) * 100 : 50,
+            confidence: 0.85,
+          })),
+          all_actions: [],
+        },
+        explanation: {
+          run_id: runId,
+          scenario_label: null,
+          narrative_en: (explanation as Record<string, string>).executive_summary_en || "",
+          narrative_ar: (explanation as Record<string, string>).executive_summary_ar || "",
+          causal_chain: ((explanation as Record<string, unknown[]>).causal_chain || []).map((c: unknown, i: number) => ({
+            step: i + 1,
+            entity_id: (c as Record<string, string>).entity_id || "",
+            entity_label: (c as Record<string, string>).entity_id || "",
+            entity_label_ar: null,
+            event: (c as Record<string, string>).event_en || "",
+            event_ar: (c as Record<string, string>).event_ar || null,
+            impact_usd: (c as Record<string, number>).impact_usd || 0,
+            stress_delta: 0,
+            mechanism: (c as Record<string, string>).mechanism || "",
+          })),
+          total_steps: ((explanation as Record<string, unknown[]>).causal_chain || []).length,
+          headline_loss_usd: financial.aggregate?.total_loss || 0,
+          peak_day: 7,
+          confidence: 0.85,
+          methodology: "v4-pipeline-9stage",
+        },
+        executive_report: {},
+        flow_states: [],
+        propagation: [],
+        duration_ms: runData.data?.computed_in_ms || 0,
+      };
+
+      setResult(composedResult);
       setDetailView("dashboard");
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Unknown error");

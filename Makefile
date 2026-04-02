@@ -82,7 +82,7 @@ up:
 
 run-backend:
 	@echo "$(BLUE)Starting backend (uvicorn)...$(NC)"
-	cd $(BACKEND) && $(PYTHONPATH) uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+	cd $(BACKEND) && $(PYTHONPATH) uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 run-frontend:
 	@echo "$(BLUE)Starting frontend (next dev)...$(NC)"
@@ -101,7 +101,7 @@ status:
 	@echo ""
 	@echo -n "  Backend API:  " && curl -sf http://localhost:8000/health >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
 	@echo -n "  Frontend:     " && curl -sf http://localhost:3000 >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
-	@echo -n "  PostgreSQL:   " && $(DOCKER_COMPOSE) exec -T postgres pg_isready -U observatory_admin >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
+	@echo -n "  PostgreSQL:   " && $(DOCKER_COMPOSE) exec -T postgres pg_isready -U io_admin >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
 	@echo -n "  Neo4j:        " && $(DOCKER_COMPOSE) exec -T neo4j cypher-shell -u neo4j -p io_graph_2026 'RETURN 1' >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
 	@echo -n "  Redis:        " && $(DOCKER_COMPOSE) exec -T redis redis-cli ping >/dev/null 2>&1 && echo "$(GREEN)✓ healthy$(NC)" || echo "$(RED)✗ down$(NC)"
 
@@ -155,7 +155,7 @@ check: lint test build
 
 seed:
 	@echo "$(BLUE)Loading GCC seed data into PostgreSQL...$(NC)"
-	$(DOCKER_COMPOSE) exec -T postgres psql -U observatory_admin -d impact_observatory -f /docker-entrypoint-initdb.d/01-init.sql
+	$(DOCKER_COMPOSE) exec -T postgres psql -U io_admin -d impact_observatory -f /docker-entrypoint-initdb.d/01-init.sql
 	@echo "$(GREEN)✓ Seed data loaded$(NC)"
 
 seed-graph:
@@ -174,7 +174,7 @@ shell-api:
 	$(DOCKER_COMPOSE) exec backend /bin/bash
 
 shell-db:
-	$(DOCKER_COMPOSE) exec postgres psql -U observatory_admin -d impact_observatory
+	$(DOCKER_COMPOSE) exec postgres psql -U io_admin -d impact_observatory
 
 shell-neo4j:
 	$(DOCKER_COMPOSE) exec neo4j cypher-shell -u neo4j -p io_graph_2026

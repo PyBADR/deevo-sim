@@ -1,106 +1,125 @@
-"""Banking Stress Engine — Computes liquidity gap, capital adequacy, interbank rates
-
-Stress testing module for GCC banking system resilience. Quantifies liquidity pressure,
-capital erosion, and systemic funding stress under disruptive scenarios.
-Implements Basel III-aligned capital adequacy framework.
+"""
+Impact Observatory | مرصد الأثر — Banking Stress Engine (v4 §3.6)
+Per-entity banking stress with Basel III metrics and breach flags.
 """
 
-from app.intelligence.engines.gcc_constants import BASES
-from app.schemas.observatory import (
-    ScenarioInput,
-    FinancialImpact,
-    BankingStress,
-)
+from datetime import datetime, timezone
+from typing import List
+
+from ...domain.models.scenario import Scenario
+from ...domain.models.entity import Entity
+from ...domain.models.financial_impact import FinancialImpact
+from ...domain.models.banking_stress import BankingStress, BankingBreachFlags
+from ...core.constants import LCR_MIN, NSFR_MIN, CET1_MIN, CAR_MIN
 
 
 def compute_banking_stress(
-    scenario: ScenarioInput,
-    financial_impact: FinancialImpact
-) -> BankingStress:
+    scenario: Scenario,
+    bank_entities: List[Entity],
+    financial_impacts: List[FinancialImpact],
+) -> List[BankingStress]:
     """
-    Compute banking sector stress indicators.
-    
-    Models:
-    - Liquidity gap: Daily funding shortfall under stress withdrawal scenario
-    - Capital adequacy ratio (CAR): Regulatory capital buffer erosion
-    - Interbank rate spike: Unsecured funding cost premium (basis points)
-    - Time to liquidity breach: Days until deposit/payment default risk
-    - FX reserve drawdown: Central bank intervention capacity (% of reserves)
-    
+    v4 §3.6 — Compute per-entity banking stress.
+
     Args:
-        scenario: Event scenario with severity and duration
-        financial_impact: Upstream financial impact module output
-        
+        scenario: v4 Scenario
+        bank_entities: Entities with entity_type='bank'
+        financial_impacts: Per-entity financial impacts
+
     Returns:
-        BankingStress with stress indicators and overall stress_level assessment
-        
-    Model:
-        liquidity_gap = banking_assets * 0.03 * severity * (duration / 14)
-        capital_adequacy_ratio = max(0.08, 0.18 - (0.10 * severity))
-        interbank_rate_spike = 50 + (250 * severity) basis points
-        time_to_liquidity_breach = max(1, 30 / (severity * 2))
-        fx_reserve_drawdown = min(25, reserves * 0.05 * severity / reserves * 100)
+        List of v4 BankingStress with breach_flags
     """
-    
-    # Liquidity gap: 3% of banking assets under baseline stress
-    # Scales with severity and duration
-    liquidity_gap_usd = (
-        BASES["bankingAssets"] * 
-        0.03 * 
-        scenario.severity * 
-        (scenario.duration_days / 14.0)
-    )
-    
-    # Capital adequacy ratio (CAR)
-    # Baseline: 18% (well above Basel III 8% minimum)
-    # Deteriorates by 10 percentage points per unit severity
-    # Floor: 8% (regulatory minimum)
-    capital_adequacy_ratio = max(
-        0.08,
-        0.18 - (0.10 * scenario.severity)
-    )
-    
-    # Interbank rate spike (basis points above baseline LIBOR/SOFR)
-    # Baseline: 50 bps
-    # Maximum: 300 bps at full severity
-    interbank_rate_spike = 0.5 + (2.5 * scenario.severity)  # percentage points
-    
-    # Time to liquidity breach (days until deposit covenant breach)
-    # Inversely proportional to severity squared (exponential pressure)
-    time_to_liquidity_breach_days = max(1, int(30 / (scenario.severity * 2)))
-    
-    # FX reserve drawdown (% of total central bank reserves)
-    # Baseline: 0%, Maximum: 25% under extreme stress
-    fx_reserve_drawdown_pct = min(
-        25,
-        BASES["cbReserves"] * 0.05 * scenario.severity / BASES["cbReserves"] * 100
-    )
-    
-    # Stress level classification based on capital adequacy and liquidity metrics
-    if capital_adequacy_ratio < 0.10:
-        # Below 10% CAR = systemic capital deficiency
-        stress_level = "CRITICAL"
-    elif capital_adequacy_ratio < 0.12:
-        # 10-12% CAR = severe stress, near-default risk
-        stress_level = "HIGH"
-    elif capital_adequacy_ratio < 0.15:
-        stress_level = "MEDIUM"
-    else:
-        stress_level = "LOW"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    impact_map = {fi.entity_id: fi for fi in financial_impacts}
+    results: List[BankingStress] = []
 
-    # Composite stress score (0-100) for dashboard gauges
-    # Weighted blend: 50% CAR erosion + 30% liquidity pressure + 20% interbank stress
-    car_score = min(100.0, max(0.0, (0.18 - capital_adequacy_ratio) / 0.10 * 100.0))
-    liquidity_score = min(100.0, max(0.0, liquidity_gap_usd / (BASES["bankingAssets"] * 0.03) * 100.0))
-    interbank_score = min(100.0, max(0.0, interbank_rate_spike / 3.0 * 100.0))
-    stress_score = round(0.50 * car_score + 0.30 * liquidity_score + 0.20 * interbank_score, 1)
+    for entity in bank_entities:
+        if entity.entity_type != "bank":
+            continue
 
-    return BankingStress(
-        liquidity_gap_usd=liquidity_gap_usd,
-        capital_adequacy_ratio=capital_adequacy_ratio,
-        interbank_rate_spike=interbank_rate_spike,
-        time_to_liquidity_breach_days=time_to_liquidity_breach_days,
-        fx_reserve_drawdown_pct=fx_reserve_drawdown_pct,
-        stress_level=stress_level,
-        stress_score=stress_score,
-    )
+        fi = impact_map.get(entity.entity_id)
+        shock = scenario.shock_intensity
+        loss_ratio = (fi.loss / max(1, entity.exposure)) if fi else shock * 0.65
+
+        # Deposit outflow: deposit_run_rate scaled by shock
+        deposit_outflow = entity.exposure * scenario.deposit_run_rate * shock
+
+        # Wholesale funding outflow
+        wholesale_outflow = entity.exposure * 0.05 * shock
+
+        # HQLA (High Quality Liquid Assets) — eroded by loss
+        base_hqla = entity.liquidity_buffer
+        hqla = max(0, base_hqla - deposit_outflow * 0.3)
+
+        # LCR = HQLA / Net Cash Outflows (30d)
+        outflows_30d = deposit_outflow + wholesale_outflow
+        inflows_30d = outflows_30d * 0.25  # 25% expected inflow
+        net_outflows = max(1, outflows_30d - min(inflows_30d, outflows_30d * 0.75))
+        lcr = hqla / net_outflows if net_outflows > 0 else 2.0
+
+        # NSFR
+        available_stable = entity.capital_buffer + entity.exposure * 0.6
+        required_stable = entity.exposure * (0.5 + 0.15 * shock)
+        nsfr = available_stable / max(1, required_stable)
+
+        # CET1 and CAR — eroded by loss
+        base_cet1 = 0.125  # 12.5% baseline
+        base_car = 0.175   # 17.5% baseline
+        cet1_ratio = max(0, base_cet1 - loss_ratio * 0.08)
+        car = max(0, base_car - loss_ratio * 0.10)
+
+        # Breach flags (v4 §3.6)
+        breach_flags = BankingBreachFlags(
+            lcr_breach=lcr < LCR_MIN,
+            nsfr_breach=nsfr < NSFR_MIN,
+            cet1_breach=cet1_ratio < CET1_MIN,
+            car_breach=car < CAR_MIN,
+        )
+
+        results.append(BankingStress(
+            entity_id=entity.entity_id,
+            timestamp=now,
+            deposit_outflow=deposit_outflow,
+            wholesale_funding_outflow=wholesale_outflow,
+            hqla=hqla,
+            projected_cash_outflows_30d=outflows_30d,
+            projected_cash_inflows_30d=inflows_30d,
+            lcr=round(lcr, 4),
+            nsfr=round(nsfr, 4),
+            cet1_ratio=round(cet1_ratio, 4),
+            capital_adequacy_ratio=round(car, 4),
+            breach_flags=breach_flags,
+        ))
+
+    return results
+
+
+def aggregate_banking_metrics(stresses: List[BankingStress]) -> dict:
+    """Aggregate banking metrics across all entities."""
+    if not stresses:
+        return {
+            "aggregate_lcr": 1.35, "aggregate_nsfr": 1.15,
+            "aggregate_cet1": 0.125, "aggregate_car": 0.175,
+            "deposit_outflow": 0, "breach_flags": BankingBreachFlags(
+                lcr_breach=False, nsfr_breach=False, cet1_breach=False, car_breach=False,
+            ),
+        }
+    n = len(stresses)
+    agg_lcr = sum(s.lcr for s in stresses) / n
+    agg_nsfr = sum(s.nsfr for s in stresses) / n
+    agg_cet1 = sum(s.cet1_ratio for s in stresses) / n
+    agg_car = sum(s.capital_adequacy_ratio for s in stresses) / n
+    total_deposit = sum(s.deposit_outflow for s in stresses)
+    return {
+        "aggregate_lcr": round(agg_lcr, 4),
+        "aggregate_nsfr": round(agg_nsfr, 4),
+        "aggregate_cet1": round(agg_cet1, 4),
+        "aggregate_car": round(agg_car, 4),
+        "deposit_outflow": total_deposit,
+        "breach_flags": BankingBreachFlags(
+            lcr_breach=any(s.breach_flags.lcr_breach for s in stresses),
+            nsfr_breach=any(s.breach_flags.nsfr_breach for s in stresses),
+            cet1_breach=any(s.breach_flags.cet1_breach for s in stresses),
+            car_breach=any(s.breach_flags.car_breach for s in stresses),
+        ),
+    }

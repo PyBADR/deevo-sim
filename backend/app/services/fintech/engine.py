@@ -1,108 +1,111 @@
-"""Fintech Disruption Engine — Payment failures, settlement delays, gateway downtime
-
-Digital financial services stress testing module. Quantifies operational resilience
-and payment system disruption under infrastructure outages, cyber attacks, and
-network congestion scenarios. Models T+0/T+1 settlement degradation.
+"""
+Impact Observatory | مرصد الأثر — Fintech Stress Engine (v4 §3.8)
+Per-entity fintech stress with operational metrics and breach flags.
 """
 
-from app.schemas.observatory import (
-    ScenarioInput,
-    FinancialImpact,
-    FintechStress,
+from datetime import datetime, timezone
+from typing import List
+
+from ...domain.models.scenario import Scenario
+from ...domain.models.entity import Entity
+from ...domain.models.financial_impact import FinancialImpact
+from ...domain.models.fintech_stress import FintechStress, FintechBreachFlags
+from ...core.constants import (
+    SERVICE_AVAILABILITY_MIN,
+    SETTLEMENT_DELAY_MAX_MIN,
+    OPERATIONAL_RISK_MAX,
 )
 
 
 def compute_fintech_stress(
-    scenario: ScenarioInput,
-    financial_impact: FinancialImpact
-) -> FintechStress:
+    scenario: Scenario,
+    fintech_entities: List[Entity],
+    financial_impacts: List[FinancialImpact],
+) -> List[FintechStress]:
     """
-    Compute fintech and digital banking stress indicators.
-    
-    Models:
-    - Payment failure rate: Fraction of payment transactions failing
-    - Settlement delay: Hours of deviation from T+0 baseline
-    - Gateway downtime: Percentage of payment gateway unavailability
-    - Digital banking disruption: Fraction of digital channel disruption
-    - Time to payment failure: Days until critical payment system collapse
-    
+    v4 §3.8 — Compute per-entity fintech stress.
+
     Args:
-        scenario: Event scenario with severity and duration
-        financial_impact: Upstream financial impact module output
-        
+        scenario: v4 Scenario with fraud_loss_rate
+        fintech_entities: Entities with entity_type='fintech'
+        financial_impacts: Per-entity financial impacts
+
     Returns:
-        FintechStress with payment and operational metrics and stress_level assessment
-        
-    Model:
-        payment_failure_rate = min(0.15, 0.02 + (0.13 * severity))
-        settlement_delay_hours = 4 + (72 * severity)
-        gateway_downtime_pct = min(25, 2 + (23 * severity))
-        digital_banking_disruption = min(0.8, 0.05 + (0.75 * severity))
-        time_to_payment_failure = max(1, 21 / (severity * 1.5))
+        List of v4 FintechStress with breach_flags
     """
-    
-    # Payment failure rate (fraction of transactions failing)
-    # Baseline: 2% (normal system reliability)
-    # At severity=1.0: 15% (maximum cap)
-    payment_failure_rate = min(
-        0.15,
-        0.02 + (0.13 * scenario.severity)
-    )
-    
-    # Settlement delay in hours above baseline T+0
-    # Baseline: 4 hours (morning settlement window)
-    # At severity=1.0: 76 hours (multi-day settlement)
-    settlement_delay_hours = 4.0 + (72.0 * scenario.severity)
-    
-    # Gateway downtime percentage
-    # Baseline: 2% (routine maintenance, failover)
-    # At severity=1.0: 25% (major outage window)
-    gateway_downtime_pct = min(
-        25.0,
-        2.0 + (23.0 * scenario.severity)
-    )
-    
-    # Digital banking disruption fraction (0-1 scale)
-    # Baseline: 5% (single channel degradation)
-    # At severity=1.0: 80% (near-total digital channel disruption)
-    digital_banking_disruption = min(
-        0.8,
-        0.05 + (0.75 * scenario.severity)
-    )
-    
-    # Time to critical payment failure (days until systemic collapse)
-    # Baseline: 14 days at minimal stress
-    # Scales inversely with severity
-    time_to_payment_failure_days = max(
-        1,
-        int(21 / (scenario.severity * 1.5))
-    )
-    
-    # Stress level based on payment failure and gateway downtime thresholds
-    if payment_failure_rate > 0.10 or gateway_downtime_pct > 15:
-        # Critical: >10% payment failure or >15% gateway downtime
-        stress_level = "CRITICAL"
-    elif payment_failure_rate > 0.06 or gateway_downtime_pct > 10:
-        # Severe: significant payment degradation
-        stress_level = "HIGH"
-    elif payment_failure_rate > 0.03 or gateway_downtime_pct > 5:
-        stress_level = "MEDIUM"
-    else:
-        stress_level = "LOW"
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    impact_map = {fi.entity_id: fi for fi in financial_impacts}
+    results: List[FintechStress] = []
 
-    # Composite stress score (0-100) for dashboard gauges
-    # Weighted blend: 40% payment failures + 35% gateway downtime + 25% digital disruption
-    pfr_score = min(100.0, max(0.0, payment_failure_rate / 0.15 * 100.0))
-    gateway_score = min(100.0, max(0.0, gateway_downtime_pct / 25.0 * 100.0))
-    disruption_score = min(100.0, max(0.0, digital_banking_disruption / 0.8 * 100.0))
-    stress_score = round(0.40 * pfr_score + 0.35 * gateway_score + 0.25 * disruption_score, 1)
+    for entity in fintech_entities:
+        if entity.entity_type != "fintech":
+            continue
 
-    return FintechStress(
-        payment_failure_rate=payment_failure_rate,
-        settlement_delay_hours=settlement_delay_hours,
-        gateway_downtime_pct=gateway_downtime_pct,
-        digital_banking_disruption=digital_banking_disruption,
-        time_to_payment_failure_days=time_to_payment_failure_days,
-        stress_level=stress_level,
-        stress_score=stress_score,
-    )
+        fi = impact_map.get(entity.entity_id)
+        shock = scenario.shock_intensity
+
+        # Transaction failure rate
+        txn_failure_rate = min(0.25, 0.02 + 0.13 * shock)
+
+        # Fraud loss
+        fraud_loss = entity.exposure * scenario.fraud_loss_rate * shock
+
+        # Service availability (degrades under stress)
+        service_availability = max(0.50, entity.availability * (1 - 0.30 * shock))
+
+        # Settlement delay (minutes)
+        settlement_delay_min = 240 + int(4320 * shock)  # 4h baseline + up to 72h
+
+        # Client churn rate
+        client_churn_rate = min(0.15, 0.01 + 0.14 * shock)
+
+        # Operational risk score (0-1)
+        op_risk = min(1.0, 0.1 + 0.8 * shock)
+
+        # Breach flags (v4 §3.8)
+        breach_flags = FintechBreachFlags(
+            availability_breach=service_availability < SERVICE_AVAILABILITY_MIN,
+            settlement_breach=settlement_delay_min > SETTLEMENT_DELAY_MAX_MIN,
+            operational_risk_breach=op_risk > OPERATIONAL_RISK_MAX,
+        )
+
+        results.append(FintechStress(
+            entity_id=entity.entity_id,
+            timestamp=now,
+            transaction_failure_rate=round(txn_failure_rate, 4),
+            fraud_loss=round(fraud_loss, 4),
+            service_availability=round(service_availability, 4),
+            settlement_delay_minutes=settlement_delay_min,
+            client_churn_rate=round(client_churn_rate, 4),
+            operational_risk_score=round(op_risk, 4),
+            breach_flags=breach_flags,
+        ))
+
+    return results
+
+
+def aggregate_fintech_metrics(stresses: List[FintechStress]) -> dict:
+    """Aggregate fintech metrics across all entities."""
+    if not stresses:
+        return {
+            "aggregate_txn_failure_rate": 0.02,
+            "aggregate_settlement_delay_min": 240,
+            "aggregate_service_availability": 0.995,
+            "fraud_loss": 0,
+            "breach_flags": FintechBreachFlags(
+                availability_breach=False, settlement_breach=False,
+                operational_risk_breach=False,
+            ),
+        }
+    n = len(stresses)
+    return {
+        "aggregate_txn_failure_rate": round(sum(s.transaction_failure_rate for s in stresses) / n, 4),
+        "aggregate_settlement_delay_min": round(sum(s.settlement_delay_minutes for s in stresses) / n),
+        "aggregate_service_availability": round(sum(s.service_availability for s in stresses) / n, 4),
+        "fraud_loss": round(sum(s.fraud_loss for s in stresses), 4),
+        "breach_flags": FintechBreachFlags(
+            availability_breach=any(s.breach_flags.availability_breach for s in stresses),
+            settlement_breach=any(s.breach_flags.settlement_breach for s in stresses),
+            operational_risk_breach=any(s.breach_flags.operational_risk_breach for s in stresses),
+        ),
+    }

@@ -2,138 +2,171 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { ScenarioResult } from "@/types";
 
-// ---- Events ----
-export function useEvents(params?: { limit?: number; severity_min?: number; event_type?: string }) {
-  return useQuery({
-    queryKey: ["events", params],
-    queryFn: () => api.events(params),
-    refetchInterval: 30_000,
-  });
-}
+// ============================================================================
+// Impact Observatory v4 Hooks — Maps to /api/v1/runs/* endpoints
+// ============================================================================
 
-// ---- Flights ----
-export function useFlights(params?: { limit?: number; status?: string }) {
-  return useQuery({
-    queryKey: ["flights", params],
-    queryFn: () => api.flights(params),
-    refetchInterval: 15_000,
-  });
-}
-
-// ---- Vessels ----
-export function useVessels(params?: { limit?: number; vessel_type?: string }) {
-  return useQuery({
-    queryKey: ["vessels", params],
-    queryFn: () => api.vessels(params),
-    refetchInterval: 15_000,
-  });
-}
-
-// ---- Scenario Templates ----
-export function useScenarioTemplates() {
-  return useQuery({
-    queryKey: ["scenario-templates"],
-    queryFn: () => api.scenarioTemplates(),
-    staleTime: 60_000,
-  });
-}
-
-// ---- Run Scenario (Mutation) ----
-export function useRunScenario(onSuccess?: (data: ScenarioResult) => void) {
+/**
+ * Launch a pipeline run against a scenario or template.
+ * POST /api/v1/runs → 202
+ */
+export function useObservatoryRun(
+  onSuccess?: (data: Record<string, unknown>) => void,
+) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: { scenario_id?: string; severity_override?: number; horizon_hours?: number }) =>
-      api.scenarioRun(params),
+    mutationFn: (params: { scenario_id?: string; template_id?: string }) =>
+      api.observatory.run(params),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["system-stress"] });
-      onSuccess?.(data);
+      queryClient.invalidateQueries({ queryKey: ["observatory"] });
+      onSuccess?.(data.data as Record<string, unknown>);
     },
   });
 }
 
-// ---- Risk Scores ----
-export function useRiskScores(params?: { sector?: string; region?: string; limit?: number }) {
+/**
+ * Poll run status.
+ * GET /api/v1/runs/{id}/status
+ */
+export function useRunStatus(runId: string | null) {
   return useQuery({
-    queryKey: ["risk-scores", params],
-    queryFn: () => api.riskScores(params),
+    queryKey: ["observatory", "status", runId],
+    queryFn: () => api.observatory.status(runId!),
+    enabled: !!runId,
+    refetchInterval: (query) => {
+      const status = (query.state.data as any)?.data?.status;
+      return status === "completed" || status === "failed" ? false : 2000;
+    },
   });
 }
 
-// ---- System Stress ----
-export function useSystemStress() {
+/**
+ * Financial impacts.
+ * GET /api/v1/runs/{id}/financial
+ */
+export function useFinancial(runId: string | null) {
   return useQuery({
-    queryKey: ["system-stress"],
-    queryFn: () => api.systemStress(),
-    refetchInterval: 30_000,
+    queryKey: ["observatory", "financial", runId],
+    queryFn: () => api.observatory.financial(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Insurance Exposure ----
-export function useInsuranceExposure(params?: { sector?: string; region?: string }) {
+/**
+ * Banking stress.
+ * GET /api/v1/runs/{id}/banking
+ */
+export function useBanking(runId: string | null) {
   return useQuery({
-    queryKey: ["insurance-exposure", params],
-    queryFn: () => api.insuranceExposure(params),
+    queryKey: ["observatory", "banking", runId],
+    queryFn: () => api.observatory.banking(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Claims Surge ----
-export function useClaimsSurge(scenarioId: string | null) {
+/**
+ * Insurance stress.
+ * GET /api/v1/runs/{id}/insurance
+ */
+export function useInsurance(runId: string | null) {
   return useQuery({
-    queryKey: ["claims-surge", scenarioId],
-    queryFn: () => api.claimsSurge(scenarioId!),
-    enabled: !!scenarioId,
+    queryKey: ["observatory", "insurance", runId],
+    queryFn: () => api.observatory.insurance(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Underwriting Watch ----
-export function useUnderwritingWatch(params?: { watch_level?: string }) {
+/**
+ * Fintech stress.
+ * GET /api/v1/runs/{id}/fintech
+ */
+export function useFintech(runId: string | null) {
   return useQuery({
-    queryKey: ["underwriting", params],
-    queryFn: () => api.underwritingWatch(params),
+    queryKey: ["observatory", "fintech", runId],
+    queryFn: () => api.observatory.fintech(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Severity Projection ----
-export function useSeverityProjection(scenarioId: string | null, horizonHours?: number) {
+/**
+ * Decision plan (top-3 actions).
+ * GET /api/v1/runs/{id}/decision
+ */
+export function useDecision(runId: string | null) {
   return useQuery({
-    queryKey: ["severity-projection", scenarioId, horizonHours],
-    queryFn: () => api.severityProjection(scenarioId!, horizonHours),
-    enabled: !!scenarioId,
+    queryKey: ["observatory", "decision", runId],
+    queryFn: () => api.observatory.decision(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Decision Output ----
-export function useDecisionOutput(scenarioId: string | null) {
+/**
+ * Explanation pack.
+ * GET /api/v1/runs/{id}/explanation
+ */
+export function useExplanation(runId: string | null) {
   return useQuery({
-    queryKey: ["decision-output", scenarioId],
-    queryFn: () => api.decisionOutput(scenarioId!),
-    enabled: !!scenarioId,
+    queryKey: ["observatory", "explanation", runId],
+    queryFn: () => api.observatory.explanation(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Graph Nodes ----
-export function useGraphNodes(params?: { sector?: string; limit?: number }) {
+/**
+ * Business impact summary.
+ * GET /api/v1/runs/{id}/business-impact
+ */
+export function useBusinessImpact(runId: string | null) {
   return useQuery({
-    queryKey: ["graph-nodes", params],
-    queryFn: () => api.graphNodes(params),
+    queryKey: ["observatory", "business-impact", runId],
+    queryFn: () => api.observatory.businessImpact(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Graph Chokepoints ----
-export function useGraphChokepoints() {
+/**
+ * Temporal simulation timeline.
+ * GET /api/v1/runs/{id}/timeline
+ */
+export function useTimeline(runId: string | null) {
   return useQuery({
-    queryKey: ["graph-chokepoints"],
-    queryFn: () => api.graphChokepoints(),
+    queryKey: ["observatory", "timeline", runId],
+    queryFn: () => api.observatory.timeline(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
 
-// ---- Entity Detail ----
-export function useEntityDetail(entityId: string | null) {
+/**
+ * Regulatory breach timeline.
+ * GET /api/v1/runs/{id}/regulatory-timeline
+ */
+export function useRegulatoryTimeline(runId: string | null) {
   return useQuery({
-    queryKey: ["entity-detail", entityId],
-    queryFn: () => api.entityDetail(entityId!),
-    enabled: !!entityId,
+    queryKey: ["observatory", "regulatory-timeline", runId],
+    queryFn: () => api.observatory.regulatoryTimeline(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
+  });
+}
+
+/**
+ * Executive narrative explanation.
+ * GET /api/v1/runs/{id}/executive-explanation
+ */
+export function useExecutiveExplanation(runId: string | null) {
+  return useQuery({
+    queryKey: ["observatory", "executive-explanation", runId],
+    queryFn: () => api.observatory.executiveExplanation(runId!),
+    enabled: !!runId,
+    staleTime: Infinity,
   });
 }
