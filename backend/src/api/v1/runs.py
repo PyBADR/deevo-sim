@@ -19,6 +19,7 @@ GET  /api/v1/runs/{run_id}/executive-explanation — executive-level business ex
 from __future__ import annotations
 
 import logging
+import uuid
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
@@ -55,15 +56,54 @@ async def create_run(body: ScenarioCreate, request: Request):
     timeline, and regulatory state.
     """
     enforce_permission(get_role_from_request(request), "run:create")
+    trace_id = str(uuid.uuid4())[:8]
     try:
-        result = execute_run(body)
-        run_store.put_for_org(result["run_id"], result, org=_get_org_from_request(request))
-        return result
+        raw_result = execute_run(body)
+
+        # Fix 3: VALIDATION GATE — validate structural contract before returning to client
+        # This ensures the frontend CANNOT receive malformed payloads.
+        try:
+            from src.simulation_schemas import SimulateResponse
+            _validated = SimulateResponse.model_validate(raw_result)
+            # Use raw_result for the full response (SimulateResponse only validates a subset)
+            # but enforce that core fields are structurally sound
+        except Exception as validation_err:
+            logger.error(
+                "[Pipeline] Response validation failed — returning structured error",
+                extra={
+                    "trace_id": trace_id,
+                    "scenario_id": getattr(body, "scenario_id", "unknown"),
+                    "error": str(validation_err),
+                    "stage": "response_serialization",
+                },
+            )
+            raise HTTPException(
+                status_code=500,
+                detail={
+                    "error": "PIPELINE_VALIDATION_FAILED",
+                    "message": "Pipeline produced invalid response structure",
+                    "trace_id": trace_id,
+                    "scenario_id": getattr(body, "scenario_id", "unknown"),
+                },
+            )
+
+        raw_result["trace_id"] = trace_id
+        run_store.put_for_org(raw_result["run_id"], raw_result, org=_get_org_from_request(request))
+        return raw_result
+    except HTTPException:
+        raise
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.exception("Run execution failed")
-        raise HTTPException(status_code=500, detail=f"Run failed: {str(e)}")
+        logger.exception("[Pipeline] Unhandled error", extra={"trace_id": trace_id})
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": "PIPELINE_ERROR",
+                "message": str(e),
+                "trace_id": trace_id,
+            },
+        )
 
 
 @router.get("")

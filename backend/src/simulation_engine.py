@@ -7,10 +7,14 @@ Executes 17 computational stages in sequence and returns the full
 """
 from __future__ import annotations
 
+import logging
 import time
+import uuid
 from typing import Any
 
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 from src.risk_models import (
     compute_event_severity,
@@ -672,9 +676,19 @@ class SimulationEngine:
             ValueError: if scenario_id is not in catalog.
         """
         t_start = time.perf_counter()
+        trace_id = str(uuid.uuid4())[:8]
         run_id = generate_run_id()
         generated_at = now_utc()
         severity = clamp(severity, 0.01, 1.0)
+        logger.info(
+            "[Engine] Starting",
+            extra={
+                "trace_id": trace_id,
+                "scenario_id": scenario_id,
+                "severity": severity,
+                "horizon_hours": horizon_hours,
+            },
+        )
 
         # ── Stage 1: Resolve scenario ─────────────────────────────────────
         if scenario_id not in SCENARIO_CATALOG:
@@ -937,13 +951,35 @@ class SimulationEngine:
                 "systemic_multiplier": systemic_multiplier,
                 "affected_entities": affected_entities,
                 "critical_entities": critical_entities,
-                "top_entities": financial_impacts[:10],
+                # Fix 2b: safe top_entities slice with explicit field extraction
+                "top_entities": [
+                    {
+                        "entity_id": fi.get("entity_id", ""),
+                        "entity_label": fi.get("entity_label", ""),
+                        "loss_usd": float(fi.get("loss_usd", 0.0)),
+                        "direct_loss_usd": float(fi.get("direct_loss_usd", 0.0)),
+                        "indirect_loss_usd": float(fi.get("indirect_loss_usd", 0.0)),
+                        "systemic_loss_usd": float(fi.get("systemic_loss_usd", 0.0)),
+                        "stress_score": float(fi.get("stress_score", 0.0)),
+                        "classification": fi.get("classification", "NOMINAL"),
+                        "peak_day": int(fi.get("peak_day", 1)),
+                        "sector": fi.get("sector", "unknown"),
+                        "propagation_factor": float(fi.get("propagation_factor", 1.0)),
+                    }
+                    for fi in (financial_impacts[:10] if financial_impacts else [])
+                ],
                 # Checklist-required supplemental fields
                 "gdp_impact_pct": round(total_loss_usd / 2_000_000_000_000 * 100, 6),  # ~$2T GCC GDP
-                "sector_losses": {
-                    fi["sector"]: round(fi["loss_usd"], 2)
+                # Fix 2a: sector_losses as LIST of {sector, loss_usd, pct} — NOT dict
+                # Frontend iterates with .map()/.reduce() — dict caused "reduce is not a function"
+                "sector_losses": (lambda _total: [
+                    {
+                        "sector": fi.get("sector", "unknown"),
+                        "loss_usd": round(float(fi.get("loss_usd", 0.0)), 2),
+                        "pct": round(float(fi.get("loss_usd", 0.0)) / max(_total, 1.0) * 100, 2),
+                    }
                     for fi in financial_impacts
-                },
+                ])(sum(fi.get("loss_usd", 0.0) for fi in financial_impacts)),
                 "confidence_interval": {
                     "lower": round(total_loss_usd * (1.0 - (1.0 - confidence_score) * 0.5), 2),
                     "upper": round(total_loss_usd * (1.0 + (1.0 - confidence_score) * 0.5), 2),
@@ -983,33 +1019,46 @@ class SimulationEngine:
             "recovery_trajectory": recovery_traj,
 
             # ── Sector stress ─────────────────────────────────────────────
+            # Fix 2c: stop using **liquidity_stress (dict unpacking of untyped dict)
+            # Use explicit field extraction with .get() to avoid KeyError + contamination
             "banking_stress": {
-                **liquidity_stress,
                 "sector": "banking",
-                # Map internal key names to frontend-expected names
-                "time_to_liquidity_breach_hours": liquidity_stress.get("time_to_breach_hours", 9999.0),
-                # credit_stress not in risk_models; derive from aggregate_stress
-                "credit_stress": round(liquidity_stress["aggregate_stress"] * 0.85, 4),
-                # aggregate_stress already present via **liquidity_stress
-                # Additional fields expected by BankingStress type
+                "aggregate_stress": float(liquidity_stress.get("aggregate_stress", 0.0)),
+                "liquidity_stress": float(liquidity_stress.get("liquidity_stress", 0.0)),
+                "wholesale_funding_stress": float(liquidity_stress.get("wholesale_funding_stress", 0.0)),
+                "fx_stress": round(float(liquidity_stress.get("aggregate_stress", 0.0)) * 0.60, 4),
+                "market_stress": float(liquidity_stress.get("market_stress", 0.0)),
+                "credit_stress": round(float(liquidity_stress.get("aggregate_stress", 0.0)) * 0.85, 4),
+                "interbank_contagion": round(float(liquidity_stress.get("aggregate_stress", 0.0)) * 0.70, 4),
+                "capital_adequacy_impact_pct": round(float(liquidity_stress.get("aggregate_stress", 0.0)) * 3.5, 4),
+                "car_ratio": float(liquidity_stress.get("car_ratio", 0.12)),
+                "lcr_ratio": float(liquidity_stress.get("lcr_ratio", 1.0)),
+                "outflow_rate": float(liquidity_stress.get("outflow_rate", 0.0)),
+                "time_to_breach_hours": float(liquidity_stress.get("time_to_breach_hours", 9999.0)),
+                "time_to_liquidity_breach_hours": float(liquidity_stress.get("time_to_breach_hours", 9999.0)),
                 "total_exposure_usd": round(total_loss_usd * sector_exposure.get("banking", 0.30), 2),
-                "fx_stress": round(liquidity_stress["aggregate_stress"] * 0.60, 4),
-                "interbank_contagion": round(liquidity_stress["aggregate_stress"] * 0.70, 4),
-                "capital_adequacy_impact_pct": round(
-                    liquidity_stress["aggregate_stress"] * 3.5, 4
-                ),
+                "classification": liquidity_stress.get("classification", "NOMINAL"),
                 "affected_institutions": [],
                 "run_id": run_id,
             },
+            # Fix 2d: stop using **insurance_stress, use explicit extraction
+            # Fix 2d: time_to_insolvency_hours — 9999.0 means no imminent risk (not a crash)
             "insurance_stress": {
-                **insurance_stress,
                 "sector": "insurance",
-                # aggregate_stress alias (insurance_stress has severity_index; add alias)
-                "aggregate_stress": round(insurance_stress["severity_index"], 4),
-                # time_to_insolvency_hours: derive from reserve adequacy
+                "severity_index": float(insurance_stress.get("severity_index", 0.0)),
+                "aggregate_stress": round(float(insurance_stress.get("severity_index", 0.0)), 4),
+                "claims_surge_multiplier": float(insurance_stress.get("claims_surge_multiplier", 1.0)),
+                "combined_ratio": float(insurance_stress.get("combined_ratio", 1.0)),
+                "reserve_adequacy": float(insurance_stress.get("reserve_adequacy", 1.0)),
+                "reserve_adequacy_ratio": float(insurance_stress.get("reserve_adequacy", 1.0)),
+                "tiv_exposure": float(insurance_stress.get("tiv_exposure", 0.0)),
+                "loss_ratio": float(insurance_stress.get("loss_ratio", 0.0)),
+                "classification": insurance_stress.get("classification", "NOMINAL"),
+                # time_to_insolvency_hours: 9999.0 = no imminent insolvency risk
+                # Frontend must render 9999 as "N/A", not pass to .toFixed()
                 "time_to_insolvency_hours": round(
-                    insurance_stress["reserve_adequacy"] * 720.0, 1  # months-equivalent in hours
-                ) if insurance_stress["severity_index"] > 0.5 else 9999.0,
+                    float(insurance_stress.get("reserve_adequacy", 1.0)) * 720.0, 1
+                ) if float(insurance_stress.get("severity_index", 0.0)) > 0.5 else 9999.0,
                 "ifrs17_risk_adjustment_pct": round(
                     insurance_stress["severity_index"] * 12.0, 2
                 ),
@@ -1092,11 +1141,12 @@ class SimulationEngine:
                 "immediate_actions": [a for a in actions if a.get("time_to_act_hours", 99) <= 6],
                 "short_term_actions": [a for a in actions if 6 < a.get("time_to_act_hours", 99) <= 24],
                 "long_term_actions": [a for a in actions if a.get("time_to_act_hours", 99) > 24],
+                # Fix 2e: safe action_id access — use .get() to prevent KeyError
                 "priority_matrix": {
-                    "IMMEDIATE": [a["action_id"] for a in actions if a.get("status") == "IMMEDIATE"],
-                    "URGENT":    [a["action_id"] for a in actions if a.get("status") == "URGENT"],
-                    "MONITOR":   [a["action_id"] for a in actions if a.get("status") == "MONITOR"],
-                    "WATCH":     [a["action_id"] for a in actions if a.get("status") == "WATCH"],
+                    "IMMEDIATE": [a.get("action_id", "") for a in actions if a.get("status") == "IMMEDIATE" and a.get("action_id")],
+                    "URGENT":    [a.get("action_id", "") for a in actions if a.get("status") == "URGENT" and a.get("action_id")],
+                    "MONITOR":   [a.get("action_id", "") for a in actions if a.get("status") == "MONITOR" and a.get("action_id")],
+                    "WATCH":     [a.get("action_id", "") for a in actions if a.get("status") == "WATCH" and a.get("action_id")],
                 },
             },
 
@@ -1116,6 +1166,19 @@ class SimulationEngine:
                 "average_stress": average_stress,
             },
         }
+
+        duration_final_ms = round((time.perf_counter() - t_start) * 1000, 1)
+        logger.info(
+            "[Engine] Complete",
+            extra={
+                "trace_id": trace_id,
+                "run_id": run_id,
+                "duration_ms": duration_final_ms,
+                "unified_risk_score": unified_risk["score"],
+                "risk_level": risk_level,
+                "scenario_id": scenario_id,
+            },
+        )
 
         return output
 

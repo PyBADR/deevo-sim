@@ -2,7 +2,9 @@
 // Impact Observatory | مرصد الأثر — V1 TypeScript Types
 // ============================================================
 
-// Maps to backend schemas exactly
+// Maps to backend schemas exactly.
+// IMPORTANT: sector_losses is List[SectorLoss] (array), NOT a dict.
+// Backend contract enforces this — frontend can safely call .map()/.reduce().
 
 export interface ScenarioCreate {
   scenario_id: string;
@@ -30,6 +32,30 @@ export interface FinancialImpact {
   confidence: number;
   stress_level: number;
   classification: Classification;
+}
+
+/** Sector-level loss row — always a list item, never a dict key. */
+export interface SectorLoss {
+  sector: string;
+  loss_usd: number;
+  pct: number;
+}
+
+/** Full financial impact block from backend (financial_impact field). */
+export interface FinancialImpactBlock {
+  total_loss_usd: number;
+  total_loss_formatted: string;
+  direct_loss_usd: number;
+  indirect_loss_usd: number;
+  systemic_loss_usd: number;
+  systemic_multiplier: number;
+  affected_entities: number;
+  critical_entities: number;
+  top_entities: FinancialImpact[];
+  gdp_impact_pct: number;
+  /** Array of sector losses — backend guarantees this is always an array. */
+  sector_losses: SectorLoss[];
+  confidence_interval: { lower: number; upper: number; confidence: number };
 }
 
 export interface BankingStress {
