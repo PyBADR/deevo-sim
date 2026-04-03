@@ -903,7 +903,21 @@ class SimulationEngine:
             },
             "fintech_stress": {
                 "aggregate_stress": round(liquidity_stress["aggregate_stress"] * 0.75, 4),
-                "liquidity_stress": round(liquidity_stress["liquidity_stress"] * 0.70, 4),
+                "digital_stress": round(liquidity_stress["liquidity_stress"] * 0.70, 4),
+                # Derived from payments flow analysis
+                "payment_disruption_score": round(
+                    flow_analysis.get("payments", {}).get("disruption_factor", 0.0) *
+                    liquidity_stress["aggregate_stress"],
+                    4,
+                ),
+                "cross_border_disruption": round(
+                    flow_analysis.get("money", {}).get("disruption_factor", 0.0) *
+                    sector_exposure.get("fintech", 0.05),
+                    4,
+                ),
+                "settlement_delay_hours": round(
+                    flow_analysis.get("payments", {}).get("delay_days", 0.0) * 24, 1
+                ),
                 "sector": "fintech",
                 "classification": classify_stress(liquidity_stress["aggregate_stress"] * 0.75),
             },
@@ -916,10 +930,18 @@ class SimulationEngine:
                 "narrative_ar": narrative["narrative_ar"],
                 "sensitivity": sensitivity,
                 "uncertainty_bands": uncertainty_bands,
+                "confidence_score": confidence_score,
+                "methodology": "deterministic_propagation",
+                "source": "simulation_engine_v2.1.0",
                 "model_equation": (
-                    "R(t) = 0.20*G + 0.25*P + 0.15*N + 0.20*L + 0.10*T + 0.10*U; "
-                    "S = base_sev * (1+0.3*n+0.2*cs) * (1+0.4*base_sev); "
-                    "Loss_i = base_loss * sev^2 * sector_w_i * prop_i"
+                    "Es=w1*I+w2*D+w3*U+w4*G | "
+                    "Exp_j=alpha_j*Es*V_j*C_j | "
+                    "X_(t+1)=beta*P*X_t+(1-beta)*X_t+S_t | "
+                    "LSI=l1*W+l2*F+l3*M+l4*C | "
+                    "ISI=m1*Cf+m2*LR+m3*Re+m4*Od | "
+                    "NL_j=Exp_j*IF_jt*AB_j*theta_j | "
+                    "Conf=r1*DQ+r2*MC+r3*HS+r4*ST | "
+                    "URS=g1*Es+g2*PeakExp+g3*PeakStress+g4*PS*sqrt(sev)+g5*LN"
                 ),
             },
 
