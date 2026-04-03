@@ -173,7 +173,10 @@ export default function ExecutiveDashboard({
 }) {
   const t = labels[lang];
   const isRTL = lang === "ar";
-  const { headline, banking, insurance, fintech, decisions, financial } = data;
+  const { headline, banking, insurance, fintech, decisions } = data;
+  // Normalize: backend must return financial as FinancialImpact[] but guard
+  // against the dict shape that previously caused "f.reduce is not a function"
+  const financial = Array.isArray(data.financial) ? data.financial : [];
 
   return (
     <div className={`min-h-screen bg-io-bg p-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>

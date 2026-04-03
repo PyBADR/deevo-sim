@@ -202,8 +202,10 @@ def execute_run(params: ScenarioCreate) -> dict:
         "fintech_stress": fintech_dict,
 
         # ── Backward-compatible aliases ─────────────────────────────────
-        # financial → financial_impact (full dict, per checklist)
-        "financial": result.get("financial_impact", {}),
+        # financial → top_entities list (FinancialImpact[]) expected by ExecutiveDashboard
+        # IMPORTANT: must be a list — frontend calls financial.reduce(...) to build sector_exposure
+        # financial_impact (full dict) is still available under its own key above
+        "financial": financial_list if isinstance(financial_list, list) else [],
         "financial_impacts": financial_list,   # entity-level list (legacy)
         # banking/insurance/fintech → stress dicts
         "banking": banking_dict,          # alias for banking_stress

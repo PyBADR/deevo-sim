@@ -198,8 +198,11 @@ export default function DashboardPage() {
   const horizonDays = Math.round((data.scenario?.horizon_hours ?? 336) / 24);
 
   // Build sector exposure from financial impacts
+  // Guard: financial must be an array — backend previously returned a dict causing
+  // "f.reduce / for..of not iterable" crashes at runtime.
+  const financialList = Array.isArray(data.financial) ? data.financial : [];
   const sectorExposure: Record<string, number> = {};
-  for (const fi of data.financial) {
+  for (const fi of financialList) {
     sectorExposure[fi.sector] = (sectorExposure[fi.sector] ?? 0) + fi.loss_usd;
   }
 
