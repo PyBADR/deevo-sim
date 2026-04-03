@@ -867,6 +867,17 @@ class SimulationEngine:
                 "affected_entities": affected_entities,
                 "critical_entities": critical_entities,
                 "top_entities": financial_impacts[:10],
+                # Checklist-required supplemental fields
+                "gdp_impact_pct": round(total_loss_usd / 2_000_000_000_000 * 100, 6),  # ~$2T GCC GDP
+                "sector_losses": {
+                    fi["sector"]: round(fi["loss_usd"], 2)
+                    for fi in financial_impacts
+                },
+                "confidence_interval": {
+                    "lower": round(total_loss_usd * (1.0 - (1.0 - confidence_score) * 0.5), 2),
+                    "upper": round(total_loss_usd * (1.0 + (1.0 - confidence_score) * 0.5), 2),
+                    "confidence": confidence_score,
+                },
             },
 
             # ── Sector ────────────────────────────────────────────────────
@@ -886,6 +897,14 @@ class SimulationEngine:
                 "saturated_nodes": saturated_nodes,
                 "flow_balance_status": flow_balance_status,
                 "system_utilization": round(system_utilization, 4),
+                # Checklist-required supplemental fields (also exposed top-level)
+                "congestion_score": round(congestion_score, 4),
+                "recovery_score": round(recovery_score, 4),
+                "bottlenecks": [b["node_id"] for b in top_bottlenecks if b.get("is_critical_bottleneck")],
+                "node_states": {
+                    n["node_id"]: n["saturation_status"]
+                    for n in node_util[:10]  # top 10 most critical
+                },
             },
             "bottlenecks": top_bottlenecks,
             "congestion_score": congestion_score,
@@ -904,6 +923,8 @@ class SimulationEngine:
             "fintech_stress": {
                 "aggregate_stress": round(liquidity_stress["aggregate_stress"] * 0.75, 4),
                 "digital_stress": round(liquidity_stress["liquidity_stress"] * 0.70, 4),
+                # backward-compat alias for liquidity_stress (pre-v2.1.0 consumers)
+                "liquidity_stress": round(liquidity_stress["liquidity_stress"] * 0.70, 4),
                 # Derived from payments flow analysis
                 "payment_disruption_score": round(
                     flow_analysis.get("payments", {}).get("disruption_factor", 0.0) *
@@ -953,6 +974,16 @@ class SimulationEngine:
                 "escalation_triggers": escalation_triggers,
                 "monitoring_priorities": monitoring_priorities,
                 "five_questions": five_q,
+                # Checklist-required action partitions derived from actions list
+                "immediate_actions": [a for a in actions if a.get("time_to_act_hours", 99) <= 6],
+                "short_term_actions": [a for a in actions if 6 < a.get("time_to_act_hours", 99) <= 24],
+                "long_term_actions": [a for a in actions if a.get("time_to_act_hours", 99) > 24],
+                "priority_matrix": {
+                    "IMMEDIATE": [a["action_id"] for a in actions if a.get("status") == "IMMEDIATE"],
+                    "URGENT":    [a["action_id"] for a in actions if a.get("status") == "URGENT"],
+                    "MONITOR":   [a["action_id"] for a in actions if a.get("status") == "MONITOR"],
+                    "WATCH":     [a["action_id"] for a in actions if a.get("status") == "WATCH"],
+                },
             },
 
             # ── Headline KPI ──────────────────────────────────────────────

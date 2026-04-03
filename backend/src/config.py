@@ -222,3 +222,14 @@ PHYS_BETA: float = 0.65    # shock wave coupling (same as PROP_BETA for consiste
 PHYS_FLOW_IMBALANCE_THRESHOLD: float = 0.01   # 1% — trigger PhysicsViolationError
 PHYS_CONGESTION_ONSET: float = 0.75           # utilisation above this → congestion
 PHYS_RECOVERY_BASE_RATE: float = 0.08         # base daily recovery rate
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Decision Layer Priority Formula
+# Priority = P_W1*urgency + P_W2*loss_avoided_norm + P_W3*reg_risk
+#          + P_W4*feasibility + P_W5*time_effect
+# ═══════════════════════════════════════════════════════════════════════════════
+DL_P_W1: float = 0.25   # urgency weight
+DL_P_W2: float = 0.30   # loss avoided (normalised) weight
+DL_P_W3: float = 0.20   # regulatory risk weight
+DL_P_W4: float = 0.15   # feasibility weight
+DL_P_W5: float = 0.10   # time effect weight

@@ -76,6 +76,10 @@ class FinancialImpact(BaseModel):
     affected_entities: int
     critical_entities: int
     top_entities: list[dict[str, Any]]
+    # Checklist-required fields (populated by simulation_engine)
+    gdp_impact_pct: Optional[float] = None
+    sector_losses: Optional[dict[str, Any]] = None
+    confidence_interval: Optional[dict[str, Any]] = None
 
 
 class SectorAnalysisRow(BaseModel):
@@ -119,6 +123,11 @@ class PhysicalSystemStatus(BaseModel):
     saturated_nodes: int
     flow_balance_status: str
     system_utilization: float
+    # Checklist-required fields (congestion_score & recovery_score are top-level in output)
+    congestion_score: Optional[float] = None
+    recovery_score: Optional[float] = None
+    bottlenecks: Optional[list[dict[str, Any]]] = None
+    node_states: Optional[dict[str, Any]] = None
 
 
 class RecoveryPoint(BaseModel):
@@ -152,7 +161,12 @@ class InsuranceStress(BaseModel):
 
 class FintechStress(BaseModel):
     aggregate_stress: float
-    liquidity_stress: float
+    # Engine v2.1.0 renamed liquidity_stress → digital_stress; keep both for compat
+    digital_stress: Optional[float] = None
+    liquidity_stress: Optional[float] = None  # backward-compat alias
+    payment_disruption_score: Optional[float] = None
+    cross_border_disruption: Optional[float] = None
+    settlement_delay_hours: Optional[float] = None
     sector: str
     classification: str
 
@@ -231,6 +245,10 @@ class ExplainabilityBlock(BaseModel):
     sensitivity: dict[str, Any]
     uncertainty_bands: dict[str, Any]
     model_equation: str
+    # Engine v2.1.0 mandatory explainability fields
+    confidence_score: Optional[float] = None
+    methodology: Optional[str] = None
+    source: Optional[str] = None
 
 
 class ActionItem(BaseModel):
@@ -260,6 +278,11 @@ class DecisionPlan(BaseModel):
     escalation_triggers: list[str]
     monitoring_priorities: list[str]
     five_questions: dict[str, Any]
+    # Derived convenience partitions (populated by run_orchestrator)
+    immediate_actions: Optional[list[dict[str, Any]]] = None
+    short_term_actions: Optional[list[dict[str, Any]]] = None
+    long_term_actions: Optional[list[dict[str, Any]]] = None
+    priority_matrix: Optional[dict[str, Any]] = None
 
 
 class Headline(BaseModel):

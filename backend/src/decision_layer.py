@@ -3,8 +3,10 @@ Impact Observatory | مرصد الأثر
 Decision Layer — ranked action plan, five-questions framework, escalation triggers.
 
 Priority formula:
-  Priority = 0.25*urgency + 0.30*loss_avoided_norm + 0.20*reg_risk
-           + 0.15*feasibility + 0.10*time_effect
+  Priority = DL_P_W1*urgency + DL_P_W2*loss_avoided_norm + DL_P_W3*reg_risk
+           + DL_P_W4*feasibility + DL_P_W5*time_effect
+
+All weights imported from src.config — do not hardcode here.
 """
 from __future__ import annotations
 
@@ -12,6 +14,7 @@ import math
 from typing import Any
 
 from src.utils import clamp, classify_stress, format_loss_usd
+from src.config import DL_P_W1, DL_P_W2, DL_P_W3, DL_P_W4, DL_P_W5
 
 # ---------------------------------------------------------------------------
 # Action templates (sector × risk_level)
@@ -137,11 +140,11 @@ def _compute_priority(
         time_effect = 0.25
 
     priority = (
-        0.25 * urgency
-        + 0.30 * loss_norm
-        + 0.20 * regulatory_risk
-        + 0.15 * feasibility
-        + 0.10 * time_effect
+        DL_P_W1 * urgency
+        + DL_P_W2 * loss_norm
+        + DL_P_W3 * regulatory_risk
+        + DL_P_W4 * feasibility
+        + DL_P_W5 * time_effect
     )
     return round(clamp(priority, 0.0, 1.0), 4)
 

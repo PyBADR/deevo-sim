@@ -201,25 +201,34 @@ def execute_run(params: ScenarioCreate) -> dict:
         "insurance_stress": insurance_dict,
         "fintech_stress": fintech_dict,
 
-        # ── Backward-compatible aliases ─────────────────────────��──────
-        "financial": financial_list,
-        "financial_impacts": financial_list,
-        "banking": banking_dict,
-        "insurance": insurance_dict,
-        "fintech": fintech_dict,
+        # ── Backward-compatible aliases ─────────────────────────────────
+        # financial → financial_impact (full dict, per checklist)
+        "financial": result.get("financial_impact", {}),
+        "financial_impacts": financial_list,   # entity-level list (legacy)
+        # banking/insurance/fintech → stress dicts
+        "banking": banking_dict,          # alias for banking_stress
+        "insurance": insurance_dict,       # alias for insurance_stress
+        "fintech": fintech_dict,           # alias for fintech_stress
+        # decisions → decision_plan (per checklist)
         "decisions": decisions_dict,
+        # explanation → explainability (per checklist)
         "explanation": explanation_dict,
         "propagation": propagation_chain,
         "flow_states": [],
 
         # Scenario-engine compat
-        "system_stress": system_stress,
-        "impacts": impacts_list,
-        "recommendations": [
+        # system_stress → physical_system_status (per checklist); raw score kept as system_stress_score
+        "system_stress": result.get("physical_system_status", {}),
+        "system_stress_score": system_stress,  # numeric alias kept for dashboards
+        # impacts → sector_analysis (per checklist)
+        "impacts": result.get("sector_analysis", []),
+        "propagation_impacts": impacts_list,   # propagation-chain entities (legacy)
+        # recommendations → immediate_actions from decision_plan (per checklist)
+        "recommendations": decision_plan.get("immediate_actions", [
             a.get("action", a.get("action_en", ""))
             for a in actions[:3]
             if isinstance(a, dict)
-        ],
+        ]),
         "narrative": explainability.get("narrative_en", ""),
         "top_impacted_entities": [
             fi.get("entity_id", "")
