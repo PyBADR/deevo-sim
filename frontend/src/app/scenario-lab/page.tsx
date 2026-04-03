@@ -279,12 +279,12 @@ export default function ScenarioLabPage() {
               <div className="grid grid-cols-2 gap-2">
                 <ResultCard
                   label={isAr ? "إجهاد النظام" : "System Stress"}
-                  value={`${((result.system_stress_score ?? result.unified_risk_score ?? 0) * 100).toFixed(1)}%`}
+                  value={`${(((result as any).system_stress_score ?? (result as any).unified_risk_score ?? 0) * 100).toFixed(1)}%`}
                   color="danger"
                 />
                 <ResultCard
                   label={isAr ? "خسارة اقتصادية" : "Econ. Loss"}
-                  value={`$${((result.headline?.total_loss_usd ?? result.total_economic_loss_usd ?? 0) / 1e9).toFixed(2)}B`}
+                  value={`$${(((result as any).headline?.total_loss_usd ?? (result as any).total_economic_loss_usd ?? 0) / 1e9).toFixed(2)}B`}
                   color="warning"
                 />
                 <ResultCard

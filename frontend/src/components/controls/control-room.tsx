@@ -90,7 +90,7 @@ export function ControlRoom() {
                     : "text-io-success"
                 }`}
               >
-                {(stressData.overall_stress * 100).toFixed(1)}%
+                {((stressData?.overall_stress ?? 0) * 100).toFixed(1)}%
               </span>
             </div>
           )}
@@ -233,7 +233,7 @@ export function ControlRoom() {
                     />
                     <span className="text-io-primary">{ev.title}</span>
                     <span className="text-io-secondary">
-                      {(ev.severity_score * 100).toFixed(0)}%
+                      {((ev.severity_score ?? 0) * 100).toFixed(0)}%
                     </span>
                   </div>
                 ))}

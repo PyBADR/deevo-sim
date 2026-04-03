@@ -42,10 +42,11 @@ const CLASS_COLOR: Record<string, string> = {
   NOMINAL: "#6B7280",
 };
 
-function formatLoss(usd: number): string {
-  if (usd >= 1e9) return `$${(usd / 1e9).toFixed(1)}B`;
-  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(0)}M`;
-  return `$${Math.round(usd).toLocaleString()}`;
+function formatLoss(usd: number | null | undefined): string {
+  const v = (usd === null || usd === undefined || !isFinite(usd as number)) ? 0 : (usd as number);
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${Math.round(v).toLocaleString()}`;
 }
 
 interface ImpactGlobeProps {

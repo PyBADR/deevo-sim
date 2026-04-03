@@ -19,6 +19,7 @@ import type {
   Language,
 } from "@/types/observatory";
 import { DecisionActionCard } from "@/components/DecisionActionCard";
+import { safeFixed, safeNum } from "@/lib/format";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -38,19 +39,21 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
+function formatUSD(value: number | null | undefined): string {
+  const v = safeNum(value);
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
 }
 
-function formatHours(hours: number): string {
-  if (!isFinite(hours)) return "N/A";
-  if (hours >= 720) return `${Math.round(hours / 720)}mo`;
-  if (hours >= 168) return `${Math.round(hours / 168)}w`;
-  if (hours >= 24) return `${Math.round(hours / 24)}d`;
-  return `${Math.round(hours)}h`;
+function formatHours(hours: number | null | undefined): string {
+  const h = safeNum(hours, Infinity);
+  if (!isFinite(h)) return "N/A";
+  if (h >= 720) return `${Math.round(h / 720)}mo`;
+  if (h >= 168) return `${Math.round(h / 168)}w`;
+  if (h >= 24) return `${Math.round(h / 24)}d`;
+  return `${Math.round(h)}h`;
 }
 
 function PriorityBar({ urgency, value, regulatory }: { urgency: number | null | undefined; value: number | null | undefined; regulatory: number | null | undefined }) {
@@ -71,9 +74,9 @@ function PriorityBar({ urgency, value, regulatory }: { urgency: number | null | 
         <div className="bg-io-warning" style={{ width: `${rPct}%` }} title="Regulatory Risk" />
       </div>
       <div className="flex gap-3 text-[10px] text-io-secondary">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-danger inline-block" /> Urgency {u.toFixed(1)}</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-accent inline-block" /> Value {v.toFixed(1)}</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-warning inline-block" /> Reg. Risk {r.toFixed(1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-danger inline-block" /> Urgency {safeFixed(u, 1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-accent inline-block" /> Value {safeFixed(v, 1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-warning inline-block" /> Reg. Risk {safeFixed(r, 1)}</span>
       </div>
     </div>
   );
@@ -149,7 +152,9 @@ export default function DecisionDetailPanel({
 }) {
   const t = labels[lang];
   const isRTL = lang === "ar";
-  const allActions = decisions.all_actions?.length > 0 ? decisions.all_actions : decisions.actions;
+  const actionsArr: import("@/types/observatory").DecisionAction[] = Array.isArray(decisions.actions) ? decisions.actions : [];
+  const allActionsArr: import("@/types/observatory").DecisionAction[] = Array.isArray((decisions as any).all_actions) ? (decisions as any).all_actions : [];
+  const allActions: import("@/types/observatory").DecisionAction[] = allActionsArr.length > 0 ? allActionsArr : actionsArr;
 
   return (
     <div className={`space-y-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>
@@ -163,15 +168,15 @@ export default function DecisionDetailPanel({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.headline_loss}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD(decisions.total_loss_usd)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD((decisions as any).total_loss_usd)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.peak_day}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">Day {decisions.peak_day}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">Day {safeNum((decisions as any).peak_day, 0)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.ttf}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(decisions.time_to_failure_hours)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours((decisions as any).time_to_failure_hours ?? (decisions as any).system_time_to_first_failure_hours)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.total_actions}</p>
@@ -183,19 +188,19 @@ export default function DecisionDetailPanel({
       <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.prioritized_actions}</h3>
         <div className="space-y-4">
-          {decisions.actions.slice(0, 3).map((action, i) => (
+          {actionsArr.slice(0, 3).map((action, i) => (
             <DecisionActionCard
-              key={action.id}
+              key={action.id || i}
               rank={(i + 1) as 1 | 2 | 3}
-              actionId={action.id}
-              priority_score={Math.min(action.priority / 100, 1)}
-              title_en={action.action}
-              title_ar={action.action_ar || action.action}
-              urgency={Math.min(action.urgency / 100, 1)}
-              value={Math.min(action.value / 100, 1)}
-              time_to_act_hours={action.time_to_act_hours}
-              cost_usd={action.cost_usd}
-              loss_avoided_usd={action.loss_avoided_usd}
+              actionId={action.id || String(i)}
+              priority_score={Math.min(safeNum(action.priority) / 100, 1)}
+              title_en={action.action || ""}
+              title_ar={action.action_ar || action.action || ""}
+              urgency={Math.min(safeNum(action.urgency) / 100, 1)}
+              value={Math.min(safeNum(action.value) / 100, 1)}
+              time_to_act_hours={safeNum(action.time_to_act_hours, 24)}
+              cost_usd={safeNum(action.cost_usd)}
+              loss_avoided_usd={safeNum(action.loss_avoided_usd)}
               status="PENDING_REVIEW"
               locale={lang}
               onSubmitForReview={() => {}}
@@ -228,7 +233,7 @@ export default function DecisionDetailPanel({
                       {lang === "ar" ? action.action_ar || action.action : action.action}
                     </td>
                     <td className="py-2 text-io-secondary">{action.sector}</td>
-                    <td className="py-2 text-right tabular-nums font-semibold">{(action?.priority ?? 0).toFixed(1)}</td>
+                    <td className="py-2 text-right tabular-nums font-semibold">{safeFixed(action?.priority, 1)}</td>
                     <td className="py-2 text-right tabular-nums text-io-success">{formatUSD(action.loss_avoided_usd)}</td>
                     <td className="py-2 text-right tabular-nums">{formatUSD(action.cost_usd)}</td>
                   </tr>
@@ -272,7 +277,7 @@ export default function DecisionDetailPanel({
                   </p>
                   <div className="flex gap-3 mt-1 text-xs text-io-secondary">
                     <span>Impact: {formatUSD(step.impact_usd)}</span>
-                    <span>Stress: +{((step?.stress_delta ?? 0) * 100).toFixed(1)}%</span>
+                    <span>Stress: +{safeFixed(safeNum(step?.stress_delta) * 100, 1)}%</span>
                     <span className="text-io-accent">{step.mechanism}</span>
                   </div>
                 </div>

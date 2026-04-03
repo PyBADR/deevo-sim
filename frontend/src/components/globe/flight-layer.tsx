@@ -48,7 +48,7 @@ export function FlightLayer({ flights, selectedId }: FlightLayerProps) {
             key={flight.id}
             id={flight.id}
             name={flight.callsign}
-            description={`${flight.origin.iata} → ${flight.destination.iata} | Risk: ${(flight.risk_score * 100).toFixed(0)}%`}
+            description={`${flight.origin.iata} → ${flight.destination.iata} | Risk: ${((flight.risk_score ?? 0) * 100).toFixed(0)}%`}
             polyline={{
               positions,
               width,

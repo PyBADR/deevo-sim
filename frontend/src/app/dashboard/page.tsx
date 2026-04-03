@@ -23,6 +23,169 @@ import FinancialImpactPanel from "@/components/FinancialImpactPanel";
 import type { RunResult, Language } from "@/types/observatory";
 import { useRunsList } from "@/hooks/use-api";
 import type { RunSummary } from "@/types/observatory";
+import { safeNum } from "@/lib/format";
+
+/**
+ * Normalize the raw pipeline response to ensure all numeric fields are safe numbers.
+ * Prevents "Cannot read properties of undefined (reading 'toFixed')" crashes.
+ */
+function normalizeRunResult(raw: Record<string, unknown>): RunResult {
+  // Normalize actions array — backend uses action_id/priority_score/action_en
+  const rawDecisions = (raw.decisions ?? {}) as Record<string, unknown>;
+  const rawActions = Array.isArray(rawDecisions.actions) ? rawDecisions.actions : [];
+  const normalizedActions = rawActions.map((a: unknown) => {
+    const act = (a ?? {}) as Record<string, unknown>;
+    return {
+      id: String(act.id ?? act.action_id ?? act.rank ?? ""),
+      action: String(act.action ?? act.action_en ?? ""),
+      action_ar: act.action_ar ? String(act.action_ar) : null,
+      sector: String(act.sector ?? ""),
+      owner: String(act.owner ?? ""),
+      urgency: safeNum(act.urgency),
+      value: safeNum(act.value),
+      regulatory_risk: safeNum(act.regulatory_risk ?? act.reg_risk),
+      priority: safeNum(act.priority ?? act.priority_score),
+      time_to_act_hours: safeNum(act.time_to_act_hours, 24),
+      time_to_failure_hours: safeNum(act.time_to_failure_hours ?? act.time_to_failure, Infinity),
+      loss_avoided_usd: safeNum(act.loss_avoided_usd),
+      cost_usd: safeNum(act.cost_usd),
+      confidence: safeNum(act.confidence, 0.8),
+    };
+  });
+
+  // Normalize headline
+  const rawHeadline = (raw.headline ?? {}) as Record<string, unknown>;
+  const headline = {
+    total_loss_usd: safeNum(rawHeadline.total_loss_usd),
+    peak_day: safeNum(rawHeadline.peak_day),
+    max_recovery_days: safeNum(rawHeadline.max_recovery_days),
+    average_stress: safeNum(rawHeadline.average_stress),
+    affected_entities: safeNum(rawHeadline.affected_entities),
+    critical_count: safeNum(rawHeadline.critical_count),
+    elevated_count: safeNum(rawHeadline.elevated_count),
+  };
+
+  // Normalize banking
+  const rawBanking = (raw.banking ?? raw.banking_stress ?? {}) as Record<string, unknown>;
+  const banking = {
+    run_id: String(rawBanking.run_id ?? raw.run_id ?? ""),
+    total_exposure_usd: safeNum(rawBanking.total_exposure_usd),
+    liquidity_stress: safeNum(rawBanking.liquidity_stress),
+    credit_stress: safeNum(rawBanking.credit_stress),
+    fx_stress: safeNum(rawBanking.fx_stress),
+    interbank_contagion: safeNum(rawBanking.interbank_contagion),
+    time_to_liquidity_breach_hours: safeNum(rawBanking.time_to_liquidity_breach_hours ?? rawBanking.time_to_breach_hours, Infinity),
+    capital_adequacy_impact_pct: safeNum(rawBanking.capital_adequacy_impact_pct),
+    aggregate_stress: safeNum(rawBanking.aggregate_stress),
+    classification: (rawBanking.classification ?? "NOMINAL") as any,
+    affected_institutions: Array.isArray(rawBanking.affected_institutions)
+      ? rawBanking.affected_institutions.map((inst: unknown) => {
+          const i = (inst ?? {}) as Record<string, unknown>;
+          return {
+            id: String(i.id ?? ""),
+            name: String(i.name ?? ""),
+            name_ar: String(i.name_ar ?? i.name ?? ""),
+            country: String(i.country ?? ""),
+            exposure_usd: safeNum(i.exposure_usd),
+            stress: safeNum(i.stress),
+            projected_car_pct: safeNum(i.projected_car_pct),
+          };
+        })
+      : [],
+  };
+
+  // Normalize insurance
+  const rawInsurance = (raw.insurance ?? raw.insurance_stress ?? {}) as Record<string, unknown>;
+  const insurance = {
+    run_id: String(rawInsurance.run_id ?? raw.run_id ?? ""),
+    portfolio_exposure_usd: safeNum(rawInsurance.portfolio_exposure_usd),
+    claims_surge_multiplier: safeNum(rawInsurance.claims_surge_multiplier, 1),
+    severity_index: safeNum(rawInsurance.severity_index),
+    loss_ratio: safeNum(rawInsurance.loss_ratio),
+    combined_ratio: safeNum(rawInsurance.combined_ratio),
+    underwriting_status: String(rawInsurance.underwriting_status ?? "NORMAL"),
+    time_to_insolvency_hours: safeNum(rawInsurance.time_to_insolvency_hours, Infinity),
+    reinsurance_trigger: Boolean(rawInsurance.reinsurance_trigger),
+    ifrs17_risk_adjustment_pct: safeNum(rawInsurance.ifrs17_risk_adjustment_pct),
+    aggregate_stress: safeNum(rawInsurance.aggregate_stress),
+    classification: (rawInsurance.classification ?? "NOMINAL") as any,
+    affected_lines: Array.isArray(rawInsurance.affected_lines)
+      ? rawInsurance.affected_lines.map((line: unknown) => {
+          const l = (line ?? {}) as Record<string, unknown>;
+          return {
+            id: String(l.id ?? ""),
+            name: String(l.name ?? ""),
+            name_ar: String(l.name_ar ?? l.name ?? ""),
+            exposure_usd: safeNum(l.exposure_usd),
+            claims_surge: safeNum(l.claims_surge, 1),
+            stress: safeNum(l.stress),
+          };
+        })
+      : [],
+  };
+
+  // Normalize fintech
+  const rawFintech = (raw.fintech ?? raw.fintech_stress ?? {}) as Record<string, unknown>;
+  const fintech = {
+    run_id: String(rawFintech.run_id ?? raw.run_id ?? ""),
+    payment_volume_impact_pct: safeNum(rawFintech.payment_volume_impact_pct),
+    settlement_delay_hours: safeNum(rawFintech.settlement_delay_hours),
+    api_availability_pct: safeNum(rawFintech.api_availability_pct, 100),
+    cross_border_disruption: safeNum(rawFintech.cross_border_disruption),
+    digital_banking_stress: safeNum(rawFintech.digital_banking_stress),
+    time_to_payment_failure_hours: safeNum(rawFintech.time_to_payment_failure_hours, Infinity),
+    aggregate_stress: safeNum(rawFintech.aggregate_stress),
+    classification: (rawFintech.classification ?? "NOMINAL") as any,
+    affected_platforms: Array.isArray(rawFintech.affected_platforms)
+      ? rawFintech.affected_platforms.map((p: unknown) => {
+          const plat = (p ?? {}) as Record<string, unknown>;
+          return {
+            id: String(plat.id ?? ""),
+            name: String(plat.name ?? ""),
+            name_ar: String(plat.name_ar ?? plat.name ?? ""),
+            country: String(plat.country ?? ""),
+            volume_impact_pct: safeNum(plat.volume_impact_pct),
+            cross_border_stress: safeNum(plat.cross_border_stress),
+            stress: safeNum(plat.stress),
+          };
+        })
+      : [],
+  };
+
+  const decisions = {
+    run_id: String(rawDecisions.run_id ?? raw.run_id ?? ""),
+    scenario_label: String(rawDecisions.scenario_label ?? raw.scenario_id ?? ""),
+    total_loss_usd: safeNum(rawDecisions.total_loss_usd ?? rawHeadline.total_loss_usd),
+    peak_day: safeNum(rawDecisions.peak_day ?? rawHeadline.peak_day),
+    time_to_failure_hours: safeNum(
+      (rawDecisions as any).time_to_failure_hours ??
+      (rawDecisions as any).system_time_to_first_failure_hours,
+      Infinity
+    ),
+    actions: normalizedActions,
+    all_actions: normalizedActions,
+  };
+
+  if (process.env.NODE_ENV === "development") {
+    console.group("[Pipeline Result] normalizeRunResult");
+    console.log("Raw banking:", rawBanking);
+    console.log("Raw insurance:", rawInsurance);
+    console.log("Raw fintech:", rawFintech);
+    console.log("Raw decisions:", rawDecisions);
+    console.log("Normalized decisions.actions:", normalizedActions);
+    console.groupEnd();
+  }
+
+  return {
+    ...(raw as unknown as RunResult),
+    headline,
+    banking,
+    insurance,
+    fintech,
+    decisions,
+    financial: Array.isArray(raw.financial) ? raw.financial as any : [],
+  };
+}
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -95,7 +258,8 @@ export default function DashboardPage() {
       if (!res.ok) {
         throw new Error(`API ${res.status}: ${await res.text()}`);
       }
-      const result: RunResult = await res.json();
+      const rawResult: Record<string, unknown> = await res.json();
+      const result = normalizeRunResult(rawResult);
       setData(result);
       // Fetch GCC entities for the globe
       fetch(`${API_BASE}/api/v1/graph/nodes?limit=200`, {
@@ -274,8 +438,8 @@ export default function DashboardPage() {
           <KPICard
             label="Liquidity Breach"
             labelAr="كسر السيولة"
-            value={formatHours(banking?.time_to_liquidity_breach_hours ?? banking?.time_to_breach_hours ?? Infinity)}
-            severity={(banking?.time_to_liquidity_breach_hours ?? banking?.time_to_breach_hours ?? Infinity) < 168 ? "severe" : "medium"}
+            value={formatHours(banking?.time_to_liquidity_breach_hours ?? Infinity)}
+            severity={(banking?.time_to_liquidity_breach_hours ?? Infinity) < 168 ? "severe" : "medium"}
             locale={locale}
           />
         </div>
@@ -288,7 +452,7 @@ export default function DashboardPage() {
               loss_baseline_usd={(headline?.total_loss_usd ?? 0) * 1.2}
               peak_loss_day={headline?.peak_day ?? 0}
               duration_days={horizonDays}
-              liquidity_breach_hours={banking?.time_to_liquidity_breach_hours ?? banking?.time_to_breach_hours ?? Infinity}
+              liquidity_breach_hours={banking?.time_to_liquidity_breach_hours ?? Infinity}
               sector_exposure={sectorExposure}
               severity_code={classifyStress(severity)}
               locale={locale}
@@ -360,7 +524,7 @@ export default function DashboardPage() {
             {locale === "ar" ? "الإجراءات المقترحة" : "Decision Actions"}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {decisions.actions.slice(0, 3).map((action, idx) => (
+            {(Array.isArray(decisions?.actions) ? decisions.actions : []).slice(0, 3).map((action, idx) => (
               <DecisionActionCard
                 key={action.id}
                 rank={(idx + 1) as 1 | 2 | 3}
@@ -403,12 +567,12 @@ export default function DashboardPage() {
                     <tr key={run.run_id} className="border-b border-io-border/40 hover:bg-io-bg/50">
                       <td className="py-2 pr-4 font-mono text-io-primary">{run.scenario_id}</td>
                       <td className="py-2 pr-4 text-right text-io-danger font-semibold">
-                        {run.headline_loss_usd >= 1e9
-                          ? `$${(run.headline_loss_usd / 1e9).toFixed(1)}B`
-                          : `$${(run.headline_loss_usd / 1e6).toFixed(0)}M`}
+                        {(run.headline_loss_usd ?? 0) >= 1e9
+                          ? `$${((run.headline_loss_usd ?? 0) / 1e9).toFixed(1)}B`
+                          : `$${((run.headline_loss_usd ?? 0) / 1e6).toFixed(0)}M`}
                       </td>
-                      <td className="py-2 pr-4 text-right text-io-secondary">Day {run.peak_day}</td>
-                      <td className="py-2 pr-4 text-right text-io-secondary">{(run.severity * 100).toFixed(0)}%</td>
+                      <td className="py-2 pr-4 text-right text-io-secondary">Day {run.peak_day ?? 0}</td>
+                      <td className="py-2 pr-4 text-right text-io-secondary">{((run.severity ?? 0) * 100).toFixed(0)}%</td>
                       <td className="py-2 text-right">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
                           run.severity_code === "CRITICAL" ? "bg-red-100 text-red-700" :

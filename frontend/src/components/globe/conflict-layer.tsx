@@ -49,7 +49,7 @@ export function ConflictLayer({ events }: ConflictLayerProps) {
             key={event.id}
             id={event.id}
             name={event.title}
-            description={`${event.event_type} | Severity: ${(event.severity_score * 100).toFixed(0)}% | ${event.region}`}
+            description={`${event.event_type} | Severity: ${((event.severity_score ?? 0) * 100).toFixed(0)}% | ${event.region}`}
             position={Cartesian3.fromDegrees(
               event.location.lng,
               event.location.lat,

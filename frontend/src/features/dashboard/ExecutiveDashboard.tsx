@@ -21,21 +21,23 @@ import type {
 import { KPICard } from "@/components/KPICard";
 import { StressGauge } from "@/components/StressGauge";
 import { FinancialImpactPanel } from "@/components/FinancialImpactPanel";
+import { safeFixed, safeNum } from "@/lib/format";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
 function formatUSD(value: number | null | undefined): string {
-  if (value === null || value === undefined || !isFinite(value)) return "$0";
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
+  const v = safeNum(value);
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
 }
 
-function formatHours(hours: number): string {
-  if (!isFinite(hours)) return "N/A";
-  if (hours >= 720) return `${Math.round(hours / 720)}mo`;
-  if (hours >= 24) return `${Math.round(hours / 24)}d`;
-  return `${Math.round(hours)}h`;
+function formatHours(hours: number | null | undefined): string {
+  const h = safeNum(hours, Infinity);
+  if (!isFinite(h)) return "N/A";
+  if (h >= 720) return `${Math.round(h / 720)}mo`;
+  if (h >= 24) return `${Math.round(h / 24)}d`;
+  return `${Math.round(h)}h`;
 }
 
 const classificationColors: Record<Classification, string> = {
@@ -147,7 +149,7 @@ function SectorStressCard({
         <Badge level={classification} />
       </div>
       <p className="text-2xl font-bold tabular-nums text-io-primary mb-3">
-        {((stress ?? 0) * 100).toFixed(1)}%
+        {safeFixed(safeNum(stress) * 100, 1)}%
       </p>
       <div className="space-y-1.5">
         {metrics.map((m, i) => (
@@ -174,7 +176,11 @@ export default function ExecutiveDashboard({
 }) {
   const t = labels[lang];
   const isRTL = lang === "ar";
-  const { headline, banking, insurance, fintech, decisions } = data;
+  const headline = data.headline ?? {} as typeof data.headline;
+  const banking = (data.banking ?? (data as any).banking_stress ?? {}) as typeof data.banking;
+  const insurance = (data.insurance ?? (data as any).insurance_stress ?? {}) as typeof data.insurance;
+  const fintech = (data.fintech ?? (data as any).fintech_stress ?? {}) as typeof data.fintech;
+  const decisions = (data.decisions ?? {}) as typeof data.decisions;
   // Normalize: backend must return financial as FinancialImpact[] but guard
   // against the dict shape that previously caused "f.reduce is not a function"
   const financial = Array.isArray(data.financial) ? data.financial : [];
@@ -187,7 +193,7 @@ export default function ExecutiveDashboard({
           {lang === "ar" ? "مرصد الأثر" : "Impact Observatory"}
         </h1>
         <p className="text-sm text-io-secondary mt-1">
-          {data.scenario.label}
+          {data.scenario?.label ?? ""}
         </p>
       </header>
 
@@ -196,45 +202,45 @@ export default function ExecutiveDashboard({
         <KPICard
           label={t.headline_loss}
           labelAr={labels.ar.headline_loss}
-          value={formatUSD(headline.total_loss_usd)}
-          severity={headline.total_loss_usd >= 1e10 ? "critical" : headline.total_loss_usd >= 1e9 ? "severe" : headline.total_loss_usd >= 1e8 ? "high" : "medium"}
-          sublabel={`${headline.affected_entities} entities`}
+          value={formatUSD(headline?.total_loss_usd)}
+          severity={safeNum(headline?.total_loss_usd) >= 1e10 ? "critical" : safeNum(headline?.total_loss_usd) >= 1e9 ? "severe" : safeNum(headline?.total_loss_usd) >= 1e8 ? "high" : "medium"}
+          sublabel={`${headline?.affected_entities ?? 0} entities`}
           locale={lang}
         />
         <KPICard
           label={t.severity}
           labelAr={labels.ar.severity}
-          value={`${(data.scenario.severity * 100).toFixed(0)}%`}
-          severity={data.scenario.severity >= 0.8 ? "critical" : data.scenario.severity >= 0.6 ? "severe" : data.scenario.severity >= 0.4 ? "high" : "medium"}
-          sublabel={`${headline.critical_count} critical`}
+          value={`${safeFixed(safeNum(data.scenario?.severity) * 100, 0)}%`}
+          severity={safeNum(data.scenario?.severity) >= 0.8 ? "critical" : safeNum(data.scenario?.severity) >= 0.6 ? "severe" : safeNum(data.scenario?.severity) >= 0.4 ? "high" : "medium"}
+          sublabel={`${headline?.critical_count ?? 0} critical`}
           locale={lang}
         />
         <KPICard
           label={t.peak_day}
           labelAr={labels.ar.peak_day}
-          value={`Day ${headline.peak_day}`}
-          sublabel={`${headline.max_recovery_days}d recovery`}
+          value={`Day ${headline?.peak_day ?? 0}`}
+          sublabel={`${headline?.max_recovery_days ?? 0}d recovery`}
           locale={lang}
         />
         <KPICard
           label={t.ttl_breach}
           labelAr={labels.ar.ttl_breach}
-          value={formatHours(banking.time_to_liquidity_breach_hours)}
-          severity={banking.time_to_liquidity_breach_hours < 24 ? "critical" : banking.time_to_liquidity_breach_hours < 72 ? "high" : "normal"}
+          value={formatHours(banking?.time_to_liquidity_breach_hours)}
+          severity={safeNum(banking?.time_to_liquidity_breach_hours, Infinity) < 24 ? "critical" : safeNum(banking?.time_to_liquidity_breach_hours, Infinity) < 72 ? "high" : "normal"}
           locale={lang}
         />
         <KPICard
           label={t.tt_insurance}
           labelAr={labels.ar.tt_insurance}
-          value={formatHours(insurance.time_to_insolvency_hours)}
-          severity={insurance.time_to_insolvency_hours < 48 ? "critical" : insurance.time_to_insolvency_hours < 168 ? "high" : "normal"}
+          value={formatHours(insurance?.time_to_insolvency_hours)}
+          severity={safeNum(insurance?.time_to_insolvency_hours, Infinity) < 48 ? "critical" : safeNum(insurance?.time_to_insolvency_hours, Infinity) < 168 ? "high" : "normal"}
           locale={lang}
         />
         <KPICard
           label={t.tt_payment}
           labelAr={labels.ar.tt_payment}
-          value={formatHours(fintech.time_to_payment_failure_hours)}
-          severity={fintech.time_to_payment_failure_hours < 12 ? "critical" : fintech.time_to_payment_failure_hours < 48 ? "high" : "normal"}
+          value={formatHours(fintech?.time_to_payment_failure_hours)}
+          severity={safeNum(fintech?.time_to_payment_failure_hours, Infinity) < 12 ? "critical" : safeNum(fintech?.time_to_payment_failure_hours, Infinity) < 48 ? "high" : "normal"}
           locale={lang}
         />
       </section>
@@ -244,20 +250,20 @@ export default function ExecutiveDashboard({
         {/* Financial Impact Panel (2 cols) */}
         <div className="lg:col-span-2">
           <FinancialImpactPanel
-            loss_usd={headline.total_loss_usd}
-            loss_baseline_usd={headline.total_loss_usd * 1.5}
-            peak_loss_day={headline.peak_day}
-            duration_days={headline.max_recovery_days}
-            liquidity_breach_hours={banking.time_to_liquidity_breach_hours}
+            loss_usd={safeNum(headline?.total_loss_usd)}
+            loss_baseline_usd={safeNum(headline?.total_loss_usd) * 1.5}
+            peak_loss_day={safeNum(headline?.peak_day)}
+            duration_days={safeNum(headline?.max_recovery_days)}
+            liquidity_breach_hours={banking?.time_to_liquidity_breach_hours}
             sector_exposure={financial.reduce<Record<string, number>>((acc, fi) => {
               acc[fi.sector] = (acc[fi.sector] ?? 0) + fi.loss_usd;
               return acc;
             }, {})}
             severity_code={
-              data.scenario.severity >= 0.85 ? "CRITICAL"
-              : data.scenario.severity >= 0.7 ? "SEVERE"
-              : data.scenario.severity >= 0.55 ? "HIGH"
-              : data.scenario.severity >= 0.4 ? "ELEVATED"
+              safeNum(data.scenario?.severity) >= 0.85 ? "CRITICAL"
+              : safeNum(data.scenario?.severity) >= 0.7 ? "SEVERE"
+              : safeNum(data.scenario?.severity) >= 0.55 ? "HIGH"
+              : safeNum(data.scenario?.severity) >= 0.4 ? "ELEVATED"
               : "MODERATE"
             }
             locale={lang}
@@ -271,15 +277,15 @@ export default function ExecutiveDashboard({
               sector="banking"
               sectorLabel={t.banking_stress}
               sectorLabelAr={labels.ar.banking_stress}
-              score={Math.round(banking.aggregate_stress * 100)}
-              classification={banking.classification}
+              score={Math.round(safeNum(banking?.aggregate_stress) * 100)}
+              classification={banking?.classification ?? "NOMINAL"}
               indicators={[
-                `Liquidity ${((banking?.liquidity_stress ?? 0) * 100).toFixed(0)}%`,
-                `Credit ${((banking?.credit_stress ?? 0) * 100).toFixed(0)}%`,
+                `Liquidity ${safeFixed(safeNum(banking?.liquidity_stress) * 100, 0)}%`,
+                `Credit ${safeFixed(safeNum(banking?.credit_stress) * 100, 0)}%`,
               ]}
               indicatorsAr={[
-                `السيولة ${((banking?.liquidity_stress ?? 0) * 100).toFixed(0)}%`,
-                `الائتمان ${((banking?.credit_stress ?? 0) * 100).toFixed(0)}%`,
+                `السيولة ${safeFixed(safeNum(banking?.liquidity_stress) * 100, 0)}%`,
+                `الائتمان ${safeFixed(safeNum(banking?.credit_stress) * 100, 0)}%`,
               ]}
               locale={lang}
             />
@@ -289,15 +295,15 @@ export default function ExecutiveDashboard({
               sector="insurance"
               sectorLabel={t.insurance_stress}
               sectorLabelAr={labels.ar.insurance_stress}
-              score={Math.round(insurance.aggregate_stress * 100)}
-              classification={insurance.classification}
+              score={Math.round(safeNum(insurance?.aggregate_stress) * 100)}
+              classification={insurance?.classification ?? "NOMINAL"}
               indicators={[
-                `Claims ${(insurance?.claims_surge_multiplier ?? 1).toFixed(2)}x`,
-                `Combined ${((insurance?.combined_ratio ?? 0) * 100).toFixed(0)}%`,
+                `Claims ${safeFixed(safeNum(insurance?.claims_surge_multiplier, 1), 2)}x`,
+                `Combined ${safeFixed(safeNum(insurance?.combined_ratio) * 100, 0)}%`,
               ]}
               indicatorsAr={[
-                `المطالبات ${(insurance?.claims_surge_multiplier ?? 1).toFixed(2)}x`,
-                `النسبة ${((insurance?.combined_ratio ?? 0) * 100).toFixed(0)}%`,
+                `المطالبات ${safeFixed(safeNum(insurance?.claims_surge_multiplier, 1), 2)}x`,
+                `النسبة ${safeFixed(safeNum(insurance?.combined_ratio) * 100, 0)}%`,
               ]}
               locale={lang}
             />
@@ -307,15 +313,15 @@ export default function ExecutiveDashboard({
               sector="fintech"
               sectorLabel={t.fintech_stress}
               sectorLabelAr={labels.ar.fintech_stress}
-              score={Math.round(fintech.aggregate_stress * 100)}
-              classification={fintech.classification}
+              score={Math.round(safeNum(fintech?.aggregate_stress) * 100)}
+              classification={fintech?.classification ?? "NOMINAL"}
               indicators={[
-                `Payments −${(fintech?.payment_volume_impact_pct ?? 0).toFixed(1)}%`,
-                `API ${(fintech?.api_availability_pct ?? 100).toFixed(0)}% up`,
+                `Payments −${safeFixed(safeNum(fintech?.payment_volume_impact_pct), 1)}%`,
+                `API ${safeFixed(safeNum(fintech?.api_availability_pct, 100), 0)}% up`,
               ]}
               indicatorsAr={[
-                `المدفوعات −${(fintech?.payment_volume_impact_pct ?? 0).toFixed(1)}%`,
-                `الإتاحة ${(fintech?.api_availability_pct ?? 100).toFixed(0)}%`,
+                `المدفوعات −${safeFixed(safeNum(fintech?.payment_volume_impact_pct), 1)}%`,
+                `الإتاحة ${safeFixed(safeNum(fintech?.api_availability_pct, 100), 0)}%`,
               ]}
               locale={lang}
             />
@@ -339,9 +345,9 @@ export default function ExecutiveDashboard({
           )}
         </div>
         <div className="space-y-3">
-          {decisions.actions.map((action, i) => (
+          {(Array.isArray(decisions?.actions) ? decisions.actions : []).map((action, i) => (
             <div
-              key={action.id}
+              key={action.id || i}
               className="flex items-start gap-4 p-4 rounded-lg bg-io-bg border border-io-border"
             >
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-io-accent text-white flex items-center justify-center text-sm font-bold">
@@ -356,7 +362,7 @@ export default function ExecutiveDashboard({
                     <strong>{t.owner}:</strong> {action.owner}
                   </span>
                   <span>
-                    <strong>{t.priority}:</strong> {(action?.priority ?? 0).toFixed(1)}
+                    <strong>{t.priority}:</strong> {safeFixed(action?.priority, 1)}
                   </span>
                   <span>
                     <strong>{t.loss_avoided}:</strong> {formatUSD(action.loss_avoided_usd)}
@@ -368,9 +374,9 @@ export default function ExecutiveDashboard({
               </div>
               <Badge
                 level={
-                  action.urgency > 50
+                  safeNum(action.urgency) > 50
                     ? "CRITICAL"
-                    : action.urgency > 10
+                    : safeNum(action.urgency) > 10
                     ? "ELEVATED"
                     : "MODERATE"
                 }

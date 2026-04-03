@@ -41,20 +41,28 @@ const STATUS_LABELS: Record<ActionStatus, Record<string, string>> = {
   EXECUTING: { en: "Executing", ar: "\u0642\u064A\u062F \u0627\u0644\u062A\u0646\u0641\u064A\u0630" },
 };
 
-function formatLoss(usd: number): string {
-  if (usd >= 1e9) return `$${(usd / 1e9).toFixed(1)}B`;
-  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(0)}M`;
-  if (usd >= 1e3) return `$${(usd / 1e3).toFixed(0)}K`;
-  return `$${Math.round(usd)}`;
+function safeN(v: unknown, fb = 0): number {
+  if (v === null || v === undefined) return fb;
+  const n = typeof v === "number" ? v : Number(v);
+  return isFinite(n) && !isNaN(n) ? n : fb;
 }
 
-function formatPct(n: number): string {
-  return `${(n * 100).toFixed(0)}%`;
+function formatLoss(usd: unknown): string {
+  const v = safeN(usd);
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${Math.round(v)}`;
 }
 
-function formatHours(h: number): string {
-  if (h >= 24) return `${Math.round(h / 24)}d`;
-  return `${Math.round(h)}h`;
+function formatPct(n: unknown): string {
+  return `${(safeN(n) * 100).toFixed(0)}%`;
+}
+
+function formatHours(h: unknown): string {
+  const v = safeN(h, 0);
+  if (v >= 24) return `${Math.round(v / 24)}d`;
+  return `${Math.round(v)}h`;
 }
 
 export function DecisionActionCard({

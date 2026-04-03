@@ -37,7 +37,7 @@ export function VesselLayer({ vessels, selectedId }: VesselLayerProps) {
             key={vessel.id}
             id={vessel.id}
             name={vessel.name}
-            description={`${vessel.vessel_type} | ${vessel.flag_country} | Risk: ${(vessel.risk_score * 100).toFixed(0)}%`}
+            description={`${vessel.vessel_type} | ${vessel.flag_country} | Risk: ${((vessel.risk_score ?? 0) * 100).toFixed(0)}%`}
             position={Cartesian3.fromDegrees(
               vessel.position.lng,
               vessel.position.lat,

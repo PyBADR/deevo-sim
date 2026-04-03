@@ -102,7 +102,7 @@ export default function ControlRoomPage() {
                     : "text-io-success"
                 }`}
               >
-                {(stressData.overall_stress * 100).toFixed(1)}%
+                {((stressData?.overall_stress ?? 0) * 100).toFixed(1)}%
               </span>
             </div>
           )}
@@ -280,7 +280,7 @@ export default function ControlRoomPage() {
                     />
                     <span className="text-io-primary">{ev.title}</span>
                     <span className="text-io-secondary">
-                      {(ev.severity_score * 100).toFixed(0)}%
+                      {((ev.severity_score ?? 0) * 100).toFixed(0)}%
                     </span>
                   </div>
                 ))}
@@ -325,8 +325,8 @@ export default function ControlRoomPage() {
                         </span>
                       </div>
                       <div className="text-io-secondary mt-1">
-                        TIV: ${(exp.total_insured_value_usd / 1e6).toFixed(1)}M
-                        | PML: ${(exp.probable_maximum_loss_usd / 1e6).toFixed(1)}M
+                        TIV: ${((exp.total_insured_value_usd ?? 0) / 1e6).toFixed(1)}M
+                        | PML: ${((exp.probable_maximum_loss_usd ?? 0) / 1e6).toFixed(1)}M
                       </div>
                     </div>
                   ))}
@@ -353,7 +353,7 @@ export default function ControlRoomPage() {
                     <div>
                       <span className="text-io-secondary">Value: </span>
                       <span className="text-io-primary">
-                        ${(claimsSurgeData.projected_claims_value_usd / 1e6).toFixed(1)}M
+                        ${((claimsSurgeData.projected_claims_value_usd ?? 0) / 1e6).toFixed(1)}M
                       </span>
                     </div>
                     <div>

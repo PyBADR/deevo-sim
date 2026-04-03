@@ -14,6 +14,7 @@
 import React from "react";
 import type { BankingStress, Classification, Language } from "@/types/observatory";
 import { StressGauge } from "@/components/StressGauge";
+import { safeFixed, safeNum } from "@/lib/format";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -33,11 +34,12 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
+function formatUSD(value: number | null | undefined): string {
+  const v = safeNum(value);
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
 }
 
 function formatHours(hours: number): string {
@@ -48,8 +50,8 @@ function formatHours(hours: number): string {
   return `${Math.round(hours)}h`;
 }
 
-function StressBar({ value, label, color }: { value: number; label: string; color: string }) {
-  const pct = Math.min(value * 100, 100);
+function StressBar({ value, label, color }: { value: number | null | undefined; label: string; color: string }) {
+  const pct = Math.min(safeNum(value) * 100, 100);
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
@@ -235,13 +237,13 @@ export default function BankingDetailPanel({
                   <td className="py-2.5 text-io-secondary">{inst.country}</td>
                   <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(inst.exposure_usd)}</td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={inst.stress > 0.6 ? "text-io-danger font-semibold" : inst.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
-                      {(inst.stress * 100).toFixed(1)}%
+                    <span className={safeNum(inst.stress) > 0.6 ? "text-io-danger font-semibold" : safeNum(inst.stress) > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                      {safeFixed(safeNum(inst.stress) * 100, 1)}%
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={inst.projected_car_pct < 10 ? "text-io-danger font-semibold" : "text-io-primary"}>
-                      {inst.projected_car_pct.toFixed(1)}%
+                    <span className={safeNum(inst.projected_car_pct) < 10 ? "text-io-danger font-semibold" : "text-io-primary"}>
+                      {safeFixed(inst.projected_car_pct, 1)}%
                     </span>
                   </td>
                 </tr>

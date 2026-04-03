@@ -16,11 +16,12 @@ interface FinancialImpactPanelProps {
   locale: "en" | "ar";
 }
 
-function formatLoss(usd: number): string {
-  if (usd >= 1e9) return `$${(usd / 1e9).toFixed(1)}B`;
-  if (usd >= 1e6) return `$${(usd / 1e6).toFixed(0)}M`;
-  if (usd >= 1e3) return `$${(usd / 1e3).toFixed(0)}K`;
-  return `$${Math.round(usd)}`;
+function formatLoss(usd: number | null | undefined): string {
+  const v = (usd === null || usd === undefined || !isFinite(usd)) ? 0 : usd;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
+  return `$${Math.round(v)}`;
 }
 
 function formatHours(h: number): string {

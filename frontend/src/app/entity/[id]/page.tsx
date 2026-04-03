@@ -108,14 +108,14 @@ export default function EntityDetailPage() {
                 ? "#B45309"
                 : "#15803D"
             }}>
-              {(entity.risk_score.composite_score * 100).toFixed(1)}
+              {((entity.risk_score?.composite_score ?? 0) * 100).toFixed(1)}
             </div>
             <div>
               <div className="text-xs text-io-secondary">
                 {isAr ? "المخاطر المركبة" : "Composite Risk Score"}
               </div>
               <div className="text-[10px] text-io-secondary">
-                {isAr ? "الثقة" : "Confidence"}: {(entity.risk_score.confidence * 100).toFixed(0)}%
+                {isAr ? "الثقة" : "Confidence"}: {((entity.risk_score?.confidence ?? 0) * 100).toFixed(0)}%
               </div>
             </div>
           </div>
@@ -182,7 +182,7 @@ export default function EntityDetailPage() {
                     >
                       <span className="text-io-secondary">{d.factor}</span>
                       <span className="text-io-primary">
-                        {(d.contribution * 100).toFixed(1)}%
+                        {((d.contribution ?? 0) * 100).toFixed(1)}%
                       </span>
                     </div>
                   ))}
@@ -210,7 +210,7 @@ export default function EntityDetailPage() {
                     : "#15803D",
               }}
             >
-              {(entity.disruption_score.score * 100).toFixed(1)}
+              {((entity.disruption_score?.score ?? 0) * 100).toFixed(1)}
             </div>
             {entity.disruption_score.factors.length > 0 && (
               <div className="space-y-1">
@@ -221,7 +221,7 @@ export default function EntityDetailPage() {
                   >
                     <span className="text-io-secondary">{f.name}</span>
                     <span className="text-io-primary font-mono">
-                      {(f.contribution * 100).toFixed(1)}%
+                      {((f.contribution ?? 0) * 100).toFixed(1)}%
                     </span>
                   </div>
                 ))}
@@ -241,7 +241,7 @@ export default function EntityDetailPage() {
                     {isAr ? "القيمة المؤمنة" : "Total Insured Value"}
                   </span>
                   <span className="text-io-primary font-mono">
-                    ${(entity.insurance_exposure.total_insured_value_usd / 1e6).toFixed(1)}M
+                    ${((entity.insurance_exposure?.total_insured_value_usd ?? 0) / 1e6).toFixed(1)}M
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -249,7 +249,7 @@ export default function EntityDetailPage() {
                     {isAr ? "أقصى خسارة محتملة" : "Probable Max Loss"}
                   </span>
                   <span className="text-io-primary font-mono">
-                    ${(entity.insurance_exposure.probable_maximum_loss_usd / 1e6).toFixed(1)}M
+                    ${((entity.insurance_exposure?.probable_maximum_loss_usd ?? 0) / 1e6).toFixed(1)}M
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -284,7 +284,7 @@ export default function EntityDetailPage() {
                       <span className="text-io-secondary">{lob.line}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-io-secondary">
-                          LR: {(lob.loss_ratio * 100).toFixed(0)}%
+                          LR: {((lob.loss_ratio ?? 0) * 100).toFixed(0)}%
                         </span>
                         <span
                           className={
@@ -333,7 +333,7 @@ export default function EntityDetailPage() {
                       </span>
                     </div>
                     <span className="text-io-accent font-mono">
-                      {ce.weight.toFixed(2)}
+                      {(ce.weight ?? 0).toFixed(2)}
                     </span>
                   </Link>
                 ))}

@@ -179,7 +179,7 @@ export default function GraphExplorerPage() {
                     className="font-bold"
                     style={{ color: riskColor(selectedNode.risk_score) }}
                   >
-                    {(selectedNode.risk_score * 100).toFixed(1)}%
+                    {((selectedNode.risk_score ?? 0) * 100).toFixed(1)}%
                   </div>
                 </div>
               </div>
@@ -216,7 +216,7 @@ export default function GraphExplorerPage() {
                               {e.edge_type}
                             </span>
                             <span className="text-io-accent font-mono">
-                              {e.weight.toFixed(2)}
+                              {(e.weight ?? 0).toFixed(2)}
                             </span>
                           </div>
                         </div>
@@ -254,7 +254,7 @@ export default function GraphExplorerPage() {
                   >
                     <span className="text-io-primary">{cp.name}</span>
                     <span className="text-io-warning font-mono">
-                      {cp.betweenness_centrality.toFixed(3)}
+                      {(cp.betweenness_centrality ?? 0).toFixed(3)}
                     </span>
                   </div>
                 ))}

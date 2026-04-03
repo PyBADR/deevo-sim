@@ -16,6 +16,7 @@
 import React from "react";
 import type { InsuranceStress, Classification, Language } from "@/types/observatory";
 import { StressGauge } from "@/components/StressGauge";
+import { safeFixed, safeNum } from "@/lib/format";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -35,11 +36,12 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
+function formatUSD(value: number | null | undefined): string {
+  const v = safeNum(value);
+  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
+  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+  return `$${v.toLocaleString()}`;
 }
 
 function formatHours(hours: number): string {
@@ -50,17 +52,18 @@ function formatHours(hours: number): string {
   return `${Math.round(hours)}h`;
 }
 
-function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number; label: string; threshold: number; thresholdLabel: string }) {
-  const pct = Math.min(value * 100, 150);
+function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number | null | undefined; label: string; threshold: number; thresholdLabel: string }) {
+  const safeValue = safeNum(value);
+  const pct = Math.min(safeValue * 100, 150);
   const thresholdPct = Math.min(threshold * 100, 150);
-  const isBreached = value >= threshold;
+  const isBreached = safeValue >= threshold;
 
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
         <span className="text-io-secondary font-medium">{label}</span>
         <span className={`font-semibold ${isBreached ? "text-io-danger" : "text-io-primary"}`}>
-          {(value * 100).toFixed(1)}%
+          {safeFixed(safeValue * 100, 1)}%
         </span>
       </div>
       <div className="relative h-3 bg-io-bg rounded-full overflow-visible">
@@ -75,7 +78,7 @@ function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number
           title={thresholdLabel}
         />
       </div>
-      <p className="text-xs text-io-secondary">{thresholdLabel}: {(threshold * 100).toFixed(0)}%</p>
+      <p className="text-xs text-io-secondary">{thresholdLabel}: {safeFixed(threshold * 100, 0)}%</p>
     </div>
   );
 }
@@ -250,13 +253,13 @@ export default function InsuranceDetailPanel({
                   </td>
                   <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(line.exposure_usd)}</td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={line.claims_surge > 2 ? "text-io-danger font-semibold" : line.claims_surge > 1.5 ? "text-io-warning" : "text-io-primary"}>
-                      {line.claims_surge.toFixed(2)}x
+                    <span className={safeNum(line.claims_surge) > 2 ? "text-io-danger font-semibold" : safeNum(line.claims_surge) > 1.5 ? "text-io-warning" : "text-io-primary"}>
+                      {safeFixed(line.claims_surge, 2)}x
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={line.stress > 0.6 ? "text-io-danger font-semibold" : line.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
-                      {(line.stress * 100).toFixed(1)}%
+                    <span className={safeNum(line.stress) > 0.6 ? "text-io-danger font-semibold" : safeNum(line.stress) > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                      {safeFixed(safeNum(line.stress) * 100, 1)}%
                     </span>
                   </td>
                 </tr>

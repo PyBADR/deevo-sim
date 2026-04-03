@@ -374,7 +374,7 @@ export default function HomePage() {
                         {scenario.loss}
                       </span>
                       <span className="text-io-secondary">
-                        Severity: {(scenario.severity * 100).toFixed(0)}%
+                        Severity: {((scenario.severity ?? 0) * 100).toFixed(0)}%
                       </span>
                     </div>
                   </div>
