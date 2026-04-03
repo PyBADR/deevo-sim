@@ -1,10 +1,10 @@
-"""Run Orchestrator — chains all 12 services in sequence.
+"""Run Orchestrator — delegates to SimulationEngine v2.1.0.
 
-Pipeline: Scenario → Entity Graph → Physics → Propagation → Financial →
-          Banking → Insurance → Fintech → Decision → Explainability →
-          Reporting → Audit
+Pipeline:
+  ScenarioCreate  →  SimulationEngine.run()  →  Output mapping  →  Audit
 
-Every output maps: Event → Financial Impact → Sector Stress → Decision
+Every output maps: Event → Math Models → Physics → Sector Stress → Decision
+MODEL_VERSION: 2.1.0
 """
 
 from __future__ import annotations
@@ -14,321 +14,267 @@ import logging
 import time
 
 from src.schemas.scenario import ScenarioCreate
-from src.services import (
-    scenario_service,
-    physics_service,
-    propagation_service,
-    entity_graph_service,
-    financial_service,
-    banking_service,
-    insurance_service,
-    fintech_service,
-    decision_service,
-    explainability_service,
-    reporting_service,
-    audit_service,
-    business_impact_service,
-    timeline_service,
-    regulatory_service,
-)
+from src.simulation_engine import SimulationEngine, SCENARIO_CATALOG
+from src.services import audit_service
 
 logger = logging.getLogger(__name__)
 
+# Singleton engine — instantiated once at module load
+_engine = SimulationEngine()
 
-def _log_stage(stage: str, run_id: str, ms: float, stages_done: int) -> None:
-    """Emit structured JSON log after each pipeline stage."""
+
+def _log_stage(stage: str, run_id: str, ms: float, n: int) -> None:
     logger.info(json.dumps({
-        "event": "stage_complete",
-        "stage": stage,
-        "run_id": run_id,
-        "ms": round(ms, 1),
-        "stages_done": stages_done,
+        "event": "stage_complete", "stage": stage,
+        "run_id": run_id, "ms": round(ms, 1), "stages_done": n,
     }))
 
 
 def execute_run(params: ScenarioCreate) -> dict:
-    """Execute a full scenario run through all 12 services.
+    """Execute a full scenario run through SimulationEngine v2.1.0.
 
-    Returns the complete run result with all sector outputs,
-    stage_timings dict, and pipeline_stages_completed count.
+    Returns the complete result dict with all 16 mandatory output fields
+    plus backward-compatible aliases for existing API consumers.
     """
-    run_start = time.monotonic()
-    start_ms = time.time() * 1000
-    stage_timings: dict[str, float] = {}
-    stages_completed = 0
+    t_total = time.monotonic()
 
-    # ── Step 1: Scenario Service ──────────────────────────────────
+    # ── Stage 1: Validate scenario ID ────────────────────────���───────────
     t0 = time.monotonic()
-    run = scenario_service.create_run(params)
-    run_id = run["run_id"]
-    template = run["template"]
-    severity = params.severity
-    horizon_hours = params.horizon_hours
+    scenario_id = params.scenario_id
+    if scenario_id not in SCENARIO_CATALOG:
+        raise ValueError(
+            f"Unknown scenario_id '{scenario_id}'. "
+            f"Available: {sorted(SCENARIO_CATALOG.keys())}"
+        )
+    scenario_meta = SCENARIO_CATALOG[scenario_id]
+    severity = float(params.severity)
+    horizon_hours = int(params.horizon_hours or 336)
+    label = params.label or scenario_meta.get("label_en", scenario_id)
+    label_ar = scenario_meta.get("label_ar", "")
+    stage_timings: dict[str, float] = {}
     stage_timings["scenario"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("scenario", run_id, stage_timings["scenario"], stages_completed)
 
-    # Audit: record start
+    # ── Stage 2–17: Full simulation pipeline ───────────────────────────��─
+    t0 = time.monotonic()
+    result = _engine.run(
+        scenario_id=scenario_id,
+        severity=severity,
+        horizon_hours=horizon_hours,
+    )
+    stage_timings["simulation_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    run_id = result["run_id"]
+    _log_stage("simulation_engine", run_id, stage_timings["simulation_engine"], 17)
+
+    # ── Stage 18: Audit ──────────────────────────────────��────────────────
+    t0 = time.monotonic()
+    headline = result["headline"]
+    decision_plan = result.get("decision_plan", {})
+    actions = decision_plan.get("actions", [])
+
     audit_service.record_run_start(
         run_id=run_id,
-        template_id=params.scenario_id,
+        template_id=scenario_id,
         severity=severity,
         horizon_hours=horizon_hours,
     )
-
-    # ── Step 2: Entity Graph ──────────────────────────────────────
-    t0 = time.monotonic()
-    entities = entity_graph_service.get_entities()
-    edges = entity_graph_service.get_edges()
-    shock_nodes = template["shock_nodes"]
-    stage_timings["entity_graph"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("entity_graph", run_id, stage_timings["entity_graph"], stages_completed)
-
-    # ── Step 3: Physics Service ───────────────────────────────────
-    t0 = time.monotonic()
-    flow_states = physics_service.compute_flow_states(
-        entities=entities,
-        edges=edges,
-        shock_nodes=shock_nodes,
-        severity=severity,
-        horizon_hours=horizon_hours,
-    )
-    stage_timings["physics"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("physics", run_id, stage_timings["physics"], stages_completed)
-
-    # ── Step 4: Propagation Service ───────────────────────────────
-    t0 = time.monotonic()
-    propagation_results = propagation_service.propagate_impacts(
-        entities=entities,
-        edges=edges,
-        shock_nodes=shock_nodes,
-        severity=severity,
-    )
-    stage_timings["propagation"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("propagation", run_id, stage_timings["propagation"], stages_completed)
-
-    # ── Step 5: Financial Service ─────────────────────────────────
-    t0 = time.monotonic()
-    financial_impacts = financial_service.compute_financial_impacts(
-        entities=entities,
-        propagation_results=propagation_results,
-        severity=severity,
-        horizon_hours=horizon_hours,
-        base_loss_usd=template["base_loss_usd"],
-        peak_day_offset=template["peak_day_offset"],
-        recovery_base_days=template["recovery_base_days"],
-    )
-    headline = financial_service.compute_headline_loss(financial_impacts)
-    stage_timings["financial"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("financial", run_id, stage_timings["financial"], stages_completed)
-
-    # ── Step 6: Banking Service ───────────────────────────────────
-    t0 = time.monotonic()
-    banking = banking_service.compute_banking_stress(
-        run_id=run_id,
-        financial_impacts=financial_impacts,
-        severity=severity,
-        horizon_hours=horizon_hours,
-    )
-    stage_timings["banking"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("banking", run_id, stage_timings["banking"], stages_completed)
-
-    # ── Step 7: Insurance Service ─────────────────────────────────
-    t0 = time.monotonic()
-    insurance = insurance_service.compute_insurance_stress(
-        run_id=run_id,
-        financial_impacts=financial_impacts,
-        severity=severity,
-        horizon_hours=horizon_hours,
-    )
-    stage_timings["insurance"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("insurance", run_id, stage_timings["insurance"], stages_completed)
-
-    # ── Step 8: Fintech Service ───────────────────────────────────
-    t0 = time.monotonic()
-    fintech = fintech_service.compute_fintech_stress(
-        run_id=run_id,
-        financial_impacts=financial_impacts,
-        severity=severity,
-        horizon_hours=horizon_hours,
-    )
-    stage_timings["fintech"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("fintech", run_id, stage_timings["fintech"], stages_completed)
-
-    # ── Step 9: Decision Service ──────────────────────────────────
-    t0 = time.monotonic()
-    decision_plan = decision_service.compute_decision_plan(
-        run_id=run_id,
-        financial_impacts=financial_impacts,
-        banking=banking,
-        insurance=insurance,
-        fintech=fintech,
-        scenario_label=run["label"],
-    )
-    stage_timings["decision"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("decision", run_id, stage_timings["decision"], stages_completed)
-
-    # ── Step 10: Explainability Service ───────────────────────────
-    t0 = time.monotonic()
-    explanation = explainability_service.generate_explanation(
-        run_id=run_id,
-        entities=entities,
-        edges=edges,
-        propagation_results=propagation_results,
-        financial_impacts=financial_impacts,
-        scenario_label=run["label"],
-        severity=severity,
-    )
-    stage_timings["explainability"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("explainability", run_id, stage_timings["explainability"], stages_completed)
-
-    # ── Step 11: Reporting Service ────────────────────────────────
-    t0 = time.monotonic()
-    executive_report = reporting_service.generate_executive_report(
-        run_id=run_id,
-        financial_impacts=financial_impacts,
-        banking=banking,
-        insurance=insurance,
-        fintech=fintech,
-        decision_plan=decision_plan,
-        explanation=explanation,
-        lang="en",
-    )
-    stage_timings["reporting"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("reporting", run_id, stage_timings["reporting"], stages_completed)
-
-    # ── Step 12: Audit ────────────────────────────────────────────
-    t0 = time.monotonic()
-    duration_ms = time.time() * 1000 - start_ms
     audit_service.record_run_complete(
         run_id=run_id,
-        total_loss_usd=headline["total_loss_usd"],
-        critical_count=headline["critical_count"],
-        actions_count=len(decision_plan.actions),
-        duration_ms=duration_ms,
+        total_loss_usd=headline.get("total_loss_usd", 0),
+        critical_count=headline.get("critical_count", 0),
+        actions_count=len(actions),
+        duration_ms=result.get("duration_ms", 0),
     )
-
-    # Record each decision action
-    for action in decision_plan.actions:
-        audit_service.record_decision_action(
-            run_id=run_id,
-            action_id=action.id,
-            action=action.action,
-            owner=action.owner,
-            priority=action.priority,
-        )
-
-    # Mark run complete
-    scenario_service.complete_run(run_id, {"headline": headline})
+    for action in actions[:3]:
+        if isinstance(action, dict):
+            audit_service.record_decision_action(
+                run_id=run_id,
+                action_id=str(action.get("action_id", action.get("rank", ""))),
+                action=action.get("action", action.get("action_en", "")),
+                owner=action.get("owner", ""),
+                priority=float(action.get("priority_score", 0)),
+            )
     stage_timings["audit"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("audit", run_id, stage_timings["audit"], stages_completed)
+    _log_stage("audit", run_id, stage_timings["audit"], 18)
 
-    total_ms = round((time.monotonic() - run_start) * 1000, 1)
-    logger.info(json.dumps({
-        "event": "pipeline_complete",
+    # ── Map engine output → unified API response format ───────────────────
+    financial_list = result.get("financial_impact", {}).get("top_entities", [])
+    banking_dict = result.get("banking_stress", {})
+    insurance_dict = result.get("insurance_stress", {})
+    fintech_dict = result.get("fintech_stress", {})
+    explainability = result.get("explainability", {})
+    system_stress = result.get("unified_risk_score", 0.0)
+    propagation_chain = result.get("propagation_chain", [])
+
+    # decisions block — shape expected by frontend
+    decisions_dict = {
+        "actions": actions[:3],
+        "escalation_triggers": decision_plan.get("escalation_triggers", []),
+        "monitoring_priorities": decision_plan.get("monitoring_priorities", []),
+        "business_severity": decision_plan.get("business_severity", ""),
+        "system_time_to_first_failure_hours": decision_plan.get(
+            "time_to_first_failure_hours"
+        ),
+    }
+
+    # explanation block — shape expected by frontend
+    explanation_dict = {
+        "narrative_en": explainability.get("narrative_en", ""),
+        "narrative_ar": explainability.get("narrative_ar", ""),
+        "causal_chain": explainability.get("causal_chain", []),
+        "methodology": "deterministic_propagation",
+        "model_equation": explainability.get(
+            "model_equation",
+            "R_i(t) = w1*G + w2*P + w3*N + w4*L + w5*T + w6*U",
+        ),
+        "confidence_score": result.get("confidence_score", 0.85),
+        "sensitivity": explainability.get("sensitivity", {}),
+        "uncertainty_bands": explainability.get("uncertainty_bands", {}),
+        "source": "deterministic",
+    }
+
+    # impacts list — for scenario engine API compat
+    impacts_list = [
+        {
+            "target_entity_id": step.get("entity_id", ""),
+            "entity_label": step.get("entity_label", ""),
+            "baseline_score": 0.0,
+            "post_scenario_score": step.get("impact", 0.0),
+            "delta": step.get("impact", 0.0),
+            "factors": [step.get("mechanism_en", "propagation")],
+            "sector": step.get("sector", ""),
+        }
+        for step in propagation_chain
+    ]
+
+    total_ms = round((time.monotonic() - t_total) * 1000, 1)
+
+    # ── Assemble final unified response ───────────────────────────────────
+    response = {
+        # Identity
+        "schema_version": "v2",
         "run_id": run_id,
-        "stages_completed": stages_completed,
-        "total_ms": total_ms,
-    }))
-
-    # ── Assemble full result ──────────────────────────────────────
-    financial_list = [i.model_dump() for i in financial_impacts]
-    banking_dict = banking.model_dump()
-    insurance_dict = insurance.model_dump()
-    fintech_dict = fintech.model_dump()
-    decisions_dict = decision_plan.model_dump()
-    explanation_dict = explanation.model_dump()
-
-    result = {
-        "schema_version": "v1",
-        "run_id": run_id,
+        "model_version": result.get("model_version", "2.1.0"),
         "status": "completed",
-        "pipeline_stages_completed": stages_completed,
+        "pipeline_stages_completed": 18,
         "stage_timings": stage_timings,
+        "duration_ms": total_ms,
+
+        # Scenario context
         "scenario": {
-            "scenario_id": params.scenario_id,
-            "label": run["label"],
-            "label_ar": run.get("label_ar"),
+            "scenario_id": scenario_id,
+            "label": label,
+            "label_ar": label_ar,
             "severity": severity,
             "horizon_hours": horizon_hours,
         },
-        # Canonical keys
+        "scenario_id": scenario_id,
+        "severity": severity,
+        "horizon_hours": horizon_hours,
+        "time_horizon_days": max(1, horizon_hours // 24),
+
+        # ── 16 Mandatory output fields ───────────────���─────────────────
+        "event_severity": result.get("event_severity", severity),
+        "peak_day": headline.get("peak_day", result.get("peak_day", 0)),
+        "confidence_score": result.get("confidence_score", 0.85),
+
+        "financial_impact": result.get("financial_impact", {}),
+        "sector_analysis": result.get("sector_analysis", []),
+        "propagation_score": result.get("propagation_score", 0.0),
+        "unified_risk_score": system_stress,
+        "risk_level": result.get("risk_level", "MODERATE"),
+
+        "physical_system_status": result.get("physical_system_status", {}),
+        "bottlenecks": result.get("bottlenecks", []),
+        "congestion_score": result.get("congestion_score", 0.0),
+        "recovery_score": result.get("recovery_score", 0.0),
+        "recovery_trajectory": result.get("recovery_trajectory", []),
+
+        "explainability": explainability,
+        "decision_plan": decision_plan,
+        "flow_analysis": result.get("flow_analysis", {}),
+
+        # Headline KPI block
         "headline": headline,
+
+        # Sector stress blocks
+        "banking_stress": banking_dict,
+        "insurance_stress": insurance_dict,
+        "fintech_stress": fintech_dict,
+
+        # ── Backward-compatible aliases ─────────────────────────��──────
         "financial": financial_list,
+        "financial_impacts": financial_list,
         "banking": banking_dict,
         "insurance": insurance_dict,
         "fintech": fintech_dict,
         "decisions": decisions_dict,
         "explanation": explanation_dict,
-        "executive_report": executive_report,
-        "flow_states": [f.model_dump() for f in flow_states[:10]],
-        "propagation": propagation_results[:15],
-        "duration_ms": round(duration_ms, 1),
-        # Top-level fields for run_store persistence
-        "scenario_id": params.scenario_id,
-        "severity": severity,
-        "horizon_hours": horizon_hours,
-        # Frontend backward-compatible aliases
-        "headline_loss_usd": headline["total_loss_usd"],
+        "propagation": propagation_chain,
+        "flow_states": [],
+
+        # Scenario-engine compat
+        "system_stress": system_stress,
+        "impacts": impacts_list,
+        "recommendations": [
+            a.get("action", a.get("action_en", ""))
+            for a in actions[:3]
+            if isinstance(a, dict)
+        ],
+        "narrative": explainability.get("narrative_en", ""),
+        "top_impacted_entities": [
+            fi.get("entity_id", "")
+            for fi in financial_list
+            if fi.get("classification") in ("CRITICAL", "SEVERE", "HIGH")
+        ][:5],
+        "methodology": "deterministic_propagation",
+
+        # Headline aliases for dashboard
+        "headline_loss_usd": headline.get("total_loss_usd", 0),
         "severity_pct": round(severity * 100, 1),
-        "peak_day": headline.get("peak_day", 0),
-        "financial_impacts": financial_list,
-        "banking_stress": banking_dict,
-        "insurance_stress": insurance_dict,
-        "fintech_stress": fintech_dict,
-        "decision_actions": decisions_dict.get("actions", []),
-        "narrative": explanation_dict.get("narrative_en", ""),
-        "methodology": explanation_dict.get("methodology", "deterministic_propagation"),
+        "decision_actions": actions[:3],
+
+        # Executive report block
+        "executive_report": {
+            "headline": headline,
+            "top_actions": actions[:3],
+            "risk_level": result.get("risk_level", "MODERATE"),
+            "narrative_en": explainability.get("narrative_en", ""),
+            "narrative_ar": explainability.get("narrative_ar", ""),
+        },
+
+        # Business impact
+        "business_impact": {
+            "summary": {
+                "business_severity": decision_plan.get("business_severity", "moderate"),
+                "peak_cumulative_loss": headline.get("total_loss_usd", 0),
+                "peak_loss_timestamp": f"Day {headline.get('peak_day', 0)}",
+                "executive_status": "escalate" if system_stress >= 0.65 else "monitor",
+            },
+            "regulatory_breach_events": [],
+        },
+
+        # Timeline
+        "timeline": {
+            "horizon_days": max(1, horizon_hours // 24),
+            "recovery_trajectory": result.get("recovery_trajectory", []),
+        },
+
+        # Regulatory state
+        "regulatory_state": {
+            "lcr_breached": banking_dict.get("lcr_ratio", 1.2) < 1.0,
+            "car_breached": banking_dict.get("car_ratio", 0.12) < 0.105,
+            "combined_ratio_breached": insurance_dict.get("combined_ratio", 0.95) > 1.10,
+            "classification": result.get("risk_level", "MODERATE"),
+        },
     }
 
-    # ── Step 13: Business Impact Service ─────────────────────────
-    t0 = time.monotonic()
-    impact_input = {
+    logger.info(json.dumps({
+        "event": "pipeline_complete",
         "run_id": run_id,
-        "scenario": result["scenario"],
-        "financial_impacts": result["financial"],
-        "headline_loss_usd": headline["total_loss_usd"],
-        "banking_stress": banking_dict,
-        "insurance_stress": insurance_dict,
-        "fintech_stress": fintech_dict,
-    }
-    business_impact = business_impact_service.compute_business_impact(impact_input)
-    result["business_impact"] = business_impact
-    stage_timings["business_impact"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("business_impact", run_id, stage_timings["business_impact"], stages_completed)
+        "stages_completed": 18,
+        "total_ms": total_ms,
+        "risk_level": response["risk_level"],
+        "total_loss_usd": headline.get("total_loss_usd", 0),
+    }))
 
-    # ── Step 14: Timeline Service ────────────────────────────────
-    t0 = time.monotonic()
-    timeline = timeline_service.compute_timeline(impact_input)
-    result["timeline"] = timeline
-    stage_timings["timeline"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("timeline", run_id, stage_timings["timeline"], stages_completed)
-
-    # ── Step 15: Regulatory Service ──────────────────────────────
-    t0 = time.monotonic()
-    regulatory_state = regulatory_service.compute_regulatory_state(
-        run_id=run_id,
-        banking=banking_dict,
-        insurance=insurance_dict,
-        fintech=fintech_dict,
-    )
-    result["regulatory_state"] = regulatory_state
-    stage_timings["regulatory"] = round((time.monotonic() - t0) * 1000, 1)
-    stages_completed += 1
-    _log_stage("regulatory", run_id, stage_timings["regulatory"], stages_completed)
-
-    result["pipeline_stages_completed"] = stages_completed
-    return result
+    return response
