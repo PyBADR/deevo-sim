@@ -589,3 +589,17 @@ export interface RunSummary {
   created_at: string | null;
   duration_ms: number | null;
 }
+
+/** A single GCC infrastructure node from GET /api/v1/nodes. */
+export interface GccNode {
+  id: string;
+  label: string;
+  label_ar: string;
+  sector: string;
+  lat: number;
+  lng: number;
+  capacity: number;
+  criticality: number;
+  current_load: number;
+  redundancy: number;
+}

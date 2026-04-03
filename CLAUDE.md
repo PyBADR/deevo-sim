@@ -85,6 +85,7 @@ frontend/src/types/observatory.ts ← TypeScript interfaces (aligned to Pydantic
 | `backend/src/config.py` | All formula weights + constants |
 | `backend/src/services/run_orchestrator.py` | Pipeline + persistence |
 | `backend/src/api/v1/runs.py` | Main API routes (71 total) |
+| `backend/src/api/v1/nodes.py` | GET /api/v1/nodes — GCC node registry (42 nodes, lat/lng for globe) |
 | `frontend/src/types/observatory.ts` | TypeScript interfaces |
 | `frontend/src/lib/api.ts` | API client |
 | `frontend/src/hooks/use-api.ts` | React data hooks |

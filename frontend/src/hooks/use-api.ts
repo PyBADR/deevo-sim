@@ -167,3 +167,12 @@ export function useRunResult(runId: string | null) {
     staleTime: 30_000,
   });
 }
+
+// ---- GCC Node Registry (static — stale-time = Infinity) ----
+export function useGccNodes() {
+  return useQuery({
+    queryKey: ["gcc-nodes"],
+    queryFn: () => api.observatory.nodes(),
+    staleTime: Infinity, // nodes never change
+  });
+}

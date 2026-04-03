@@ -21,7 +21,7 @@ import StressGauge from "@/components/StressGauge";
 import DecisionActionCard from "@/components/DecisionActionCard";
 import FinancialImpactPanel from "@/components/FinancialImpactPanel";
 import type { RunResult, Language } from "@/types/observatory";
-import { useRunsList } from "@/hooks/use-api";
+import { useRunsList, useGccNodes } from "@/hooks/use-api";
 import type { RunSummary } from "@/types/observatory";
 import { safeNum } from "@/lib/format";
 
@@ -250,8 +250,17 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedScenario, setSelectedScenario] = useState(SCENARIOS[0].id);
   const [locale, setLocale] = useState<Language>("en");
-  const [gccEntities, setGccEntities] = useState<any[]>([]);
   const { data: runsHistory } = useRunsList({ limit: 10 });
+  const { data: nodesData } = useGccNodes();
+
+  // Map GCC nodes to the GraphNode shape expected by ImpactGlobe (latitude/longitude + required fields)
+  const gccEntities = (nodesData?.nodes ?? []).map((n) => ({
+    ...n,
+    latitude: n.lat,
+    longitude: n.lng,
+    type: n.sector,
+    risk_score: n.criticality,
+  }));
 
   const runScenario = useCallback(async (scenarioId: string) => {
     setLoading(true);
@@ -274,13 +283,6 @@ export default function DashboardPage() {
       const rawResult: Record<string, unknown> = await res.json();
       const result = normalizeRunResult(rawResult);
       setData(result);
-      // Fetch GCC entities for the globe
-      fetch(`${API_BASE}/api/v1/graph/nodes?limit=200`, {
-        headers: { "X-API-Key": "observatory-dev-key" },
-      })
-        .then((r) => r.json())
-        .then((d) => setGccEntities(d.nodes || []))
-        .catch(() => {});
     } catch (err) {
       setError(err instanceof Error ? err.message : "Pipeline unavailable");
     } finally {

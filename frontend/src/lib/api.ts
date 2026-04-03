@@ -17,7 +17,7 @@ import type {
   GraphNode,
   GraphEdge,
 } from "@/types";
-import type { RunSummary } from "@/types/observatory";
+import type { RunSummary, GccNode } from "@/types/observatory";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -280,6 +280,11 @@ export const api = {
     /** Export a run as a PDF report. Returns a blob URL for download. */
     exportPdf: (runId: string, mode: "executive" | "analyst" | "regulatory" = "executive", lang: string = "en") =>
       `${BASE}/api/v1/runs/${runId}/report/${mode}/pdf?lang=${lang}`,
+
+    /** Return the static GCC node registry (42 nodes with lat/lng).
+     *  Stale-time = Infinity — nodes never move. Used for globe/map rendering. */
+    nodes: () =>
+      fetchAuthJSON<{ nodes: GccNode[]; count: number }>("/api/v1/nodes"),
   },
 
   // ---- Runs List (v1) ----

@@ -30,6 +30,7 @@ from src.api.routes.vessels import router as vessels_router
 from src.api.v1.scenarios import router as v1_scenarios_router
 from src.api.v1.runs import router as v1_runs_router
 from src.api.v1.auth import router as v1_auth_router
+from src.api.v1.nodes import router as v1_nodes_router
 
 from src.core.config import settings
 from src.services.state import init_state
@@ -185,6 +186,7 @@ api_v1.include_router(decision_router)
 # ── Impact Observatory v1 core endpoints ─────────────────────────────────
 api_v1.include_router(v1_scenarios_router)
 api_v1.include_router(v1_runs_router)
+api_v1.include_router(v1_nodes_router)
 
 # ── Auth endpoints — no API key required ─────────────────────────────────
 app.include_router(v1_auth_router, prefix="/api/v1")
