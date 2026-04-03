@@ -1,1 +1,0 @@
-# Reporting Service — Impact Observatory
