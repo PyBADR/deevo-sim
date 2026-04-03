@@ -686,6 +686,7 @@ class SimulationEngine:
             liquidity_stress=liquidity_stress["aggregate_stress"],
             insurance_stress=insurance_stress["severity_index"],
             sector_exposure=sector_exposure,
+            event_severity=event_severity,
         )
         risk_level = unified_risk["risk_level"]
 

@@ -2,8 +2,12 @@
 Impact Observatory | مرصد الأثر
 Risk Models — pure mathematical functions, no side-effects, no I/O.
 
-All models are deterministic given the same inputs. Equations documented
-inline and in METHODOLOGY.md.
+All weights imported from src.config. All models are deterministic
+given the same inputs. Equations documented inline and in METHODOLOGY.md.
+
+PROHIBITED: Do not import from physics_intelligence_layer, decision_layer,
+            explainability, flow_models, or main.
+OWNED BY:   This module owns all financial/sector/risk mathematics.
 """
 from __future__ import annotations
 
@@ -13,34 +17,38 @@ from typing import Literal
 import numpy as np
 
 from src.utils import clamp, classify_stress, weighted_average
+from src.config import (
+    # Event severity
+    ES_W1, ES_W2, ES_W3, ES_W4, ES_MAX_SHOCK_NODES,
+    # Sector exposure
+    SECTOR_ALPHA, EXPOSURE_V_DIRECT, EXPOSURE_V_INDIRECT,
+    EXPOSURE_V_SECOND_HOP, EXPOSURE_V_DEFAULT,
+    # Propagation
+    PROP_BETA, PROP_LAMBDA, PROP_CUTOFF,
+    # Liquidity stress
+    LSI_L1, LSI_L2, LSI_L3, LSI_L4,
+    LSI_BASE_OUTFLOW_RATE, LSI_BANKING_OUTFLOW_COEFF, LSI_FINTECH_OUTFLOW_COEFF,
+    LSI_SOVEREIGN_BUFFER, LSI_CAR_BASE, LSI_LCR_SEVERITY_COEFF,
+    LSI_GCC_FOREIGN_DEPENDENCY,
+    # Insurance stress
+    ISI_M1, ISI_M2, ISI_M3, ISI_M4,
+    ISI_CLAIMS_SURGE_COEFF, ISI_BASE_LOSS_RATIO, ISI_SEVERITY_LR_COEFF,
+    ISI_EXPENSE_RATIO, ISI_RESERVE_RATIO, ISI_REINSURANCE_COVERAGE,
+    ISI_MAX_CLAIMS_SURGE,
+    # Financial loss
+    SECTOR_THETA, SECTOR_LOSS_ALLOCATION,
+    # Confidence
+    CONF_R1, CONF_R2, CONF_R3, CONF_R4,
+    CONF_WELL_KNOWN_SCENARIOS, CONF_DQ_EXTREME_PENALTY,
+    CONF_MC_WELL_KNOWN, CONF_MC_UNKNOWN, CONF_HS_WELL_KNOWN, CONF_HS_UNKNOWN,
+    CONF_ST_NODE_PENALTY, CONF_ST_MIN, CONF_ST_MAX,
+    # Unified risk score
+    URS_G1, URS_G2, URS_G3, URS_G4, URS_G5,
+    # Risk thresholds
+    RISK_THRESHOLDS,
+)
 
-# ---------------------------------------------------------------------------
-# Risk threshold table (single source of truth)
-# ---------------------------------------------------------------------------
-
-RISK_THRESHOLDS: dict[str, tuple[float, float]] = {
-    "NOMINAL":  (0.00, 0.20),
-    "LOW":      (0.20, 0.35),
-    "GUARDED":  (0.35, 0.50),
-    "ELEVATED": (0.50, 0.65),
-    "HIGH":     (0.65, 0.80),
-    "SEVERE":   (0.80, 1.01),
-}
-
-# Sector sensitivity weights (fraction of GDP exposure per sector)
-_SECTOR_WEIGHTS: dict[str, float] = {
-    "energy":         0.28,
-    "maritime":       0.18,
-    "banking":        0.20,
-    "insurance":      0.08,
-    "fintech":        0.06,
-    "logistics":      0.10,
-    "infrastructure": 0.05,
-    "government":     0.03,
-    "healthcare":     0.02,
-}
-
-# Cross-sector dependency matrix (source_sector → [dependent_sectors])
+# Cross-sector dependency map (source → dependents)
 _CROSS_SECTOR_DEPS: dict[str, list[str]] = {
     "energy":         ["banking", "maritime", "logistics", "fintech"],
     "maritime":       ["energy", "logistics", "banking"],
@@ -54,9 +62,10 @@ _CROSS_SECTOR_DEPS: dict[str, list[str]] = {
 }
 
 
-# ---------------------------------------------------------------------------
-# 1. Event Severity Model
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# 1. Event Severity
+#    Es = w1*I + w2*D + w3*U + w4*G
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_event_severity(
     base_severity: float,
@@ -64,26 +73,30 @@ def compute_event_severity(
     cross_sector: bool,
 ) -> float:
     """
-    S = base_severity * cascade_multiplier * (1 + regional_amplification)
+    Es = w1*I + w2*D + w3*U + w4*G
 
-    cascade_multiplier  = 1 + 0.15*n_shock_nodes + 0.10*cross_sector_factor
-    regional_amplification = base_severity * 0.15  (GCC systemic interconnect)
+    I = infrastructure_impact  = n_shock_nodes / ES_MAX_SHOCK_NODES
+    D = disruption_scale       = base_severity
+    U = utilization_stress     = 1.0 if cross_sector else 0.25
+    G = geopolitical_factor    = base_severity * (1 + 0.15*n_shock_nodes/ES_MAX_SHOCK_NODES)
 
     Returns float in [0, 1].
     """
     base_severity = clamp(base_severity, 0.0, 1.0)
-    cross_sector_factor = 1.0 if cross_sector else 0.0
 
-    cascade_multiplier = 1.0 + 0.15 * n_shock_nodes + 0.10 * cross_sector_factor
-    regional_amplification = base_severity * 0.15
+    I = clamp(n_shock_nodes / ES_MAX_SHOCK_NODES, 0.0, 1.0)
+    D = base_severity
+    U = 1.0 if cross_sector else 0.25
+    G = clamp(base_severity * (1.0 + 0.15 * n_shock_nodes / ES_MAX_SHOCK_NODES), 0.0, 1.0)
 
-    severity = base_severity * cascade_multiplier * (1.0 + regional_amplification)
-    return clamp(severity, 0.0, 1.0)
+    es = ES_W1 * I + ES_W2 * D + ES_W3 * U + ES_W4 * G
+    return round(clamp(es, 0.0, 1.0), 6)
 
 
-# ---------------------------------------------------------------------------
-# 2. Sector Exposure Model
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# 2. Sector Exposure
+#    Exposure_j = alpha_j * Es * V_j * C_j
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_sector_exposure(
     shock_nodes: list[str],
@@ -91,45 +104,50 @@ def compute_sector_exposure(
     node_sectors: dict[str, str],
 ) -> dict[str, float]:
     """
-    E_i = sum_k( w_k * dependency_ik * proximity_i )
+    Exposure_j = alpha_j * Es * V_j * C_j
 
-    proximity_i is computed from hop distance to nearest shock node.
-    dependency_ik  = cross-sector dependency weight (0.1–1.0).
-    Returns {sector: exposure_score} for all known sectors.
+    alpha_j = SECTOR_ALPHA[j]  (sensitivity coefficient)
+    Es      = event_severity (computed from severity + shock count)
+    V_j     = vulnerability: 1.0 direct, 0.70 first-hop, 0.35 second-hop, 0.10 default
+    C_j     = connectivity = 1 + 0.10 * (shocked_sectors_count - 1), capped at 1.5
+
+    Returns {sector: exposure_score (0-1)} for all known sectors.
     """
     severity = clamp(severity, 0.0, 1.0)
 
-    # Determine directly-shocked sectors
-    shocked_sectors: set[str] = {node_sectors.get(n, "infrastructure") for n in shock_nodes}
+    # severity is already the event severity Es from Stage 3 — use it directly
+    # Formula: Exposure_j = alpha_j * Es * V_j * C_j
+    es = severity  # passed from simulation_engine after compute_event_severity
+
+    shocked_sectors: set[str] = {node_sectors.get(sn, "infrastructure") for sn in shock_nodes}
+    connectivity = clamp(1.0 + 0.10 * (len(shocked_sectors) - 1), 1.0, 1.5)
 
     exposures: dict[str, float] = {}
-    for sector, weight in _SECTOR_WEIGHTS.items():
+    for sector, alpha in SECTOR_ALPHA.items():
         if sector in shocked_sectors:
-            # Direct exposure: full weight * severity
-            proximity_factor = 1.0
+            V = EXPOSURE_V_DIRECT
         else:
-            # Indirect: check cross-sector dependency paths
-            dep_score = 0.0
+            # Check first-hop and second-hop cross-sector dependency
+            V = EXPOSURE_V_DEFAULT
             for shocked in shocked_sectors:
                 deps = _CROSS_SECTOR_DEPS.get(shocked, [])
                 if sector in deps:
-                    dep_score = max(dep_score, 0.70)
+                    V = max(V, EXPOSURE_V_INDIRECT)
                 else:
-                    # Second-hop
                     for d in deps:
                         if sector in _CROSS_SECTOR_DEPS.get(d, []):
-                            dep_score = max(dep_score, 0.35)
-            proximity_factor = dep_score if dep_score > 0 else 0.10
+                            V = max(V, EXPOSURE_V_SECOND_HOP)
 
-        exposure = weight * proximity_factor * severity
-        exposures[sector] = clamp(exposure, 0.0, 1.0)
+        exposure = alpha * es * V * connectivity
+        exposures[sector] = round(clamp(exposure, 0.0, 1.0), 6)
 
     return exposures
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 3. Propagation Model
-# ---------------------------------------------------------------------------
+#    X_(t+1) = beta * P * X_t + (1 - beta) * X_t + S_t
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_propagation(
     shock_nodes: list[str],
@@ -138,25 +156,24 @@ def compute_propagation(
     horizon_days: int,
 ) -> list[dict]:
     """
-    Discrete-time propagation:
-      P_i(t) = P_i(0) * e^(-lambda*t) + sum_j( A_ij * P_j(t-1) )
-      lambda = 0.05  (decay rate)
+    X_(t+1) = beta * P * X_t + (1 - beta) * X_t + S_t
 
-    Simulates up to horizon_days steps or until all P < 0.01.
+    beta   = PROP_BETA (0.65)  — propagation coupling
+    P      = row-normalised adjacency matrix
+    X_t    = state vector at time t
+    S_t    = e^(-PROP_LAMBDA * t) * severity  (shock decays over time)
+
     Returns list of dicts, one per (step, entity) pair where impact > 0.001.
     """
     severity = clamp(severity, 0.0, 1.0)
-    LAMBDA = 0.05
     all_nodes = list(adjacency.keys())
-
     if not all_nodes:
         return []
 
-    # Map node_id → index
-    node_index = {n: i for i, n in enumerate(all_nodes)}
+    node_index = {node: i for i, node in enumerate(all_nodes)}
     n = len(all_nodes)
 
-    # Build adjacency matrix with weights (1/degree normalised)
+    # Build row-normalised adjacency matrix P
     A = np.zeros((n, n), dtype=np.float64)
     for node, neighbors in adjacency.items():
         if node not in node_index:
@@ -164,19 +181,16 @@ def compute_propagation(
         i = node_index[node]
         for nb in neighbors:
             if nb in node_index:
-                j = node_index[nb]
-                A[i, j] = 1.0
-
-    # Normalise rows (out-degree)
+                A[i, node_index[nb]] = 1.0
     row_sums = A.sum(axis=1, keepdims=True)
     row_sums[row_sums == 0] = 1.0
-    A = A / row_sums
+    P_mat = A / row_sums
 
-    # Initial state: shock nodes at full severity
-    P = np.zeros(n, dtype=np.float64)
+    # Initial state X_0: shock nodes at full severity
+    X = np.zeros(n, dtype=np.float64)
     for sn in shock_nodes:
         if sn in node_index:
-            P[node_index[sn]] = severity
+            X[node_index[sn]] = severity
 
     MECHANISMS = [
         "Direct shock absorption",
@@ -192,14 +206,24 @@ def compute_propagation(
     ]
 
     results: list[dict] = []
-    cumulative = P.copy()
+    cumulative = X.copy()
+
+    # Shock node indices for S_t injection
+    shock_indices = [node_index[sn] for sn in shock_nodes if sn in node_index]
 
     for t in range(1, horizon_days + 1):
-        P_new = P * math.exp(-LAMBDA * t) + A @ P
-        P_new = np.clip(P_new, 0.0, 1.0)
+        # X_(t+1) = beta * P * X_t + (1 - beta) * X_t + S_t
+        # S_t is a sparse vector — only shock nodes receive sustained injection
+        S_t_vec = np.zeros(n, dtype=np.float64)
+        s_val = math.exp(-PROP_LAMBDA * t) * severity
+        for idx in shock_indices:
+            S_t_vec[idx] = s_val
+
+        X_new = PROP_BETA * (P_mat @ X) + (1.0 - PROP_BETA) * X + S_t_vec
+        X_new = np.clip(X_new, 0.0, 1.0)
 
         for i, node in enumerate(all_nodes):
-            impact = float(P_new[i])
+            impact = float(X_new[i])
             if impact > 0.001:
                 mechanism_idx = (i + t) % len(MECHANISMS)
                 results.append({
@@ -209,67 +233,80 @@ def compute_propagation(
                     "impact": round(impact, 4),
                     "propagation_score": round(float(cumulative[i]), 4),
                     "mechanism": MECHANISMS[mechanism_idx],
+                    "mechanism_en": MECHANISMS[mechanism_idx],
                 })
 
-        cumulative = np.maximum(cumulative, P_new)
-        P = P_new
+        cumulative = np.maximum(cumulative, X_new)
+        X = X_new
 
-        # Early exit if propagation has attenuated
-        if P.max() < 0.005:
+        if X.max() < PROP_CUTOFF:
             break
 
-    # Sort by impact descending, cap at 20 rows
     results.sort(key=lambda x: (-x["impact"], x["step"]))
     return results[:20]
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 4. Liquidity Stress Index
-# ---------------------------------------------------------------------------
+#    LSI = l1*W + l2*F + l3*M + l4*C
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_liquidity_stress(
     severity: float,
     sector_exposure: dict[str, float],
 ) -> dict:
     """
-    Liquidity Stress Index (Basel III informed):
+    LSI = l1*W + l2*F + l3*M + l4*C
 
-    L = (outflow_rate * severity) / (buffer * CAR_ratio)
+    W = withdrawal_pressure = clamp(outflow_rate * severity, 0, 1)
+        outflow_rate = LSI_BASE_OUTFLOW_RATE
+                     + LSI_BANKING_OUTFLOW_COEFF * banking_exp
+                     + LSI_FINTECH_OUTFLOW_COEFF * fintech_exp
+    F = foreign_exposure    = severity * LSI_GCC_FOREIGN_DEPENDENCY
+    M = market_stress       = (banking_exp + fintech_exp) / 2
+    C = collateral_stress   = severity * max(0, 1 - CAR_ratio / LSI_CAR_BASE)
 
-    outflow_rate      = 0.25 + 0.50 * banking_exposure
-    buffer            = 0.85  (GCC sovereign buffer factor)
-    CAR_ratio         = 0.105 + clamp(0.05 - severity * 0.04, 0, 0.05)
-    LCR_ratio         = 1.0 - severity * 0.65
-
-    time_to_breach_hours = (buffer / outflow_rate) * 24
+    Also computes: LCR ratio, CAR ratio, aggregate_stress, time_to_breach.
     """
     severity = clamp(severity, 0.0, 1.0)
-    banking_exp = sector_exposure.get("banking", 0.2)
-    fintech_exp = sector_exposure.get("fintech", 0.1)
+    banking_exp = sector_exposure.get("banking", 0.20)
+    fintech_exp = sector_exposure.get("fintech", 0.10)
 
-    outflow_rate = clamp(0.25 + 0.50 * banking_exp + 0.15 * fintech_exp, 0.0, 1.0)
-    buffer = 0.85
-    car_ratio = clamp(0.105 + max(0.0, 0.05 - severity * 0.04), 0.085, 0.20)
-    lcr_ratio = clamp(1.0 - severity * 0.65, 0.0, 2.0)
-
-    aggregate_stress = clamp(
-        (outflow_rate * severity) / (buffer * car_ratio),
+    outflow_rate = clamp(
+        LSI_BASE_OUTFLOW_RATE
+        + LSI_BANKING_OUTFLOW_COEFF * banking_exp
+        + LSI_FINTECH_OUTFLOW_COEFF * fintech_exp,
         0.0, 1.0,
     )
-    liquidity_stress = clamp(aggregate_stress * 1.10, 0.0, 1.0)
+    car_ratio = clamp(LSI_CAR_BASE + max(0.0, 0.05 - severity * 0.04), 0.085, 0.20)
+    lcr_ratio = clamp(1.0 - severity * LSI_LCR_SEVERITY_COEFF, 0.0, 2.0)
 
-    # Time to LCR breach (hours)
+    W = clamp(outflow_rate * severity, 0.0, 1.0)
+    F = clamp(severity * LSI_GCC_FOREIGN_DEPENDENCY, 0.0, 1.0)
+    M = clamp((banking_exp + fintech_exp) / 2.0, 0.0, 1.0)
+    C = clamp(severity * max(0.0, 1.0 - car_ratio / LSI_CAR_BASE), 0.0, 1.0)
+
+    lsi = clamp(LSI_L1 * W + LSI_L2 * F + LSI_L3 * M + LSI_L4 * C, 0.0, 1.0)
+
+    # Legacy alias fields (backward compat)
+    aggregate_stress = lsi
+    liquidity_stress = clamp(lsi * 1.10, 0.0, 1.0)
+
     daily_drain = outflow_rate * severity
     if daily_drain > 0:
-        time_to_breach_hours = round((buffer * car_ratio / daily_drain) * 24, 1)
+        time_to_breach_hours = round(
+            (LSI_SOVEREIGN_BUFFER * car_ratio / daily_drain) * 24, 1
+        )
     else:
         time_to_breach_hours = 9999.0
 
-    classification = classify_stress(aggregate_stress)
+    classification = classify_stress(lsi)
 
     return {
+        "lsi": round(lsi, 4),
         "aggregate_stress": round(aggregate_stress, 4),
         "liquidity_stress": round(liquidity_stress, 4),
+        "components": {"W": round(W, 4), "F": round(F, 4), "M": round(M, 4), "C": round(C, 4)},
         "car_ratio": round(car_ratio, 4),
         "lcr_ratio": round(lcr_ratio, 4),
         "outflow_rate": round(outflow_rate, 4),
@@ -278,79 +315,69 @@ def compute_liquidity_stress(
     }
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 5. Insurance Stress Index
-# ---------------------------------------------------------------------------
+#    ISI = m1*Cf + m2*LR + m3*Re + m4*Od
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_insurance_stress(
     severity: float,
     sector_exposure: dict[str, float],
 ) -> dict:
     """
-    Insurance Stress Index (IFRS-17 informed):
+    ISI = m1*Cf + m2*LR + m3*Re + m4*Od
 
-    IS = (claims_surge * tiv_exposure) / (reserve_ratio * reinsurance_coverage)
+    Cf = claims_frequency_index  = (claims_surge_multiplier - 1) / ISI_MAX_CLAIMS_SURGE
+    LR = loss_ratio               = ISI_BASE_LOSS_RATIO + severity * ISI_SEVERITY_LR_COEFF
+    Re = reserve_erosion          = severity * (1 - reserve_adequacy_ratio)
+    Od = operational_disruption   = severity * insurance_exposure
 
-    claims_surge_multiplier = 1.0 + severity * 2.5
-    tiv_exposure            = insurance_exposure (% of TIV at risk)
-    reserve_ratio           = 0.18 (industry min)
-    reinsurance_coverage    = 0.60 (GCC average retention)
-    combined_ratio          = loss_ratio + expense_ratio
+    Also computes: combined_ratio (IFRS-17), reserve_adequacy, tiv_exposure.
     """
     severity = clamp(severity, 0.0, 1.0)
     insurance_exp = sector_exposure.get("insurance", 0.15)
-    energy_exp = sector_exposure.get("energy", 0.2)
+    energy_exp = sector_exposure.get("energy", 0.20)
 
-    claims_surge_multiplier = 1.0 + severity * 2.5
-    tiv_exposure = clamp(insurance_exp + energy_exp * 0.3, 0.0, 1.0)
-    reserve_ratio = 0.18
-    reinsurance_coverage = 0.60
-
-    severity_index = clamp(
-        (claims_surge_multiplier * tiv_exposure) / (reserve_ratio * reinsurance_coverage),
-        0.0, 1.0,
-    )
-
-    # IFRS-17 combined ratio: loss ratio + expense ratio
-    loss_ratio = clamp(0.55 + severity * 0.35, 0.0, 1.5)
-    expense_ratio = 0.28
-    combined_ratio = round(loss_ratio + expense_ratio, 4)
-
-    # Reserve adequacy: 1.0 = fully adequate, <1 = deficient
+    claims_surge_multiplier = 1.0 + severity * ISI_CLAIMS_SURGE_COEFF
+    tiv_exposure = clamp(insurance_exp + energy_exp * 0.30, 0.0, 1.0)
     reserve_adequacy = clamp(
-        reserve_ratio / (tiv_exposure * severity + 0.01),
+        ISI_RESERVE_RATIO / (tiv_exposure * severity + 0.01),
         0.0, 2.0,
     )
-    classification = classify_stress(severity_index)
+
+    Cf = clamp((claims_surge_multiplier - 1.0) / ISI_MAX_CLAIMS_SURGE, 0.0, 1.0)
+    LR = clamp(ISI_BASE_LOSS_RATIO + severity * ISI_SEVERITY_LR_COEFF, 0.0, 1.5)
+    Re = clamp(severity * max(0.0, 1.0 - reserve_adequacy), 0.0, 1.0)
+    Od = clamp(severity * insurance_exp, 0.0, 1.0)
+
+    isi = clamp(ISI_M1 * Cf + ISI_M2 * LR + ISI_M3 * Re + ISI_M4 * Od, 0.0, 1.0)
+
+    loss_ratio_val = LR
+    combined_ratio = round(loss_ratio_val + ISI_EXPENSE_RATIO, 4)
+    classification = classify_stress(isi)
 
     return {
-        "severity_index": round(severity_index, 4),
+        "isi": round(isi, 4),
+        "severity_index": round(isi, 4),
+        "components": {
+            "Cf": round(Cf, 4),
+            "LR": round(LR, 4),
+            "Re": round(Re, 4),
+            "Od": round(Od, 4),
+        },
         "claims_surge_multiplier": round(claims_surge_multiplier, 4),
         "combined_ratio": combined_ratio,
         "reserve_adequacy": round(reserve_adequacy, 4),
         "tiv_exposure": round(tiv_exposure, 4),
-        "loss_ratio": round(loss_ratio, 4),
+        "loss_ratio": round(loss_ratio_val, 4),
         "classification": classification,
     }
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 6. Financial Loss Model
-# ---------------------------------------------------------------------------
-
-# Sector-level base loss allocation (fraction of total scenario base loss)
-_SECTOR_LOSS_ALLOCATION: dict[str, float] = {
-    "energy":         0.30,
-    "maritime":       0.20,
-    "banking":        0.18,
-    "insurance":      0.10,
-    "logistics":      0.08,
-    "fintech":        0.06,
-    "infrastructure": 0.05,
-    "government":     0.02,
-    "healthcare":     0.01,
-}
-
+#    NormalizedLoss_j = Exposure_j * ImpactFactor_(j,t) * AssetBase_j * theta_j
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_financial_losses(
     severity: float,
@@ -359,50 +386,48 @@ def compute_financial_losses(
     sector_exposure: dict[str, float],
 ) -> list[dict]:
     """
-    Loss_i = base_loss * severity^2 * sector_weight_i * propagation_factor_i
+    NormalizedLoss_j = Exposure_j * ImpactFactor_(j,t) * AssetBase_j * theta_j
 
-    Direct loss:   loss * 0.60
-    Indirect loss: loss * 0.28
-    Systemic:      loss * 0.12
+    ImpactFactor_(j,t) = severity² * propagation_factor_j
+    AssetBase_j        = scenario_base_loss * SECTOR_LOSS_ALLOCATION[sector_j]
+    theta_j            = SECTOR_THETA[sector_j]
 
+    Loss split: direct 60%, indirect 28%, systemic 12%.
     Returns top-20 entities sorted by loss_usd descending.
     """
     severity = clamp(severity, 0.0, 1.0)
-    CLASSIFICATIONS = ["NOMINAL", "LOW", "GUARDED", "ELEVATED", "HIGH", "SEVERE"]
 
-    # Aggregate propagation factors per entity
+    # Aggregate peak propagation factor per entity
     prop_by_entity: dict[str, float] = {}
     for row in propagation:
         eid = row["entity_id"]
         prop_by_entity[eid] = max(prop_by_entity.get(eid, 0.0), row["impact"])
 
     results: list[dict] = []
-
-    # Build synthetic entity list from propagation results
     entities_seen: set[str] = set()
+
     for row in propagation:
         eid = row["entity_id"]
         if eid in entities_seen:
             continue
         entities_seen.add(eid)
 
-        # Infer sector from entity id
         sector = _infer_sector(eid)
-        sector_weight = _SECTOR_LOSS_ALLOCATION.get(sector, 0.03)
-        exposure = sector_exposure.get(sector, 0.1)
+        exposure = sector_exposure.get(sector, 0.10)
         prop_factor = prop_by_entity.get(eid, 0.05)
+        asset_base = scenario_base_loss * SECTOR_LOSS_ALLOCATION.get(sector, 0.03)
+        theta = SECTOR_THETA.get(sector, 1.00)
+        impact_factor = (severity ** 2) * prop_factor
 
-        raw_loss = scenario_base_loss * (severity ** 2) * sector_weight * prop_factor * (1 + exposure)
+        total_loss = exposure * impact_factor * asset_base * theta
 
-        direct = raw_loss * 0.60
-        indirect = raw_loss * 0.28
-        systemic = raw_loss * 0.12
-        total_loss = direct + indirect + systemic
+        direct = total_loss * 0.60
+        indirect = total_loss * 0.28
+        systemic = total_loss * 0.12
 
-        stress_score = clamp(prop_factor * severity * (1 + exposure), 0.0, 1.0)
+        stress_score = clamp(prop_factor * severity * (1.0 + exposure), 0.0, 1.0)
         classification = classify_stress(stress_score)
 
-        # Estimate peak day from step in propagation
         steps = [r["step"] for r in propagation if r["entity_id"] == eid]
         peak_day = min(steps) if steps else 3
 
@@ -418,6 +443,7 @@ def compute_financial_losses(
             "peak_day": peak_day,
             "sector": sector,
             "propagation_factor": round(prop_factor, 4),
+            "theta": theta,
         })
 
     results.sort(key=lambda x: -x["loss_usd"])
@@ -429,9 +455,9 @@ def _infer_sector(entity_id: str) -> str:
     eid = entity_id.lower()
     if any(k in eid for k in ("bank", "financial", "credit", "monetary")):
         return "banking"
-    if any(k in eid for k in ("oil", "gas", "lng", "energy", "petro", "opec")):
+    if any(k in eid for k in ("oil", "gas", "lng", "energy", "petro", "opec", "aramco", "adnoc")):
         return "energy"
-    if any(k in eid for k in ("port", "ship", "maritime", "hormuz", "lane")):
+    if any(k in eid for k in ("port", "ship", "maritime", "hormuz", "lane", "salalah", "dammam")):
         return "maritime"
     if any(k in eid for k in ("insur", "takaful", "reinsur")):
         return "insurance"
@@ -446,9 +472,10 @@ def _infer_sector(entity_id: str) -> str:
     return "infrastructure"
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 7. Confidence Score
-# ---------------------------------------------------------------------------
+#    Conf = r1*DQ + r2*MC + r3*HS + r4*ST
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_confidence_score(
     n_shock_nodes: int,
@@ -456,44 +483,31 @@ def compute_confidence_score(
     scenario_id: str,
 ) -> float:
     """
-    C = w1*data_quality + w2*model_coverage + w3*scenario_precedent + w4*node_completeness
+    Conf = r1*DQ + r2*MC + r3*HS + r4*ST
 
-    Weights: [0.30, 0.25, 0.25, 0.20]
+    DQ = data_quality          — degrades at extreme severities (< 0.2 or > 0.8)
+    MC = model_coverage        — 0.92 for well-known GCC scenarios, 0.72 otherwise
+    HS = historical_similarity — 0.88 for scenarios with precedent, 0.65 otherwise
+    ST = scenario_tractability — degrades by CONF_ST_NODE_PENALTY per additional shock node
     """
-    W = [0.30, 0.25, 0.25, 0.20]
+    severity = clamp(severity, 0.0, 1.0)
 
-    # data_quality: degrades slightly at extreme severities
-    data_quality = clamp(1.0 - abs(severity - 0.5) * 0.4, 0.50, 0.98)
-
-    # model_coverage: GCC-calibrated scenarios get higher coverage
-    well_known_scenarios = {
-        "hormuz_chokepoint_disruption",
-        "uae_banking_crisis",
-        "gcc_cyber_attack",
-        "saudi_oil_shock",
-        "qatar_lng_disruption",
-        "bahrain_sovereign_stress",
-        "kuwait_fiscal_shock",
-        "oman_port_closure",
-    }
-    model_coverage = 0.92 if scenario_id in well_known_scenarios else 0.72
-
-    # scenario_precedent: known scenarios have historical precedent
-    scenario_precedent = 0.88 if scenario_id in well_known_scenarios else 0.65
-
-    # node_completeness: more shock nodes = slightly lower per-node confidence
-    node_completeness = clamp(1.0 - (n_shock_nodes - 1) * 0.04, 0.55, 0.97)
-
-    score = weighted_average(
-        [data_quality, model_coverage, scenario_precedent, node_completeness],
-        W,
+    DQ = clamp(1.0 - abs(severity - 0.5) * CONF_DQ_EXTREME_PENALTY, 0.50, 0.98)
+    MC = CONF_MC_WELL_KNOWN if scenario_id in CONF_WELL_KNOWN_SCENARIOS else CONF_MC_UNKNOWN
+    HS = CONF_HS_WELL_KNOWN if scenario_id in CONF_WELL_KNOWN_SCENARIOS else CONF_HS_UNKNOWN
+    ST = clamp(
+        1.0 - (n_shock_nodes - 1) * CONF_ST_NODE_PENALTY,
+        CONF_ST_MIN, CONF_ST_MAX,
     )
-    return round(clamp(score, 0.0, 1.0), 4)
+
+    conf = weighted_average([DQ, MC, HS, ST], [CONF_R1, CONF_R2, CONF_R3, CONF_R4])
+    return round(clamp(conf, 0.0, 1.0), 4)
 
 
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
 # 8. Unified Risk Score
-# ---------------------------------------------------------------------------
+#    URS = g1*Es + g2*AvgExposure + g3*AvgStress + g4*PropagationScore + g5*LossNorm
+# ──────────────────────────────────────────────────────────────────────────────
 
 def compute_unified_risk_score(
     severity: float,
@@ -501,54 +515,64 @@ def compute_unified_risk_score(
     liquidity_stress: float,
     insurance_stress: float,
     sector_exposure: dict[str, float],
+    event_severity: float | None = None,
 ) -> dict:
     """
-    R_i(t) = w1*G + w2*P + w3*N + w4*L + w5*T + w6*U
+    URS = g1*Es + g2*AvgExposure + g3*AvgStress + g4*PropagationScore + g5*LossNorm
 
-    G = geopolitical   (severity proxy)
-    P = propagation    (attenuated to keep score proportional to input severity)
-    N = network_centrality (avg sector exposure)
-    L = liquidity stress   (attenuated)
-    T = threat_field   (insurance * severity)
-    U = utilization    (max sector exposure, attenuated)
+    Es              = event_severity (if provided) else computed from severity
+    AvgExposure     = mean of all sector_exposure values
+    AvgStress       = (liquidity_stress + insurance_stress) / 2
+    PropagationScore = propagation_score (capped at 1.0)
+    LossNorm        = severity² (normalised loss proxy)
 
-    Calibrated weights ensure score spreads across [0,1] proportionally to
-    input severity so that:
-      sev=0.2 → NOMINAL/LOW, sev=0.5 → GUARDED/ELEVATED, sev=0.8 → HIGH/SEVERE.
+    Returns dict with score, components, risk_level, classification.
     """
     severity = clamp(severity, 0.0, 1.0)
-    W = [0.30, 0.25, 0.10, 0.15, 0.10, 0.10]
 
-    G = severity
-    # Attenuate propagation score: it tends to be high even at low severity
-    P = clamp(propagation_score * severity, 0.0, 1.0)
-    exposures = list(sector_exposure.values()) or [0.0]
-    # Attenuate network: sector exposure is already scaled by severity internally
-    N = clamp(float(np.mean(exposures)), 0.0, 1.0)
-    # Attenuate liquidity stress similarly
-    L = clamp(liquidity_stress * severity, 0.0, 1.0)
-    T = clamp(insurance_stress * severity * 0.5, 0.0, 1.0)
-    U = clamp(float(np.max(exposures)) * 0.8, 0.0, 1.0)
+    Es = event_severity if event_severity is not None else severity
+    Es = clamp(Es, 0.0, 1.0)
 
-    components = {"G": G, "P": P, "N": N, "L": L, "T": T, "U": U}
+    # Peak sector exposure (max across all sectors — captures worst-hit sector)
+    exposures = list(sector_exposure.values()) if sector_exposure else [0.0]
+    peak_exposure = clamp(float(np.max(exposures)), 0.0, 1.0)
+
+    # Peak stress (max of LSI and ISI — captures which stress axis dominates)
+    peak_stress = clamp(max(liquidity_stress, insurance_stress), 0.0, 1.0)
+
+    # Scale propagation score by sqrt(severity) so low-severity scenarios
+    # don't over-represent sustained shock injection as risk
+    prop_score = clamp(propagation_score * math.sqrt(severity), 0.0, 1.0)
+    loss_norm = severity ** 2
+
     score = clamp(
-        W[0] * G + W[1] * P + W[2] * N + W[3] * L + W[4] * T + W[5] * U,
+        URS_G1 * Es
+        + URS_G2 * peak_exposure
+        + URS_G3 * peak_stress
+        + URS_G4 * prop_score
+        + URS_G5 * loss_norm,
         0.0, 1.0,
     )
     risk_level = classify_risk(score)
 
     return {
         "score": round(score, 4),
-        "components": {k: round(v, 4) for k, v in components.items()},
+        "components": {
+            "Es": round(Es, 4),
+            "PeakExposure": round(peak_exposure, 4),
+            "PeakStress": round(peak_stress, 4),
+            "PropagationScore": round(prop_score, 4),
+            "LossNorm": round(loss_norm, 4),
+        },
         "risk_level": risk_level,
         "classification": risk_level,
     }
 
 
-# ---------------------------------------------------------------------------
-# 9. Risk classification helper (alias)
-# ---------------------------------------------------------------------------
+# ──────────────────────────────────────────────────────────────────────────────
+# 9. Risk Classification Helper
+# ──────────────────────────────────────────────────────────────────────────────
 
 def classify_risk(score: float) -> str:
-    """Map a 0-1 risk score to a classification label."""
+    """Map a 0–1 risk score to a classification label using RISK_THRESHOLDS."""
     return classify_stress(score)

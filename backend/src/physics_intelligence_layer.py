@@ -13,15 +13,19 @@ from typing import Any
 import numpy as np
 
 from src.utils import clamp, classify_stress
+from src.config import (
+    PHYS_ALPHA as ALPHA,
+    PHYS_BETA as BETA,
+    PHYS_FLOW_IMBALANCE_THRESHOLD,
+    PHYS_CONGESTION_ONSET as CONGESTION_THRESHOLD,
+    PHYS_RECOVERY_BASE_RATE,
+)
 
 # ---------------------------------------------------------------------------
-# Constants
+# Constants (derived from config — do not hardcode here)
 # ---------------------------------------------------------------------------
 
 SATURATION_THRESHOLD = 0.85     # U_i above this → saturated
-CONGESTION_THRESHOLD = 0.75     # U_i above this → congested
-ALPHA = 0.08                    # shock attenuation coefficient
-BETA = 0.65                     # shock amplification coefficient
 
 # Sector-specific recovery rates (fraction of damage recovered per day)
 _RECOVERY_RATES: dict[str, float] = {
@@ -106,7 +110,7 @@ def check_flow_conservation(
 
     Returns {balanced: bool, violations: list, net_accumulation: float}
     """
-    TOLERANCE = 0.01   # 1% balance tolerance
+    TOLERANCE = PHYS_FLOW_IMBALANCE_THRESHOLD
 
     node_ids = {n.get("id") for n in nodes}
     inflow: dict[str, float] = {nid: 0.0 for nid in node_ids}
