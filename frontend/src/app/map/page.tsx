@@ -338,11 +338,15 @@ export default function MapPage() {
 
             {/* Error state */}
             {error && !runResult && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                <p className="text-xs font-semibold text-red-700 mb-1">
-                  {isAr ? "خطأ في التحميل" : "Load Error"}
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-semibold text-amber-800 mb-1">
+                  {isAr ? "البيانات الجغرافية غير متاحة" : "Geospatial Data Unavailable"}
                 </p>
-                <p className="text-xs text-red-600">{error}</p>
+                <p className="text-xs text-amber-700">
+                  {isAr
+                    ? "تعذّر تحميل بيانات الكيانات. يظل تحليل السيناريوهات متاحاً من لوحة المعلومات."
+                    : "Entity data could not be loaded. Scenario analysis remains accessible from the dashboard."}
+                </p>
               </div>
             )}
 

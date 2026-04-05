@@ -117,7 +117,7 @@ export function PendingSeedPanel({ lang = "en" }: { lang?: Language }) {
             {isAr ? "الإشارات المالية في انتظار الموافقة" : "Financial Signals Awaiting Approval"}
           </span>
           {isLoading && <span className="text-xs text-slate-400">{isAr ? "جارٍ التحميل…" : "Loading…"}</span>}
-          {isError && <span className="text-xs text-red-500">{isAr ? "خطأ في التحميل" : "Fetch error"}</span>}
+          {isError && <span className="text-xs text-amber-600 font-medium">{isAr ? "تعذّر تحميل الموافقات" : "Unable to load pending approvals"}</span>}
         </div>
         <span className="text-xs text-slate-500 tabular-nums">
           {isAr ? `${pendingSeeds.length} في الانتظار` : `${pendingSeeds.length} pending`}

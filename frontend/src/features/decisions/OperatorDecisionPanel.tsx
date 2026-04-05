@@ -128,15 +128,20 @@ function SignalPicker({
   signals,
   selectedSignalId,
   onSelect,
+  lang = "en",
 }: {
   signals: WsSignalScoredData[];
   selectedSignalId: string | null;
   onSelect: (id: string | null) => void;
+  lang?: Language;
 }) {
+  const isAr = lang === "ar";
   if (signals.length === 0) {
     return (
       <p className="text-[10px] text-io-secondary italic">
-        No live signals available. Signals appear when the system detects events.
+        {isAr
+          ? "لا توجد إشارات حية. تظهر الإشارات عند اكتشاف النظام لأحداث."
+          : "No live signals available. Signals appear when the system detects events."}
       </p>
     );
   }
@@ -218,6 +223,7 @@ function DecisionRow({
   onClose,
   executingId,
   closingId,
+  lang = "en",
 }: {
   decision: OperatorDecision;
   selected: boolean;
@@ -226,7 +232,9 @@ function DecisionRow({
   onClose: (id: string) => void;
   executingId: string | null;
   closingId: string | null;
+  lang?: Language;
 }) {
+  const isAr = lang === "ar";
   const canExecute =
     decision.decision_status === "CREATED" || decision.decision_status === "IN_REVIEW";
   const canClose =
@@ -299,7 +307,7 @@ function DecisionRow({
               disabled={isExecuting}
               className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isExecuting ? "…" : "Execute"}
+              {isExecuting ? "…" : (isAr ? "تنفيذ" : "Execute")}
             </button>
           )}
           {canClose && (
@@ -308,7 +316,7 @@ function DecisionRow({
               disabled={isClosing}
               className="px-2.5 py-1 text-[10px] font-semibold rounded-lg border border-io-border text-io-secondary hover:text-io-primary hover:border-io-accent transition-colors disabled:opacity-50"
             >
-              {isClosing ? "…" : "Close"}
+              {isClosing ? "…" : (isAr ? "إغلاق" : "Close")}
             </button>
           )}
         </div>
@@ -319,29 +327,32 @@ function DecisionRow({
 
 // ── Decision detail ───────────────────────────────────────────────────────────
 
-function DecisionDetail({ decision }: { decision: OperatorDecision }) {
+function DecisionDetail({ decision, lang = "en" }: { decision: OperatorDecision; lang?: Language }) {
+  const isAr = lang === "ar";
   return (
     <div className="mt-4 p-4 bg-io-bg border border-io-border rounded-xl space-y-3 text-xs">
-      <h4 className="text-sm font-semibold text-io-primary">Decision Detail</h4>
+      <h4 className="text-sm font-semibold text-io-primary">
+        {isAr ? "تفاصيل القرار" : "Decision Detail"}
+      </h4>
 
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <span className="text-io-secondary">Type</span>
+          <span className="text-io-secondary">{isAr ? "النوع" : "Type"}</span>
           <p className="font-medium text-io-primary">
             {decision.decision_type.replace(/_/g, " ")}
           </p>
         </div>
         <div>
-          <span className="text-io-secondary">Status</span>
+          <span className="text-io-secondary">{isAr ? "الحالة" : "Status"}</span>
           <p className="font-medium text-io-primary">{decision.decision_status}</p>
         </div>
         <div>
-          <span className="text-io-secondary">Outcome</span>
+          <span className="text-io-secondary">{isAr ? "النتيجة" : "Outcome"}</span>
           <p className="font-medium text-io-primary">{decision.outcome_status}</p>
         </div>
         {decision.confidence_score != null && (
           <div>
-            <span className="text-io-secondary">Confidence</span>
+            <span className="text-io-secondary">{isAr ? "الثقة" : "Confidence"}</span>
             <p className="font-medium text-io-primary">
               {Math.round(decision.confidence_score * 100)}%
             </p>
@@ -351,14 +362,14 @@ function DecisionDetail({ decision }: { decision: OperatorDecision }) {
 
       {decision.rationale && (
         <div>
-          <span className="text-io-secondary">Rationale</span>
+          <span className="text-io-secondary">{isAr ? "المبرر" : "Rationale"}</span>
           <p className="text-io-primary mt-0.5 leading-relaxed">{decision.rationale}</p>
         </div>
       )}
 
       {Object.keys(decision.decision_payload).length > 0 && (
         <div>
-          <span className="text-io-secondary block mb-1">Context</span>
+          <span className="text-io-secondary block mb-1">{isAr ? "السياق" : "Context"}</span>
           <div className="space-y-1">
             {Object.entries(decision.decision_payload).map(([k, v]) => (
               <div key={k} className="flex items-center justify-between gap-2">
@@ -385,7 +396,8 @@ function DecisionDetail({ decision }: { decision: OperatorDecision }) {
 
 // ── Create form (v2 — context-driven, no manual IDs) ─────────────────────────
 
-function CreateDecisionForm({ onClose }: { onClose: () => void }) {
+function CreateDecisionForm({ onClose, lang = "en" }: { onClose: () => void; lang?: Language }) {
+  const isAr = lang === "ar";
   // ── Store context (auto-linked sources) ──
   const selectedScenarioId = useAppStore((s) => s.selectedScenarioId);
   const liveSignals = useAppStore((s) => s.liveSignals);
@@ -465,16 +477,19 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.354a15.052 15.052 0 01-4.5 0M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         </div>
-        <p className="text-xs font-semibold text-io-primary mb-1">No active run context</p>
+        <p className="text-xs font-semibold text-io-primary mb-1">
+          {isAr ? "لا يوجد سياق تشغيل نشط" : "No active run context"}
+        </p>
         <p className="text-[10px] text-io-secondary leading-relaxed max-w-xs mx-auto">
-          Run a scenario analysis from the main dashboard first. Decisions are
-          automatically linked to the active run.
+          {isAr
+            ? "شغّل تحليل سيناريو من لوحة المعلومات أولاً. يتم ربط القرارات تلقائياً بالتشغيل النشط."
+            : "Run a scenario analysis from the main dashboard first. Decisions are automatically linked to the active run."}
         </p>
         <button
           onClick={onClose}
           className="mt-3 px-3 py-1.5 text-xs font-medium rounded-lg border border-io-border text-io-secondary hover:text-io-primary transition-colors"
         >
-          Close
+          {isAr ? "إغلاق" : "Close"}
         </button>
       </div>
     );
@@ -482,20 +497,22 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="p-4 bg-io-bg border border-io-border rounded-xl space-y-3">
-      <h4 className="text-sm font-semibold text-io-primary">New Decision</h4>
+      <h4 className="text-sm font-semibold text-io-primary">
+        {isAr ? "قرار جديد" : "New Decision"}
+      </h4>
 
       {/* Auto-linked source context */}
       <div>
         <p className="text-[10px] font-medium text-io-secondary uppercase tracking-wide mb-1.5">
-          Linked Source Context
+          {isAr ? "السياق المرتبط" : "Linked Source Context"}
         </p>
         <div className="flex flex-wrap gap-1.5">
-          {sourceSignalId && <SourceChip label="signal" value={sourceSignalId} />}
-          {sourceSeedId && <SourceChip label="seed" value={sourceSeedId} />}
-          {sourceRunId && <SourceChip label="scenario" value={sourceRunId} />}
+          {sourceSignalId && <SourceChip label={isAr ? "إشارة" : "signal"} value={sourceSignalId} />}
+          {sourceSeedId && <SourceChip label={isAr ? "بذرة" : "seed"} value={sourceSeedId} />}
+          {sourceRunId && <SourceChip label={isAr ? "تشغيل" : "scenario"} value={sourceRunId} />}
           {!hasSource && (
             <span className="text-[10px] text-io-danger italic">
-              No source linked — select a signal below
+              {isAr ? "لا مصدر مرتبط — اختر إشارة أدناه" : "No source linked — select a signal below"}
             </span>
           )}
         </div>
@@ -513,7 +530,7 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
       {/* Decision Type */}
       <div>
         <label className="block text-[10px] font-medium text-io-secondary mb-1 uppercase tracking-wide">
-          Decision Type
+          {isAr ? "نوع القرار" : "Decision Type"}
         </label>
         <select
           value={type}
@@ -535,12 +552,13 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
       {liveSignals.length > 0 && !matchingSeed?.signal_id && (
         <div>
           <label className="block text-[10px] font-medium text-io-secondary mb-1 uppercase tracking-wide">
-            Link to Signal (optional)
+            {isAr ? "ربط بإشارة (اختياري)" : "Link to Signal (optional)"}
           </label>
           <SignalPicker
             signals={liveSignals}
             selectedSignalId={selectedSignalId}
             onSelect={setSelectedSignalId}
+            lang={lang}
           />
         </div>
       )}
@@ -548,11 +566,13 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
       {/* Rationale (required for audit) */}
       <div>
         <label className="block text-[10px] font-medium text-io-secondary mb-1 uppercase tracking-wide">
-          Rationale <span className="text-io-danger">*</span>
+          {isAr ? "المبرر" : "Rationale"} <span className="text-io-danger">*</span>
         </label>
         <textarea
           rows={3}
-          placeholder="Explain why this decision is being made — required for audit traceability…"
+          placeholder={isAr
+            ? "اشرح سبب اتخاذ هذا القرار — مطلوب للتتبع التدقيقي…"
+            : "Explain why this decision is being made — required for audit traceability…"}
           value={rationale}
           onChange={(e) => setRationale(e.target.value)}
           className="w-full text-xs border border-io-border rounded-lg px-2.5 py-1.5 bg-io-surface text-io-primary placeholder-io-secondary/50 focus:border-io-accent focus:outline-none resize-none"
@@ -562,7 +582,7 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
       {/* Confidence slider */}
       <div>
         <label className="block text-[10px] font-medium text-io-secondary mb-1 uppercase tracking-wide">
-          Confidence — {Math.round(confidence * 100)}%
+          {isAr ? `مستوى الثقة — ${Math.round(confidence * 100)}٪` : `Confidence — ${Math.round(confidence * 100)}%`}
         </label>
         <input
           type="range"
@@ -574,8 +594,8 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
           className="w-full h-1.5 rounded-full appearance-none bg-io-border accent-io-accent"
         />
         <div className="flex justify-between text-[9px] text-io-secondary mt-0.5">
-          <span>Low</span>
-          <span>High</span>
+          <span>{isAr ? "منخفض" : "Low"}</span>
+          <span>{isAr ? "عالٍ" : "High"}</span>
         </div>
       </div>
 
@@ -593,13 +613,13 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
           disabled={createDecision.isPending || !hasSource || !rationale.trim()}
           className="flex-1 py-1.5 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {createDecision.isPending ? "Creating…" : "Create Decision"}
+          {createDecision.isPending ? (isAr ? "جارٍ الإنشاء…" : "Creating…") : (isAr ? "إنشاء قرار" : "Create Decision")}
         </button>
         <button
           onClick={onClose}
           className="px-3 py-1.5 text-xs font-medium rounded-lg border border-io-border text-io-secondary hover:text-io-primary transition-colors"
         >
-          Cancel
+          {isAr ? "إلغاء" : "Cancel"}
         </button>
       </div>
     </div>
@@ -685,7 +705,7 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
       <div className="p-4 space-y-3">
         {/* Create form */}
         {showCreate && (
-          <CreateDecisionForm onClose={() => setShowCreate(false)} />
+          <CreateDecisionForm onClose={() => setShowCreate(false)} lang={lang} />
         )}
 
         {/* Filters */}
@@ -732,7 +752,7 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
               onClick={() => setActionError(null)}
               className="text-[10px] text-red-500 hover:text-red-700 font-medium ml-2"
             >
-              Dismiss
+              {isAr ? "إغلاق" : "Dismiss"}
             </button>
           </div>
         )}
@@ -741,7 +761,7 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
         {isLoading && (
           <div className="py-6 text-center">
             <div className="w-5 h-5 border-2 border-io-accent border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-xs text-io-secondary">Loading decisions…</p>
+            <p className="text-xs text-io-secondary">{isAr ? "جارٍ تحميل القرارات…" : "Loading decisions…"}</p>
           </div>
         )}
 
@@ -768,11 +788,12 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
               </svg>
             </div>
             <p className="text-xs font-semibold text-io-primary mb-1">
-              No decisions recorded
+              {isAr ? "لا توجد قرارات مسجّلة" : "No decisions recorded"}
             </p>
             <p className="text-[10px] text-io-secondary leading-relaxed max-w-xs mx-auto">
-              Run a scenario analysis, then create a decision to record your
-              response. Decisions are automatically linked to the active run.
+              {isAr
+                ? "شغّل تحليل سيناريو، ثم أنشئ قراراً لتسجيل استجابتك. يتم ربط القرارات تلقائياً بالتشغيل النشط."
+                : "Run a scenario analysis, then create a decision to record your response. Decisions are automatically linked to the active run."}
             </p>
           </div>
         )}
@@ -793,9 +814,10 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
                 onClose={handleClose}
                 executingId={executingId}
                 closingId={closingId}
+                lang={lang}
               />
               {selectedDecisionId === decision.decision_id && selected && (
-                <DecisionDetail decision={selected} />
+                <DecisionDetail decision={selected} lang={lang} />
               )}
             </div>
           ))}
