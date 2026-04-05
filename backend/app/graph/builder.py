@@ -48,7 +48,9 @@ def build_graph_snapshot(
     Parameters
     ----------
     scenario_id : str | None
-        One of the 17 canonical scenario IDs (e.g. "hormuz_closure").
+        One of the 8 canonical scenario IDs registered in
+        backend/app/governance/registry.py
+        (e.g. "hormuz_chokepoint_disruption").
     severity : float
         Severity multiplier applied to scenario shocks (0.0-1.0).
     shock_vector : list[dict] | None

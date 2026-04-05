@@ -58,7 +58,8 @@ def run_unified_pipeline(
     Parameters
     ----------
     template_id : str
-        Scenario template ID (one of 17 canonical scenarios).
+        Scenario template ID — must be one of the 8 canonical scenario IDs
+        registered in backend/app/governance/registry.py.
     severity : float
         Severity multiplier (0.0-1.0).
     horizon_hours : int
@@ -271,6 +272,33 @@ def run_unified_pipeline(
     result["trust"] = trust.model_dump()
     state.record_stage("trust", "completed", 0.0)
     state.record_stage("output", "completed", state.elapsed_ms())
+
+    # ── Stage 13b: Governance Audit ────────────────────────────────────────
+    # Attach a runtime audit object to the result. This is observational:
+    # it does not modify status or raise exceptions. The audit verdict is
+    # logged and stored in result["_governance"] for the API response and
+    # post-hoc analysis.
+    try:
+        from app.governance.audit import audit_run
+        _audit = audit_run(
+            scenario_id=template_id,
+            run_result=result,
+            run_severity=severity,
+        )
+        result["_governance"] = _audit.to_dict()
+        if _audit.overall_verdict == "FAIL":
+            logger.error(_audit.log_line)
+        elif _audit.overall_verdict == "WARN":
+            logger.warning(_audit.log_line)
+        else:
+            logger.info(_audit.log_line)
+    except Exception as _gov_err:
+        logger.warning(f"[GOVERNANCE] Audit engine failed to run: {_gov_err}")
+        result["_governance"] = {
+            "overall_verdict": "UNVERIFIABLE",
+            "error": str(_gov_err),
+            "audit_version": "1.0.0",
+        }
 
     return result
 

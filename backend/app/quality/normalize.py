@@ -3,11 +3,17 @@ Impact Observatory | مرصد الأثر — Event Normalization (Stage 3)
 
 Maps validated events to canonical schema.
 Resolves sector aliases, standardizes severity scale, assigns geographic scope.
+
+Geographic scope is now derived from the canonical governance registry
+(app.governance.registry.get_geo_scope). The old TEMPLATE_GEO_SCOPE dict
+has been removed — it contained 17 dev-era scenario IDs that never matched
+the 8 canonical catalog IDs, causing every run to default to ["SA", "UAE"].
 """
 
 import uuid
 from app.domain.models.raw_event import ValidatedEvent, NormalizedEvent
 from app.graph.bridge import get_scenario_shock_vector
+from app.governance.registry import get_geo_scope as _registry_geo_scope
 
 # Sector alias resolution
 SECTOR_ALIASES: dict[str, str] = {
@@ -49,27 +55,6 @@ TYPE_ALIASES: dict[str, str] = {
     "attack": "cyber",
 }
 
-# Template → geographic scope mapping
-TEMPLATE_GEO_SCOPE: dict[str, list[str]] = {
-    "hormuz_closure": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "us_iran_escalation": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "military_repositioning": ["SA", "UAE", "KW"],
-    "gcc_aviation_disruption": ["SA", "UAE", "QA", "KW", "OM", "BH"],
-    "dubai_airport_shutdown": ["UAE"],
-    "jebel_ali_blockade": ["UAE"],
-    "saudi_oil_shock": ["SA"],
-    "qatar_gas_disruption": ["QA"],
-    "gcc_banking_crisis": ["SA", "UAE", "KW", "QA", "BH"],
-    "insurance_cat_event": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "fintech_payment_failure": ["SA", "UAE"],
-    "regional_cyber_attack": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "desalination_failure": ["SA", "UAE", "KW", "QA", "BH"],
-    "food_supply_disruption": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "hajj_crisis": ["SA"],
-    "sovereign_downgrade": ["SA", "UAE", "KW", "QA", "OM", "BH"],
-    "telecom_outage": ["SA", "UAE", "KW", "QA"],
-}
-
 
 def normalize_sector(sector: str) -> str:
     """Resolve sector aliases to canonical name."""
@@ -101,8 +86,10 @@ def normalize_event(validated: ValidatedEvent) -> NormalizedEvent:
             for s in raw_shocks
         ]
 
-    # Geographic scope
-    geo_scope = TEMPLATE_GEO_SCOPE.get(validated.template_id or "", ["SA", "UAE"])
+    # Geographic scope — derived from canonical governance registry.
+    # _registry_geo_scope() returns the correct multi-country scope for all 8
+    # canonical scenarios, and falls back to ["SA", "UAE"] only for unknown IDs.
+    geo_scope = _registry_geo_scope(validated.template_id or "", default=["SA", "UAE"])
 
     # Initial confidence = validation_score (will be adjusted by enrich stage)
     confidence = validated.validation_score
