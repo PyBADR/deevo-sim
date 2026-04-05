@@ -83,11 +83,14 @@ export default function GraphExplorerPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-2 bg-io-surface border-b border-io-border shrink-0">
         <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="text-xs text-io-secondary hover:text-io-primary transition"
-          >
-            ← {isAr ? "لوحة المعلومات" : "Dashboard"}
+          <Link href="/" className="text-xs text-io-secondary hover:text-io-primary transition">
+            ← {isAr ? "الرئيسية" : "Home"}
+          </Link>
+          <Link href="/dashboard" className="text-xs text-io-secondary hover:text-io-primary transition">
+            {isAr ? "لوحة المعلومات" : "Dashboard"}
+          </Link>
+          <Link href="/map" className="text-xs text-io-secondary hover:text-io-primary transition">
+            {isAr ? "خريطة الأثر" : "Impact Map"}
           </Link>
           <span className="text-lg font-bold text-io-accent">
             {isAr ? "مستكشف الشبكة" : "Graph Explorer"}

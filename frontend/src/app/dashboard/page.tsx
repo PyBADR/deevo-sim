@@ -648,11 +648,14 @@ function Nav({
           <Link href="/dashboard" className="text-sm text-io-accent font-medium">
             {locale === "ar" ? "لوحة المعلومات" : "Dashboard"}
           </Link>
-          <Link href="/control-room" className="text-sm text-io-secondary hover:text-io-accent transition-colors">
-            {locale === "ar" ? "الهيكلية" : "Architecture"}
+          <Link href={`/map${qs}`} className="text-sm text-io-secondary hover:text-io-accent transition-colors">
+            {locale === "ar" ? "خريطة الأثر" : "Impact Map"}
           </Link>
           <Link href={`/graph-explorer${qs}`} className="text-sm text-io-secondary hover:text-io-accent transition-colors">
-            {locale === "ar" ? "مستكشف الشبكة" : "Graph Explorer"}
+            {locale === "ar" ? "الانتشار" : "Propagation"}
+          </Link>
+          <Link href="/control-room" className="text-sm text-io-secondary hover:text-io-accent transition-colors">
+            {locale === "ar" ? "غرفة المراقبة" : "Control Room"}
           </Link>
           <Link href={`/regulatory${qs}`} className="text-sm text-io-secondary hover:text-io-accent transition-colors">
             {locale === "ar" ? "الامتثال" : "Regulatory"}

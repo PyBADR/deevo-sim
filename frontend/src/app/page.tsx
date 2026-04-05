@@ -163,6 +163,18 @@ export default function HomePage() {
             >
               {isAr ? "لوحة المعلومات" : "Dashboard"}
             </a>
+            <a
+              href="/map"
+              className="px-4 py-1.5 text-xs font-medium rounded-lg border border-io-border text-io-secondary hover:text-io-accent hover:border-io-accent transition-colors"
+            >
+              {isAr ? "خريطة الأثر" : "Impact Map"}
+            </a>
+            <a
+              href="/graph-explorer"
+              className="px-4 py-1.5 text-xs font-medium rounded-lg border border-io-border text-io-secondary hover:text-io-accent hover:border-io-accent transition-colors"
+            >
+              {isAr ? "الانتشار" : "Propagation"}
+            </a>
             <button
               onClick={() => setAppView("scenarios")}
               className="px-4 py-1.5 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors"

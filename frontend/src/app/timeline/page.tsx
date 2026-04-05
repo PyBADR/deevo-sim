@@ -70,6 +70,9 @@ export default function TimelinePage() {
           <Link href="/dashboard" className="text-xs text-io-secondary hover:text-io-primary transition">
             ← Dashboard
           </Link>
+          <Link href="/map" className="text-xs text-io-secondary hover:text-io-primary transition">
+            Impact Map
+          </Link>
           <span className="text-io-border">|</span>
           <span className="text-sm font-semibold text-io-primary">Impact Timeline</span>
         </div>
