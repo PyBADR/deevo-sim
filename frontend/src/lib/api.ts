@@ -1,30 +1,24 @@
-import type {
-  EventsResponse,
-  FlightsResponse,
-  VesselsResponse,
-  TemplatesResponse,
-  ScenarioResult,
-  RiskScore,
-  DisruptionScore,
-  SystemStress,
-  InsuranceExposure,
-  ClaimsSurge,
-  UnderwritingWatch,
-  SeverityProjection,
-  DecisionOutput,
-  ChokepointsResponse,
-  PropagationResponse,
-  GraphNode,
-  GraphEdge,
-} from "@/types";
+/**
+ * Impact Observatory | مرصد الأثر — API Client (unified pipeline)
+ *
+ * 3 endpoints only:
+ *   POST /api/v1/runs          → Launch unified pipeline (13 stages)
+ *   GET  /api/v1/runs/{id}     → Full UnifiedRunResult
+ *   GET  /api/v1/runs/{id}/status → Poll run status
+ *   GET  /api/v1/scenarios     → Scenario catalog
+ *
+ * All section-fetch endpoints removed — unified payload replaces them.
+ */
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_IO_API_KEY || "io_master_key_2026";
 
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "X-IO-API-Key": API_KEY,
       ...init?.headers,
     },
   });
@@ -36,224 +30,383 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  // ---- Health ----
   health: () => fetchJSON<{ status: string }>("/health"),
 
-  // ---- Events ----
-  events: (params?: { limit?: number; severity_min?: number; event_type?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.severity_min) qs.set("severity_min", String(params.severity_min));
-    if (params?.event_type) qs.set("event_type", params.event_type);
-    return fetchJSON<EventsResponse>(`/events?${qs}`);
+  signals: {
+    /** POST /api/v1/signals — Submit a raw signal → returns pending ScenarioSeed (202) */
+    ingest: (raw: Record<string, unknown>) =>
+      fetchJSON<import("@/types/observatory").IngestSignalResponse>("/api/v1/signals", {
+        method: "POST",
+        body: JSON.stringify(raw),
+      }),
+
+    /** GET /api/v1/signals/pending — List all seeds awaiting HITL review */
+    listPending: () =>
+      fetchJSON<import("@/types/observatory").SeedListResponse>("/api/v1/signals/pending"),
+
+    /** GET /api/v1/signals/seeds/{seedId} — Get a seed by ID */
+    getSeed: (seedId: string) =>
+      fetchJSON<import("@/types/observatory").ScenarioSeed>(`/api/v1/signals/seeds/${seedId}`),
+
+    /** POST /api/v1/signals/seeds/{seedId}/approve — Approve → triggers pipeline */
+    approve: (seedId: string, reason?: string, reviewedBy?: string) =>
+      fetchJSON<import("@/types/observatory").ApproveSeedResponse>(
+        `/api/v1/signals/seeds/${seedId}/approve`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason: reason ?? null, reviewed_by: reviewedBy ?? null }),
+        }
+      ),
+
+    /** POST /api/v1/signals/seeds/{seedId}/reject — Reject → no pipeline */
+    reject: (seedId: string, reason?: string, reviewedBy?: string) =>
+      fetchJSON<import("@/types/observatory").RejectSeedResponse>(
+        `/api/v1/signals/seeds/${seedId}/reject`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason: reason ?? null, reviewed_by: reviewedBy ?? null }),
+        }
+      ),
   },
 
-  // ---- Flights ----
-  flights: (params?: { limit?: number; status?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.status) qs.set("status", params.status);
-    return fetchJSON<FlightsResponse>(`/flights?${qs}`);
+  outcomes: {
+    /** GET /api/v1/outcomes — List outcomes, optionally filtered */
+    list: (params?: { decision_id?: string; run_id?: string; status?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.decision_id) qs.set("decision_id", params.decision_id);
+      if (params?.run_id) qs.set("run_id", params.run_id);
+      if (params?.status) qs.set("status", params.status);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").OutcomeListResponse>(
+        `/api/v1/outcomes${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/outcomes/{id} — Get outcome by ID */
+    get: (outcomeId: string) =>
+      fetchJSON<import("@/types/observatory").Outcome>(`/api/v1/outcomes/${outcomeId}`),
+
+    /** POST /api/v1/outcomes — Record a new outcome */
+    create: (body: import("@/types/observatory").CreateOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>("/api/v1/outcomes", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/outcomes/{id}/observe — Observe an outcome */
+    observe: (outcomeId: string, body?: import("@/types/observatory").ObserveOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/observe`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
+
+    /** POST /api/v1/outcomes/{id}/confirm — Confirm with classification */
+    confirm: (outcomeId: string, body: import("@/types/observatory").ConfirmOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/confirm`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+
+    /** POST /api/v1/outcomes/{id}/dispute — Dispute an outcome observation */
+    dispute: (outcomeId: string, body: import("@/types/observatory").DisputeOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/dispute`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+
+    /** POST /api/v1/outcomes/{id}/close — Close an outcome (terminal) */
+    close: (outcomeId: string, body?: import("@/types/observatory").CloseOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/close`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
   },
 
-  // ---- Vessels ----
-  vessels: (params?: { limit?: number; vessel_type?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.vessel_type) qs.set("vessel_type", params.vessel_type);
-    return fetchJSON<VesselsResponse>(`/vessels?${qs}`);
+  decisions: {
+    /** GET /api/v1/decisions — List operator decisions */
+    list: (params?: { status?: string; decision_type?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.status) qs.set("status", params.status);
+      if (params?.decision_type) qs.set("decision_type", params.decision_type);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").DecisionListResponse>(
+        `/api/v1/decisions${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/decisions/{id} — Get decision by ID */
+    get: (decisionId: string) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(`/api/v1/decisions/${decisionId}`),
+
+    /** POST /api/v1/decisions — Create a new decision */
+    create: (body: import("@/types/observatory").CreateDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>("/api/v1/decisions", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/decisions/{id}/execute — Execute a decision */
+    execute: (decisionId: string, body?: import("@/types/observatory").ExecuteDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(
+        `/api/v1/decisions/${decisionId}/execute`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
+
+    /** POST /api/v1/decisions/{id}/close — Close a decision */
+    close: (decisionId: string, body?: import("@/types/observatory").CloseDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(
+        `/api/v1/decisions/${decisionId}/close`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
   },
 
-  // ---- Threat Field ----
-  threatField: (lat: number, lng: number) =>
-    fetchJSON<{ threat_intensity: number; top_contributors: { id: string; contribution: number }[] }>(
-      `/events/threat-field?lat=${lat}&lng=${lng}`
-    ),
+  values: {
+    /** POST /api/v1/values/compute — Compute ROI from an existing Outcome (OPERATOR+) */
+    compute: (body: import("@/types/observatory").ComputeValueRequest) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>("/api/v1/values/compute", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
 
-  // ---- Scoring ----
-  riskScore: (body: Record<string, number>) =>
-    fetchJSON<RiskScore>("/scores/risk", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
+    /** POST /api/v1/values/{id}/recompute — Recompute with updated inputs, writes new row */
+    recompute: (valueId: string, body: import("@/types/observatory").RecomputeValueRequest) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>(
+        `/api/v1/values/${valueId}/recompute`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
 
-  riskScores: (params?: { sector?: string; region?: string; limit?: number }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.region) qs.set("region", params.region);
-    if (params?.limit) qs.set("limit", String(params.limit));
-    return fetchJSON<{ scores: RiskScore[] }>(`/scores/risk?${qs}`);
+    /** GET /api/v1/values — List values, optionally filtered (ANALYST+) */
+    list: (params?: { outcome_id?: string; decision_id?: string; run_id?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.outcome_id)  qs.set("outcome_id",  params.outcome_id);
+      if (params?.decision_id) qs.set("decision_id", params.decision_id);
+      if (params?.run_id)      qs.set("run_id",       params.run_id);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").DecisionValueListResponse>(
+        `/api/v1/values${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/values/{id} — Get value by ID (ANALYST+) */
+    get: (valueId: string) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>(`/api/v1/values/${valueId}`),
   },
-
-  disruptionScore: (body: Record<string, number>) =>
-    fetchJSON<DisruptionScore>("/scores/disruption", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  confidenceScore: (params: Record<string, number | string>) => {
-    const qs = new URLSearchParams(
-      Object.entries(params).map(([k, v]) => [k, String(v)])
-    );
-    return fetchJSON<{ score: number; factors: { name: string; value: number }[] }>(
-      `/scores/confidence?${qs}`
-    );
-  },
-
-  // ---- System Stress ----
-  systemStress: () => fetchJSON<SystemStress>("/system/stress"),
-
-  // ---- Scenarios ----
-  scenarioTemplates: () =>
-    fetchJSON<TemplatesResponse>("/scenario/templates"),
-
-  scenarioRun: (body: {
-    scenario_id?: string;
-    severity_override?: number;
-    custom_shocks?: { shock_type: string; severity: number; target_entity_id?: string }[];
-    horizon_hours?: number;
-  }) =>
-    fetchJSON<ScenarioResult>("/scenario/run", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  // ---- Graph ----
-  graphPropagation: (startNodeId: string, maxHops?: number) => {
-    const qs = new URLSearchParams({ start_node_id: startNodeId });
-    if (maxHops) qs.set("max_hops", String(maxHops));
-    return fetchJSON<PropagationResponse>(`/graph/propagation-path?${qs}`);
-  },
-
-  graphChokepoints: () =>
-    fetchJSON<ChokepointsResponse>("/graph/chokepoints"),
-
-  graphNodes: (params?: { sector?: string; limit?: number }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.limit) qs.set("limit", String(params.limit));
-    return fetchJSON<{ nodes: GraphNode[]; edges: GraphEdge[] }>(`/graph/nodes?${qs}`);
-  },
-
-  // ---- Insurance ----
-  insuranceExposure: (params?: { sector?: string; region?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.region) qs.set("region", params.region);
-    return fetchJSON<{ exposures: InsuranceExposure[] }>(`/insurance/exposure?${qs}`);
-  },
-
-  claimsSurge: (scenarioId: string) =>
-    fetchJSON<ClaimsSurge>(`/insurance/claims-surge?scenario_id=${scenarioId}`),
-
-  underwritingWatch: (params?: { watch_level?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.watch_level) qs.set("watch_level", params.watch_level);
-    return fetchJSON<{ watches: UnderwritingWatch[] }>(`/insurance/underwriting?${qs}`);
-  },
-
-  severityProjection: (scenarioId: string, horizonHours?: number) => {
-    const qs = new URLSearchParams({ scenario_id: scenarioId });
-    if (horizonHours) qs.set("horizon_hours", String(horizonHours));
-    return fetchJSON<SeverityProjection>(`/insurance/severity-projection?${qs}`);
-  },
-
-  // ---- Decision Output ----
-  decisionOutput: (scenarioId: string) =>
-    fetchJSON<DecisionOutput>(`/decision/output?scenario_id=${scenarioId}`),
-
-  // ---- Entity Detail ----
-  entityDetail: (entityId: string) =>
-    fetchJSON<{
-      id: string;
-      name: string;
-      name_ar?: string;
-      type: string;
-      sector: string;
-      region: string;
-      risk_score: RiskScore;
-      disruption_score: DisruptionScore;
-      insurance_exposure?: InsuranceExposure;
-      connected_entities: { id: string; name: string; edge_type: string; weight: number }[];
-    }>(`/entity/${entityId}`),
-
-  // ================================================================
-  // Impact Observatory v4 API — v4 §4 envelope: { data, trace_id, generated_at, warnings }
-  // ================================================================
 
   observatory: {
-    /** POST /api/v1/runs — Execute pipeline against a scenario/template */
-    run: (body: { scenario_id?: string; template_id?: string }) =>
+    /** POST /api/v1/runs — Launch unified pipeline */
+    run: (body: { template_id: string; severity?: number; horizon_hours?: number; label?: string }) =>
       fetchJSON<{ data: Record<string, unknown> }>("/api/v1/runs", {
         method: "POST",
         body: JSON.stringify(body),
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
       }),
+
+    /** GET /api/v1/runs/{id} — Full UnifiedRunResult */
+    result: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}`),
 
     /** GET /api/v1/runs/{id}/status — Poll run status */
     status: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/status`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/status`),
+
+    /** GET /api/v1/scenarios — Scenario catalog */
+    scenarios: () =>
+      fetchJSON<{ data: Record<string, unknown> }>("/api/v1/scenarios"),
+  },
+
+  /**
+   * Decision Authority Layer — backend source of truth.
+   * All actions produce stable authority envelope responses.
+   * Errors: 400 (bad transition), 403 (unauthorized), 404 (not found), 409 (conflict).
+   */
+  authority: {
+    /** POST /api/v1/authority/propose — Create authority envelope (PROPOSED) */
+    propose: (body: {
+      decision_id: string;
+      rationale?: string;
+      priority?: number;
+      source_run_id?: string;
+      source_scenario_label?: string;
+      tags?: string[];
+      notes?: string;
+      actor_id?: string;
+    }) =>
+      fetchJSON<Record<string, unknown>>("/api/v1/authority/propose", {
+        method: "POST",
+        body: JSON.stringify(body),
       }),
 
-    /** GET /api/v1/runs/{id}/financial — Financial impacts + aggregate */
-    financial: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/financial`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/submit — Submit for review */
+    submit: (decisionId: string, body?: { reviewer_id?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/submit`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/banking — Banking stress */
-    banking: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/banking`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/approve — Approve (ADMIN) */
+    approve: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/approve`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/insurance — Insurance stress */
-    insurance: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/insurance`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/reject — Reject (ADMIN) */
+    reject: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/reject`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/fintech — Fintech stress */
-    fintech: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/fintech`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/return — Return for revision (ADMIN) */
+    returnForRevision: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/return`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/decision — Decision plan (top-3 actions) */
-    decision: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/decision`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/escalate — Escalate (OPERATOR+) */
+    escalate: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/escalate`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/explanation — Explanation pack */
-    explanation: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/explanation`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/queue-execution — Queue for execution (OPERATOR+) */
+    queueExecution: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/queue-execution`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/business-impact — Business impact summary */
-    businessImpact: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/business-impact`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/execute — Execute (OPERATOR+). Requires APPROVED/EXECUTION_PENDING. */
+    execute: (decisionId: string, body?: {
+      execution_result?: string;
+      linked_outcome_id?: string;
+      linked_value_id?: string;
+      notes?: string;
+      actor_id?: string;
+    }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/execute`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/timeline — Timestep-by-timestep simulation */
-    timeline: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown>[] }>(`/api/v1/runs/${runId}/timeline`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/execution-failed — Report execution failure */
+    executionFailed: (decisionId: string, body?: { failure_reason?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/execution-failed`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/regulatory-timeline — Regulatory breach events */
-    regulatoryTimeline: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/regulatory-timeline`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/revoke — Revoke (ADMIN) */
+    revoke: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/revoke`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
 
-    /** GET /api/v1/runs/{id}/executive-explanation — Executive narrative */
-    executiveExplanation: (runId: string) =>
-      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/executive-explanation`, {
-        headers: { "X-IO-API-Key": "io_master_key_2026" },
+    /** POST /api/v1/authority/{id}/withdraw — Withdraw (ANALYST+) */
+    withdraw: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/withdraw`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
       }),
+
+    /** POST /api/v1/authority/{id}/resubmit — Resubmit after rejection/return/failure */
+    resubmit: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/resubmit`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/override — Admin force-transition */
+    override: (decisionId: string, body: { target_status: string; rationale: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/override`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/authority/{id}/annotate — Append annotation (no status change) */
+    annotate: (decisionId: string, body: { notes: string; metadata?: Record<string, unknown>; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/annotate`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** GET /api/v1/authority — List authority envelopes */
+    list: (params?: { status?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.status) qs.set("status", params.status);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      if (params?.offset != null) qs.set("offset", String(params.offset));
+      const q = qs.toString();
+      return fetchJSON<{ items: Record<string, unknown>[]; count: number }>(
+        `/api/v1/authority${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/authority/{decision_id} — Get authority envelope */
+    get: (decisionId: string) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}`),
+
+    /** GET /api/v1/authority/{decision_id}/events — Full audit event log */
+    events: (decisionId: string, limit?: number) => {
+      const q = limit != null ? `?limit=${limit}` : "";
+      return fetchJSON<{ events: Record<string, unknown>[]; count: number }>(
+        `/api/v1/authority/${decisionId}/events${q}`
+      );
+    },
+
+    /** POST /api/v1/authority/{id}/link — Attach outcome/value links (backend-authoritative) */
+    link: (decisionId: string, body: Record<string, unknown>) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/link`, {
+        method: "POST", body: JSON.stringify(body),
+      }),
+
+    /** GET /api/v1/authority/{decision_id}/verify — Verify hash chain integrity */
+    verify: (decisionId: string) =>
+      fetchJSON<{
+        valid: boolean;
+        broken_at: number | null;
+        expected_hash: string | null;
+        actual_hash: string | null;
+        events_checked: number;
+        authority_id: string;
+        chain_trace: Array<{
+          index: number;
+          event_id: string;
+          action: string;
+          from_status: string | null;
+          to_status: string;
+          timestamp: string;
+          event_hash: string;
+          previous_event_hash: string | null;
+          recomputed_hash: string;
+          link_valid: boolean;
+          hash_valid: boolean;
+        }>;
+        errors: unknown[];
+      }>(
+        `/api/v1/authority/${decisionId}/verify`
+      ),
+
+    /** GET /api/v1/authority/metrics — Authoritative queue metrics (backend source of truth) */
+    metrics: () =>
+      fetchJSON<{
+        proposed: number;
+        under_review: number;
+        approved_pending_execution: number;
+        executed: number;
+        rejected: number;
+        failed: number;
+        escalated: number;
+        returned: number;
+        revoked: number;
+        withdrawn: number;
+        total_active: number;
+        total: number;
+      }>("/api/v1/authority/metrics"),
   },
 };
