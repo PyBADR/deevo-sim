@@ -15,15 +15,10 @@ import AppShell from "@/components/shell/AppShell";
 import { useAppStore } from "@/store/app-store";
 import { useGraphData } from "@/features/graph/useGraphData";
 import { GraphCanvas } from "@/features/graph/GraphCanvas";
-import { GraphControls } from "@/features/graph/GraphControls";
-import { GraphNodeCard } from "@/features/graph/GraphNodeCard";
 import {
   Panel,
   EmptyState,
-  FilterChip,
-  SectionHeader,
   ClassificationBadge,
-  InlineLoader,
 } from "@/components/ui";
 import type { GraphLayer, KnowledgeGraphNode } from "@/types/observatory";
 
@@ -60,29 +55,27 @@ const GRAPH_CONTEXT = {
   },
 };
 
-// ── Enterprise error state ─────────────────────────────────────────────
+// ── Capability state (graph not supported by current backend) ──────────
 
-function GraphErrorState({
-  error,
-  isAr,
-}: {
-  error: string;
-  isAr: boolean;
-}) {
+function GraphCapabilityState({ isAr }: { isAr: boolean }) {
   return (
     <Panel className="mx-6 my-6">
       <EmptyState
         icon={
           <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3.75H6A2.25 2.25 0 003.75 6v1.5M16.5 3.75H18A2.25 2.25 0 0120.25 6v1.5m0 9V18A2.25 2.25 0 0118 20.25h-1.5m-9 0H6A2.25 2.25 0 013.75 18v-1.5M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
         }
-        title={isAr ? "تعذّر تحميل الرسم البياني" : "Graph Unavailable"}
-        titleAr="تعذّر تحميل الرسم البياني"
+        title={
+          isAr
+            ? "تحليل الرسم البياني غير متاح لهذا النوع من السيناريوهات"
+            : "Graph analysis is not available for this scenario type"
+        }
+        titleAr="تحليل الرسم البياني غير متاح لهذا النوع من السيناريوهات"
         description={
           isAr
-            ? "تعذّر الاتصال بخدمة الرسم البياني. تحقق من تشغيل الخادم الخلفي."
-            : "Unable to connect to the knowledge graph service. Verify the backend API is reachable."
+            ? "بيانات انتشار الرسم البياني غير مدعومة من الواجهة الخلفية الحالية. يظل تحليل السيناريو متاحاً من لوحة المعلومات."
+            : "Graph propagation data is not supported by the current backend. Scenario analysis remains accessible from the dashboard."
         }
         lang={isAr ? "ar" : "en"}
         action={
@@ -286,7 +279,7 @@ export default function GraphExplorerPage() {
     nodes,
     edges,
     loading,
-    error,
+    graphSupported,
     totalNodes,
     totalEdges,
     activeLayer,
@@ -311,10 +304,11 @@ export default function GraphExplorerPage() {
     [filterByLayer]
   );
 
-  if (error) {
+  // Capability gate: only render shell + capability state — no canvas attempt
+  if (!loading && graphSupported === false) {
     return (
       <AppShell activeRoute="graph">
-        <GraphErrorState error={error} isAr={isAr} />
+        <GraphCapabilityState isAr={isAr} />
       </AppShell>
     );
   }
@@ -423,25 +417,8 @@ export default function GraphExplorerPage() {
                 </p>
               </div>
             </div>
-          ) : nodes.length === 0 ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="text-center max-w-xs px-6">
-                <div className="w-10 h-10 rounded-xl border border-slate-700 flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-5 h-5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0016.803 15.803z" />
-                  </svg>
-                </div>
-                <p className="text-sm font-medium text-slate-300 mb-1.5">
-                  {isAr ? "لا توجد كيانات مطابقة" : "No Entities Matched"}
-                </p>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  {isAr
-                    ? "لا توجد كيانات تطابق المرشحات الحالية. عدّل المرشحات أو ابحث عن قطاع أو مؤسسة أو حدث."
-                    : "No entities matched the current filters. Adjust filters or search for a sector, institution, or event."}
-                </p>
-              </div>
-            </div>
           ) : (
+            // graphSupported === true guaranteed here (false case handled above)
             <GraphCanvas
               nodes={nodes}
               edges={edges}

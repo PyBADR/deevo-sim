@@ -2,7 +2,6 @@
 
 import { useState, useCallback } from "react";
 import { graphClient } from "@/lib/graph-client";
-import { api } from "@/lib/api";
 import { useRunState } from "@/lib/run-state";
 import type {
   ImpactedEntity,
@@ -16,6 +15,13 @@ export interface GlobeState {
   scenarios: GraphScenarioTemplate[];
   loading: boolean;
   scenariosLoading: boolean;
+  /**
+   * Explicit capability flag for geospatial rendering.
+   * False until a run completes WITH map_payload.impacted_entities present.
+   * Pages MUST check this before attempting to render EntityLayer.
+   */
+  mapSupported: boolean;
+  /** Hard fetch/network error — distinct from capability limitations */
   error: string | null;
 }
 
@@ -26,6 +32,7 @@ export function useGlobeEntities() {
     scenarios: [],
     loading: false,
     scenariosLoading: false,
+    mapSupported: false,
     error: null,
   });
 
@@ -48,10 +55,10 @@ export function useGlobeEntities() {
     }
   }, []);
 
-  // Run unified pipeline via canonical POST /runs → GET /runs/{id}
+  // Run analysis via POST /runs — populates mapSupported based on result payload
   const runScenario = useCallback(
     async (templateId: string, severity = 0.7, horizonHours = 168) => {
-      setState((s) => ({ ...s, loading: true, error: null }));
+      setState((s) => ({ ...s, loading: true, error: null, mapSupported: false }));
       try {
         const API_KEY = process.env.NEXT_PUBLIC_IO_API_KEY || "io_master_key_2026";
         const headers = {
@@ -59,7 +66,7 @@ export function useGlobeEntities() {
           "X-IO-API-Key": API_KEY,
         };
 
-        // 1. POST /runs — send both template_id (v4) and scenario_id (legacy)
+        // POST /runs — send both template_id (v4) and scenario_id (legacy)
         const postRes = await fetch("/api/v1/runs", {
           method: "POST",
           headers,
@@ -84,35 +91,30 @@ export function useGlobeEntities() {
         const runId = (runMeta.run_id as string) ?? "";
         if (!runId) throw new Error("Backend did not return a run ID.");
 
-        // 2. GET /runs/{id} → Full result (both backends support this)
+        // GET /runs/{id} → full result
         const getRes = await fetch(`/api/v1/runs/${runId}`, { headers });
         if (!getRes.ok) throw new Error("Failed to retrieve run result.");
         const getData = await getRes.json();
 
         // Handle both v4 envelope ({ data: UnifiedRunResult }) and legacy direct
         const rawResult: Record<string, unknown> = getData?.data ?? getData ?? {};
-
-        // Derive typed UnifiedRunResult — works for both v4 and v2 schemas
         const result = rawResult as unknown as UnifiedRunResult;
 
-        // Build impacted entities for the map.
-        // v4: map_payload.impacted_entities (with lat/lng)
-        // v2: top_impacted_entities is just node ID strings — no geolocation available.
-        let entities: ImpactedEntity[] = result.map_payload?.impacted_entities ?? [];
-        if (entities.length === 0) {
-          // Typed capability state: map data unavailable for this backend version
-          // Surface the information but don't block the result
-          console.info(
-            "[map] map_payload absent — geospatial layer unavailable for this backend schema"
-          );
-        }
+        // Capability gating: map is only supported when geospatial entities are present.
+        // v2 backend returns no map_payload — this is a structural capability limitation,
+        // not a failure. mapSupported = false is the correct and expected state.
+        const entities: ImpactedEntity[] = result.map_payload?.impacted_entities ?? [];
+        const mapSupported = entities.length > 0;
 
         setState((s) => ({
           ...s,
           runResult: result,
           entities,
+          mapSupported,
           loading: false,
+          // No error — absent map_payload is a capability limitation, not a failure
         }));
+
         // Store in shared state for cross-page sync (Dashboard, etc.)
         useRunState.getState().setUnifiedResult(result);
         return result;
@@ -129,7 +131,13 @@ export function useGlobeEntities() {
   );
 
   const clearRun = useCallback(() => {
-    setState((s) => ({ ...s, entities: [], runResult: null }));
+    setState((s) => ({
+      ...s,
+      entities: [],
+      runResult: null,
+      mapSupported: false,
+      error: null,
+    }));
   }, []);
 
   return { ...state, loadScenarios, runScenario, clearRun };

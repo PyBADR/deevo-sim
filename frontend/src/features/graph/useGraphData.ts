@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { graphClient } from "@/lib/graph-client";
+import { deriveGraphCapabilityFromLoad } from "@/lib/capabilities";
 import type {
   KnowledgeGraphNode,
   KnowledgeGraphEdge,
@@ -13,7 +14,13 @@ export interface GraphDataState {
   nodes: KnowledgeGraphNode[];
   edges: KnowledgeGraphEdge[];
   loading: boolean;
-  error: string | null;
+  /**
+   * Explicit capability flag — null while loading, true/false after.
+   * False when edges = 0 (disconnected graph has no propagation paths)
+   * or when the graph endpoint is unreachable.
+   * Pages MUST check this before attempting to render GraphCanvas.
+   */
+  graphSupported: boolean | null;
   totalNodes: number;
   totalEdges: number;
   layers: string[];
@@ -27,7 +34,7 @@ export function useGraphData() {
     nodes: [],
     edges: [],
     loading: true,
-    error: null,
+    graphSupported: null,
     totalNodes: 0,
     totalEdges: 0,
     layers: [],
@@ -46,6 +53,10 @@ export function useGraphData() {
           graphClient.edges(),
         ]);
         if (!cancelled) {
+          const supported = deriveGraphCapabilityFromLoad(
+            nodesRes.nodes.length,
+            edgesRes.edges.length
+          );
           setState((s) => ({
             ...s,
             nodes: nodesRes.nodes,
@@ -54,14 +65,17 @@ export function useGraphData() {
             totalEdges: nodesRes.total_graph_edges,
             layers: nodesRes.layers,
             loading: false,
+            // Capability gating: false when edges absent (no propagation paths)
+            graphSupported: supported,
           }));
         }
-      } catch (err) {
+      } catch {
+        // Load failed — capability not supported, not a generic error
         if (!cancelled) {
           setState((s) => ({
             ...s,
             loading: false,
-            error: err instanceof Error ? err.message : "Failed to load graph",
+            graphSupported: false,
           }));
         }
       }
@@ -70,7 +84,7 @@ export function useGraphData() {
     return () => { cancelled = true; };
   }, []);
 
-  // Filter by layer
+  // Filter by layer — only callable when graphSupported = true
   const filterByLayer = useCallback(async (layer: GraphLayer | null) => {
     setState((s) => ({ ...s, loading: true, activeLayer: layer }));
     try {
@@ -84,12 +98,9 @@ export function useGraphData() {
         edges: edgesRes.edges,
         loading: false,
       }));
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        loading: false,
-        error: err instanceof Error ? err.message : "Filter failed",
-      }));
+    } catch {
+      // Filter failed — don't change graphSupported, just stop loading
+      setState((s) => ({ ...s, loading: false }));
     }
   }, []);
 
@@ -104,12 +115,8 @@ export function useGraphData() {
         scenarioLoading: false,
       }));
       return result;
-    } catch (err) {
-      setState((s) => ({
-        ...s,
-        scenarioLoading: false,
-        error: err instanceof Error ? err.message : "Scenario run failed",
-      }));
+    } catch {
+      setState((s) => ({ ...s, scenarioLoading: false }));
       return null;
     }
   }, []);

@@ -5,7 +5,10 @@
  *
  * SVG entity map showing impacted GCC institutions and corridors.
  * Institutional light controls sidebar + geographic visualization.
- * Enterprise fallback state when service is unavailable.
+ *
+ * Capability gating: EntityLayer is never rendered when map_supported = false.
+ * The backend's absence of map_payload is a structural capability limitation,
+ * not an error. The MapCapabilityState is shown instead — no retry, no error.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -15,111 +18,38 @@ import { useGlobeEntities } from "@/features/globe/useGlobeEntities";
 import { EntityLayer } from "@/features/globe/EntityLayer";
 import { ImpactOverlay } from "@/features/globe/ImpactOverlay";
 import {
-  Panel,
   ClassificationBadge,
-  EmptyState,
-  SectionHeader,
   DataRow,
 } from "@/components/ui";
 import type { ImpactedEntity } from "@/types/observatory";
 
-// ── Scenario domain labels ─────────────────────────────────────────────
+// ── Map capability state (geospatial not supported by current backend) ──
 
-const DOMAIN_LABELS: Record<string, string> = {
-  MARITIME: "Maritime",
-  ENERGY: "Energy",
-  FINANCIAL: "Financial",
-  CYBER: "Cyber",
-  AVIATION: "Aviation",
-  TRADE: "Trade",
-};
-
-// ── Operational fallback state ─────────────────────────────────────────
-
-function MapUnavailableState({
-  isAr,
-  error,
-  onRetry,
-}: {
-  isAr: boolean;
-  error: string;
-  onRetry?: () => void;
-}) {
+function MapCapabilityState({ isAr }: { isAr: boolean }) {
   return (
-    <div className="absolute inset-0 bg-io-bg flex items-center justify-center">
-      <div className="max-w-md w-full mx-6">
-        <Panel>
-          <EmptyState
-            icon={
-              <svg className="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
-              </svg>
-            }
-            title={isAr ? "خريطة التشغيل غير متاحة" : "Operational Map Unavailable"}
-            titleAr="خريطة التشغيل غير متاحة"
-            description={
-              isAr
-                ? "البيانات الجغرافية المباشرة غير متاحة حالياً. يظل تحليل السيناريوهات متاحاً."
-                : "Live geospatial data is currently unavailable. Scenario analysis remains accessible."
-            }
-            lang={isAr ? "ar" : "en"}
-            action={
-              <div className="flex gap-2">
-                {onRetry && (
-                  <button
-                    onClick={onRetry}
-                    className="px-3 py-1.5 text-sm font-medium rounded-lg border border-io-border text-io-primary hover:bg-io-bg transition-colors"
-                  >
-                    {isAr ? "إعادة المحاولة" : "Retry"}
-                  </button>
-                )}
-                <a
-                  href="/"
-                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors"
-                >
-                  {isAr ? "لوحة المعلومات" : "Go to Dashboard"}
-                </a>
-              </div>
-            }
-          />
-        </Panel>
-
-        {/* What remains available */}
-        <div className="mt-4">
-          <Panel
-            title={isAr ? "البيانات المتاحة" : "Available Data"}
-            titleAr="البيانات المتاحة"
-            lang={isAr ? "ar" : "en"}
-          >
-            <div className="space-y-0">
-              {[
-                { label: isAr ? "تحليل الأثر المالي" : "Financial impact analysis", available: true },
-                { label: isAr ? "ضغط القطاعات" : "Sector stress indicators", available: true },
-                { label: isAr ? "إجراءات القرار" : "Decision action recommendations", available: true },
-                { label: isAr ? "الجداول الزمنية" : "Business & regulatory timelines", available: true },
-                { label: isAr ? "الخريطة الجغرافية" : "Geographic entity map", available: false },
-              ].map((item) => (
-                <div key={item.label} className="flex items-center justify-between py-2 border-b border-io-border/50 last:border-0">
-                  <span className="text-sm text-io-secondary">{item.label}</span>
-                  <span
-                    className={`flex items-center gap-1.5 text-xs font-medium ${
-                      item.available ? "text-emerald-700" : "text-red-600"
-                    }`}
-                  >
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        item.available ? "bg-emerald-500" : "bg-red-500"
-                      }`}
-                    />
-                    {item.available
-                      ? isAr ? "متاح" : "Available"
-                      : isAr ? "غير متاح" : "Unavailable"}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Panel>
+    <div className="absolute inset-0 bg-slate-950 flex items-center justify-center">
+      <div className="max-w-sm w-full mx-6 text-center">
+        <div className="w-12 h-12 border border-slate-700 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg className="w-6 h-6 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+          </svg>
         </div>
+        <p className="text-sm font-semibold text-slate-300 mb-2">
+          {isAr
+            ? "التحليل الجغرافي غير متاح لهذا السيناريو"
+            : "Geospatial analysis is not available for this scenario"}
+        </p>
+        <p className="text-xs text-slate-500 leading-relaxed mb-4">
+          {isAr
+            ? "لا تتضمن نتيجة هذا السيناريو بيانات الموقع الجغرافي. يظل تحليل الأثر المالي متاحاً من لوحة المعلومات."
+            : "This scenario result does not include geolocation data. Financial impact analysis remains accessible from the dashboard."}
+        </p>
+        <a
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors"
+        >
+          {isAr ? "عرض التحليل الكامل" : "View Full Analysis"}
+        </a>
       </div>
     </div>
   );
@@ -136,13 +66,11 @@ function EntityDetailPanel({
   onClose: () => void;
   isAr: boolean;
 }) {
-  const { formatUSD } = {
-    formatUSD: (v: number | undefined) => {
-      if (!v) return "—";
-      if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
-      if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
-      return `$${v.toLocaleString()}`;
-    },
+  const formatUSD = (v: number | undefined) => {
+    if (!v) return "—";
+    if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+    if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
+    return `$${v.toLocaleString()}`;
   };
 
   return (
@@ -216,6 +144,7 @@ export default function MapPage() {
     scenarios,
     loading,
     scenariosLoading,
+    mapSupported,
     error,
     loadScenarios,
     runScenario,
@@ -336,21 +265,19 @@ export default function MapPage() {
               </button>
             )}
 
-            {/* Error state */}
+            {/* Hard API error (network failure, not capability limitation) */}
             {error && !runResult && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
                 <p className="text-xs font-semibold text-amber-800 mb-1">
-                  {isAr ? "البيانات الجغرافية غير متاحة" : "Geospatial Data Unavailable"}
+                  {isAr ? "تعذّر تشغيل التحليل" : "Analysis Run Failed"}
                 </p>
                 <p className="text-xs text-amber-700">
-                  {isAr
-                    ? "تعذّر تحميل بيانات الكيانات. يظل تحليل السيناريوهات متاحاً من لوحة المعلومات."
-                    : "Entity data could not be loaded. Scenario analysis remains accessible from the dashboard."}
+                  {error}
                 </p>
               </div>
             )}
 
-            {/* Impact summary */}
+            {/* Impact summary — always shown when result present, regardless of map support */}
             {runResult && (
               <div className="flex-1 overflow-y-auto">
                 <div className="border-t border-io-border pt-3">
@@ -367,8 +294,8 @@ export default function MapPage() {
             )}
           </div>
 
-          {/* Entity detail panel */}
-          {selectedEntity && (
+          {/* Entity detail panel — only shown when map data is present */}
+          {selectedEntity && mapSupported && (
             <EntityDetailPanel
               entity={selectedEntity}
               onClose={() => setSelectedEntity(null)}
@@ -377,16 +304,10 @@ export default function MapPage() {
           )}
         </div>
 
-        {/* ── Right: Map / Globe area ──────────────────────────────── */}
+        {/* ── Right: Map canvas area ───────────────────────────────── */}
         <div className="flex-1 relative overflow-hidden">
-          {error && !runResult ? (
-            <MapUnavailableState
-              isAr={isAr}
-              error={error}
-              onRetry={loadScenarios}
-            />
-          ) : !runResult ? (
-            /* Pre-run empty state */
+          {!runResult ? (
+            /* Pre-run: waiting for scenario selection */
             <div className="absolute inset-0 bg-slate-950 flex items-center justify-center">
               <div className="text-center max-w-sm px-6">
                 {scenariosLoading ? (
@@ -420,13 +341,17 @@ export default function MapPage() {
                 )}
               </div>
             </div>
-          ) : (
+          ) : mapSupported ? (
+            /* Capability confirmed: render entity layer */
             <EntityLayer
               entities={entities}
               selectedEntityId={selectedEntity?.node_id}
               onEntityClick={handleEntityClick}
               isAr={isAr}
             />
+          ) : (
+            /* Capability gate: map_payload absent — clean capability state, no retry */
+            <MapCapabilityState isAr={isAr} />
           )}
 
           {/* Analysis progress bar */}
