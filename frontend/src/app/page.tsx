@@ -683,14 +683,14 @@ export default function HomePage() {
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
               <ErrorBoundary section="Signal Feed">
-                <SignalFeed />
+                <SignalFeed lang={lang} />
               </ErrorBoundary>
               <ErrorBoundary section="Pending Seed Panel">
-                <PendingSeedPanel />
+                <PendingSeedPanel lang={lang} />
               </ErrorBoundary>
             </div>
             <ErrorBoundary section="Operator Decision Panel">
-              <OperatorDecisionPanel />
+              <OperatorDecisionPanel lang={lang} />
             </ErrorBoundary>
           </div>
         </section>

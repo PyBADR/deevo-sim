@@ -1,6 +1,6 @@
 """
-Scenario Engine Module - Phase 6
-Complete scenario analysis and simulation framework for Impact Observatory
+Impact Observatory | مرصد الأثر — Scenario Module
+Templates, catalog, and engine for scenario management.
 """
 
 from app.scenarios.templates import (
@@ -11,85 +11,33 @@ from app.scenarios.templates import (
     get_template,
     list_templates,
     get_templates_by_disruption_type,
-    get_templates_by_domain
+    get_templates_by_domain,
 )
 
-from app.scenarios.baseline import (
-    BaselineSnapshot,
-    BaselineCaptureRequest,
-    BaselineCaptureResult
-)
-
-from app.scenarios.shock import (
-    ShockEvent,
-    CascadeEffect,
-    ShockApplicationResult,
-    ShockInjector
-)
-
-from app.scenarios.simulator import (
-    SimulationStep,
-    SimulationStepResult,
-    ScenarioSimulationResult,
-    ScenarioSimulator
-)
-
-from app.scenarios.delta import (
-    NodeDeltaAnalysis,
-    DeltaMetrics,
-    DeltaCalculator
-)
-
-from app.scenarios.explainer import (
-    ScenarioExplanation,
-    ExplanationGenerator
-)
-
-from app.scenarios.engine import (
-    ScenarioExecutionRequest,
-    ScenarioExecutionResult,
-    ScenarioEngine
+from app.scenarios.catalog import (
+    SCENARIO_CATALOG,
+    get_scenario_catalog,
+    get_scenario_by_id,
+    get_catalog_ids,
+    get_scenarios_by_sector,
+    CATALOG_TO_DOMAIN_FIELD_MAP,
 )
 
 __all__ = [
     # Templates
-    'ScenarioTemplate',
-    'DisruptionType',
-    'ScenarioDomain',
-    'SCENARIO_TEMPLATES',
-    'get_template',
-    'list_templates',
-    'get_templates_by_disruption_type',
-    'get_templates_by_domain',
-    
-    # Baseline
-    'BaselineSnapshot',
-    'BaselineCaptureRequest',
-    'BaselineCaptureResult',
-    
-    # Shock
-    'ShockEvent',
-    'CascadeEffect',
-    'ShockApplicationResult',
-    'ShockInjector',
-    
-    # Simulator
-    'SimulationStep',
-    'SimulationStepResult',
-    'ScenarioSimulationResult',
-    'ScenarioSimulator',
-    
-    # Delta
-    'NodeDeltaAnalysis',
-    'DeltaMetrics',
-    'DeltaCalculator',
-    
-    # Explainer
-    'ScenarioExplanation',
-    'ExplanationGenerator',
-    
-    # Engine
-    'ScenarioExecutionRequest',
-    'ScenarioExecutionResult',
-    'ScenarioEngine'
+    "ScenarioTemplate",
+    "DisruptionType",
+    "ScenarioDomain",
+    "SCENARIO_TEMPLATES",
+    "get_template",
+    "list_templates",
+    "get_templates_by_disruption_type",
+    "get_templates_by_domain",
+    # Catalog
+    "SCENARIO_CATALOG",
+    "get_scenario_catalog",
+    "get_scenario_by_id",
+    "get_catalog_ids",
+    "get_scenarios_by_sector",
+    "CATALOG_TO_DOMAIN_FIELD_MAP",
 ]

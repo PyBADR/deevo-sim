@@ -1,7 +1,7 @@
 /**
  * Impact Observatory | مرصد الأثر — Frontend RBAC (v4 §10)
  * Mirrors backend/app/core/rbac.py exactly.
- * 5 roles × 19 permissions.
+ * 5 roles × 25 permissions.
  */
 
 export type Role = "viewer" | "analyst" | "operator" | "admin" | "regulator";
@@ -25,7 +25,16 @@ export type Permission =
   | "manage_manifests"
   | "archive_scenario"
   | "read_audit_logs"
-  | "generate_compliance_report";
+  | "generate_compliance_report"
+  // Operator Layer — decision management
+  | "create_decision"    // ANALYST+
+  | "execute_decision"   // OPERATOR+
+  // Outcome Intelligence Layer
+  | "read_outcome"       // ANALYST+
+  | "record_outcome"     // OPERATOR+
+  // ROI / Decision Value Layer
+  | "read_value"         // ANALYST+
+  | "compute_value";     // OPERATOR+
 
 /** v4 §10.2 — Permission matrix (exact mirror of backend). */
 const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
@@ -53,6 +62,9 @@ const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "read_timeline",
     "read_regulatory_timeline",
     "read_executive_explanation",
+    "create_decision",
+    "read_outcome",
+    "read_value",
   ]),
   operator: new Set([
     "create_scenario",
@@ -70,6 +82,12 @@ const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "read_executive_explanation",
     "override_thresholds",
     "force_rerun",
+    "create_decision",
+    "execute_decision",
+    "read_outcome",
+    "record_outcome",
+    "read_value",
+    "compute_value",
   ]),
   admin: new Set([
     "create_scenario",
@@ -91,6 +109,12 @@ const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "archive_scenario",
     "read_audit_logs",
     "generate_compliance_report",
+    "create_decision",
+    "execute_decision",
+    "read_outcome",
+    "record_outcome",
+    "read_value",
+    "compute_value",
   ]),
   regulator: new Set([
     "create_scenario",
@@ -109,6 +133,12 @@ const ROLE_PERMISSIONS: Record<Role, Set<Permission>> = {
     "override_thresholds",
     "read_audit_logs",
     "generate_compliance_report",
+    "create_decision",
+    "execute_decision",
+    "read_outcome",
+    "record_outcome",
+    "read_value",
+    "compute_value",
   ]),
 };
 

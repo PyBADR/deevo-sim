@@ -38,6 +38,7 @@ import type {
   DecisionType,
   OperatorDecisionStatus,
   WsSignalScoredData,
+  Language,
 } from "@/types/observatory";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -607,13 +608,14 @@ function CreateDecisionForm({ onClose }: { onClose: () => void }) {
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function OperatorDecisionPanel() {
+export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [typeFilter, setTypeFilter] = useState<string>("");
   const [showCreate, setShowCreate] = useState(false);
   const [executingId, setExecutingId] = useState<string | null>(null);
   const [closingId, setClosingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const isAr = lang === "ar";
 
   const selectedDecisionId = useAppStore((s) => s.selectedDecisionId);
   const setSelectedDecisionId = useAppStore((s) => s.setSelectedDecisionId);
@@ -664,7 +666,7 @@ export function OperatorDecisionPanel() {
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-io-accent" />
           <h3 className="text-sm font-semibold text-io-primary">
-            Operator Decisions
+            {isAr ? "قرارات المشغّل" : "Operator Decisions"}
           </h3>
           {data && (
             <span className="text-[10px] font-mono text-io-secondary px-1.5 py-0.5 bg-io-bg border border-io-border rounded-full">
@@ -676,7 +678,7 @@ export function OperatorDecisionPanel() {
           onClick={() => setShowCreate((v) => !v)}
           className="px-2.5 py-1 text-[10px] font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors"
         >
-          {showCreate ? "Cancel" : "+ New"}
+          {showCreate ? (isAr ? "إلغاء" : "Cancel") : (isAr ? "+ جديد" : "+ New")}
         </button>
       </div>
 
@@ -693,7 +695,7 @@ export function OperatorDecisionPanel() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="flex-1 text-[10px] border border-io-border rounded-lg px-2 py-1 bg-io-bg text-io-secondary focus:border-io-accent focus:outline-none"
           >
-            <option value="">All Statuses</option>
+            <option value="">{isAr ? "جميع الحالات" : "All Statuses"}</option>
             {(
               [
                 "CREATED",
@@ -713,7 +715,7 @@ export function OperatorDecisionPanel() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="flex-1 text-[10px] border border-io-border rounded-lg px-2 py-1 bg-io-bg text-io-secondary focus:border-io-accent focus:outline-none"
           >
-            <option value="">All Types</option>
+            <option value="">{isAr ? "جميع الأنواع" : "All Types"}</option>
             {DECISION_TYPES.map((t) => (
               <option key={t.value} value={t.value}>
                 {t.label}

@@ -8,9 +8,9 @@ Routers mounted:
   - /health             (health checks)
   - /api/v1/scenarios   (v4 scenario CRUD)
   - /api/v1/runs        (v4 pipeline execution — THE critical V1 path)
-  - /api/v1/observatory (unified observatory flow)
 """
 
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 
@@ -31,13 +31,69 @@ logger = logging.getLogger(__name__)
 settings = Settings()
 
 
+# ── Background expiry task ───────────────────────────────────────────────────
+
+async def _periodic_seed_expiry(interval_s: int = 3_600) -> None:
+    """Expire stale seeds every interval_s seconds (default: 1 hour).
+
+    Runs as an asyncio background task started in lifespan.
+    Failures are logged and the loop continues — never crashes the server.
+    """
+    while True:
+        await asyncio.sleep(interval_s)
+        try:
+            from app.signals.hitl import reconcile_expired_seeds
+            expired = reconcile_expired_seeds()
+            if expired:
+                logger.info("Periodic seed expiry: %d seeds expired", len(expired))
+        except Exception as exc:
+            logger.error("Periodic seed expiry task failed: %s", exc)
+
+
 # ── Lifespan (V1: lightweight — no Neo4j, no Redis, no Orchestrator) ────────
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """V1 lifespan: log startup, yield, log shutdown. No external deps."""
-    logger.info("Starting Impact Observatory V1 (in-memory mode)...")
-    logger.info("Neo4j / Redis / Orchestrator skipped — V1 runs in-memory only.")
+    """V1 lifespan: initialize persistent signal store, restore caches, yield, shutdown."""
+    logger.info("Starting Impact Observatory V1...")
+    logger.info("Neo4j / Redis / Orchestrator skipped — V1 runs in-memory pipeline mode.")
+
+    # ── Signal store: create SQLite tables, restore caches, expire stale seeds ─
+    _expiry_task = None
+    try:
+        # ── Authority models must be imported BEFORE init_db() so their table
+        # definitions are registered on the shared SQLAlchemy Base before
+        # Base.metadata.create_all() is called inside init_db().
+        import app.authority.models as _authority_models  # noqa: F401
+
+        from app.signals.store import init_db
+        from app.signals.hitl import load_pending_from_db, reconcile_expired_seeds
+        from app.api.v1.routes.runs import load_runs_from_db
+
+        db_path = init_db()  # lazy engine creation; creates ALL tables (incl. authority)
+        logger.info("Signal store initialized at: %s", db_path)
+
+        load_pending_from_db()     # restore pending seeds into _pending cache
+        load_runs_from_db()        # restore run metadata into _runs cache (result blobs on-demand)
+        reconcile_expired_seeds()  # expire any seeds whose horizon elapsed while offline
+
+        # Start background task for periodic expiry (1-hour default)
+        _expiry_task = asyncio.create_task(_periodic_seed_expiry())
+        logger.info("Signal store ready. Periodic seed expiry task started.")
+
+    except Exception as exc:
+        # Non-fatal: log and continue.  Signals will still work; persistence
+        # will be retried per-write.  Missing tables will be recreated on next boot.
+        logger.error("Signal store startup failed (non-fatal): %s", exc)
+
     yield
+
+    # ── Shutdown ─────────────────────────────────────────────────────────────
+    if _expiry_task is not None:
+        _expiry_task.cancel()
+        try:
+            await _expiry_task
+        except asyncio.CancelledError:
+            pass
     logger.info("Shutting down Impact Observatory V1.")
 
 
@@ -86,22 +142,11 @@ from app.api import health  # noqa: E402
 
 app.include_router(health.router, tags=["Health"])
 
-# Observatory unified flow
-try:
-    from app.api.observatory import router as observatory_router  # noqa: E402
-
-    app.include_router(
-        observatory_router, prefix=settings.api_prefix, tags=["Observatory"]
-    )
-    logger.info("Mounted observatory router")
-except ImportError as e:
-    logger.warning(f"Observatory router unavailable: {e}")
-
 # ── V4 canonical API (scenarios + runs) — HARD REQUIREMENT for V1 ──────────
 from app.api.v1.router import api_v1_router as v4_router  # noqa: E402
 
 app.include_router(v4_router, tags=["Observatory v4"])
-logger.info("Mounted v4 canonical API router (/api/v1/scenarios, /api/v1/runs)")
+logger.info("Mounted v4 canonical API router (/api/v1/scenarios, /api/v1/runs, /api/v1/signals)")
 
 
 # ── Root endpoint ──────────────────────────────────────────────────────────
@@ -119,6 +164,27 @@ async def root():
             "v4_runs": "/api/v1/runs",
         },
     }
+
+
+# ── Live Signal Layer — WebSocket feed ────────────────────────────────────────
+# Push-only.  Clients connect and receive signal / seed events.
+# No auth required (events carry no PII).
+@app.websocket("/ws/signals")
+async def ws_signal_feed(websocket):
+    from app.signals.broadcaster import manager
+    await manager.connect(websocket)
+    try:
+        while True:
+            # Drain any client frames (connection keepalive / close handshake).
+            # We do not process client messages — push-only contract.
+            await websocket.receive_text()
+    except Exception:
+        pass
+    finally:
+        manager.disconnect(websocket)
+
+
+# ── Root endpoint update (reflect signals endpoint) ──────────────────────────
 
 
 # ── Direct run ─────────────────────────────────────────────────────────────

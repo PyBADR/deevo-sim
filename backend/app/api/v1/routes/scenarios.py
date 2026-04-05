@@ -1,6 +1,8 @@
 """
-Impact Observatory | مرصد الأثر — POST /api/v1/scenarios (v4 §4.2)
-Create and persist a scenario. Validates full graph, returns 201 with scenario.
+Impact Observatory | مرصد الأثر — Scenario endpoints (v4 §4.2, §18.2)
+GET  /scenarios          → List all catalog scenarios (no auth required for catalog)
+POST /scenarios          → Create custom scenario (auth required)
+GET  /scenarios/{id}     → Get scenario by ID (in-memory store or catalog fallback)
 """
 
 from fastapi import APIRouter, Request, Header
@@ -14,11 +16,23 @@ from ....core.security import authenticate
 from ....core.rbac import Permission, has_permission
 from ....core.errors import InsufficientRoleError, SchemaValidationError
 from ..schemas.common import success_response
+from ....scenarios.catalog import get_scenario_catalog, get_scenario_by_id as catalog_lookup
 
 router = APIRouter()
 
 # In-memory store for V1 (replaced by PostgreSQL in production)
 _scenarios: dict[str, dict] = {}
+
+
+@router.get("/scenarios")
+async def list_scenarios(
+    authorization: Optional[str] = Header(None),
+    x_api_key: Optional[str] = Header(None, alias="X-IO-API-Key"),
+):
+    """v4 §18.2 — List all available scenarios from the catalog."""
+    authenticate(authorization, x_api_key)
+    catalog = get_scenario_catalog()
+    return JSONResponse(content=success_response(catalog))
 
 
 @router.post("/scenarios", status_code=201)
@@ -74,15 +88,23 @@ async def get_scenario(
     authorization: Optional[str] = Header(None),
     x_api_key: Optional[str] = Header(None, alias="X-IO-API-Key"),
 ):
-    """Get a scenario by ID."""
+    """Get a scenario by ID. Checks in-memory store first, then catalog."""
     authenticate(authorization, x_api_key)
 
-    if scenario_id not in _scenarios:
-        from ....core.errors import ScenarioNotFoundError
-        err = ScenarioNotFoundError(scenario_id)
-        return JSONResponse(status_code=404, content=err.to_envelope())
+    # 1. Check in-memory store (custom scenarios)
+    if scenario_id in _scenarios:
+        return JSONResponse(content=success_response(_scenarios[scenario_id]))
 
-    return JSONResponse(content=success_response(_scenarios[scenario_id]))
+    # 2. Fall back to catalog
+    try:
+        entry = catalog_lookup(scenario_id)
+        return JSONResponse(content=success_response(entry))
+    except ValueError:
+        pass
+
+    from ....core.errors import ScenarioNotFoundError
+    err = ScenarioNotFoundError(scenario_id)
+    return JSONResponse(status_code=404, content=err.to_envelope())
 
 
 def get_scenario_store() -> dict:

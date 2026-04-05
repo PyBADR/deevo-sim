@@ -34,32 +34,19 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
-}
-
-function formatHours(hours: number): string {
-  if (!isFinite(hours)) return "N/A";
-  if (hours >= 720) return `${Math.round(hours / 720)}mo`;
-  if (hours >= 168) return `${Math.round(hours / 168)}w`;
-  if (hours >= 24) return `${Math.round(hours / 24)}d`;
-  return `${Math.round(hours)}h`;
-}
+import { formatUSD, formatHours, safeFixed, safePercent } from "@/lib/format";
 
 function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number; label: string; threshold: number; thresholdLabel: string }) {
-  const pct = Math.min(value * 100, 150);
-  const thresholdPct = Math.min(threshold * 100, 150);
-  const isBreached = value >= threshold;
+  const pct = Math.min((value ?? 0) * 100, 150);
+  const thresholdPct = Math.min((threshold ?? 0) * 100, 150);
+  const isBreached = (value ?? 0) >= (threshold ?? 0);
 
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
         <span className="text-io-secondary font-medium">{label}</span>
         <span className={`font-semibold ${isBreached ? "text-io-danger" : "text-io-primary"}`}>
-          {(value * 100).toFixed(1)}%
+          {safePercent(value)}
         </span>
       </div>
       <div className="relative h-3 bg-io-bg rounded-full overflow-visible">
@@ -74,7 +61,7 @@ function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number
           title={thresholdLabel}
         />
       </div>
-      <p className="text-xs text-io-secondary">{thresholdLabel}: {(threshold * 100).toFixed(0)}%</p>
+      <p className="text-xs text-io-secondary">{thresholdLabel}: {safePercent(threshold, 0)}</p>
     </div>
   );
 }
@@ -154,11 +141,11 @@ export default function InsuranceDetailPanel({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{(data.aggregate_stress * 100).toFixed(1)}%</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.claims_surge}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{data.claims_surge_multiplier.toFixed(2)}x</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{safeFixed(data.claims_surge_multiplier, 2)}x</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.portfolio}</p>
@@ -197,12 +184,12 @@ export default function InsuranceDetailPanel({
           </div>
           <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
             <span className="text-io-secondary">{t.ifrs17}</span>
-            <span className="font-semibold text-io-primary">{data.ifrs17_risk_adjustment_pct.toFixed(2)}%</span>
+            <span className="font-semibold text-io-primary">{safeFixed(data.ifrs17_risk_adjustment_pct, 2)}%</span>
           </div>
           <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
             <span className="text-io-secondary">{t.claims_surge}</span>
             <span className={`font-semibold ${data.claims_surge_multiplier > 2 ? "text-io-danger" : data.claims_surge_multiplier > 1.5 ? "text-io-warning" : "text-io-primary"}`}>
-              {data.claims_surge_multiplier.toFixed(2)}x
+              {safeFixed(data.claims_surge_multiplier, 2)}x
             </span>
           </div>
         </div>
@@ -230,12 +217,12 @@ export default function InsuranceDetailPanel({
                   <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(line.exposure_usd)}</td>
                   <td className="py-2.5 text-right tabular-nums">
                     <span className={line.claims_surge > 2 ? "text-io-danger font-semibold" : line.claims_surge > 1.5 ? "text-io-warning" : "text-io-primary"}>
-                      {line.claims_surge.toFixed(2)}x
+                      {safeFixed(line.claims_surge, 2)}x
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
                     <span className={line.stress > 0.6 ? "text-io-danger font-semibold" : line.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
-                      {(line.stress * 100).toFixed(1)}%
+                      {safePercent(line.stress)}
                     </span>
                   </td>
                 </tr>

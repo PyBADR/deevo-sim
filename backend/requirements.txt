@@ -13,3 +13,6 @@ passlib[bcrypt]==1.7.4
 python-multipart==0.0.9
 httpx==0.27.0
 mesa==2.3.0
+fpdf2>=2.7.9
+arabic-reshaper>=3.0.0
+python-bidi>=0.6.0

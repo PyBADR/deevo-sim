@@ -1,35 +1,11 @@
 """
-Impact Observatory GCC Platform - Mesa Agent-Based Simulation Module
+Simulation Layer — backend/app/simulation/
 
-Provides agent-based modeling capabilities for spatial-temporal disruption
-propagation, infrastructure resilience assessment, and scenario impact simulation
-using Mesa 3.x framework.
+Unified 13-stage pipeline runner.
+DEPRECATED: Mesa ABM module (mesa_model, behaviors, bridge) removed in v2.0.
 """
 
-from .mesa_model import (
-    GCCModel,
-    InfrastructureAgent,
-    EventAgent,
-    FlowAgent,
-)
-from .behaviors import (
-    compute_infrastructure_risk_update,
-    compute_event_decay,
-    compute_flow_congestion,
-    compute_reroute_decision,
-    compute_recovery,
-)
-from .bridge import MesaBridge
+from .runner import run_unified_pipeline
+from .state import SimulationState
 
-__all__ = [
-    "GCCModel",
-    "InfrastructureAgent",
-    "EventAgent",
-    "FlowAgent",
-    "compute_infrastructure_risk_update",
-    "compute_event_decay",
-    "compute_flow_congestion",
-    "compute_reroute_decision",
-    "compute_recovery",
-    "MesaBridge",
-]
+__all__ = ["run_unified_pipeline", "SimulationState"]

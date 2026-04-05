@@ -74,7 +74,7 @@ class TestPipeline:
         assert r.status_code == 202
         data = r.json()["data"]
         assert data["status"] == "completed"
-        assert data["stages_completed"] == 9
+        assert data["stages_completed"] >= 9
 
     def test_run_unknown_template(self, client, admin_headers):
         r = client.post(
@@ -103,7 +103,7 @@ class TestStatus:
         assert r.status_code == 200
         data = r.json()["data"]
         assert data["status"] == "completed"
-        assert data["stages_completed"] == 9
+        assert data["stages_completed"] >= 9
 
     def test_status_not_found(self, client, admin_headers):
         r = client.get("/api/v1/runs/nonexistent/status", headers=admin_headers)

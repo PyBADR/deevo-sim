@@ -32,28 +32,15 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number): string {
-  if (value >= 1e12) return `$${(value / 1e12).toFixed(2)}T`;
-  if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
-  if (value >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
-  return `$${value.toLocaleString()}`;
-}
-
-function formatHours(hours: number): string {
-  if (!isFinite(hours)) return "N/A";
-  if (hours >= 720) return `${Math.round(hours / 720)}mo`;
-  if (hours >= 168) return `${Math.round(hours / 168)}w`;
-  if (hours >= 24) return `${Math.round(hours / 24)}d`;
-  return `${Math.round(hours)}h`;
-}
+import { formatUSD, formatHours, safeFixed, safePercent } from "@/lib/format";
 
 function StressBar({ value, label, color }: { value: number; label: string; color: string }) {
-  const pct = Math.min(value * 100, 100);
+  const pct = Math.min((value ?? 0) * 100, 100);
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
         <span className="text-io-secondary font-medium">{label}</span>
-        <span className="font-semibold text-io-primary">{pct.toFixed(1)}%</span>
+        <span className="font-semibold text-io-primary">{safeFixed(pct, 1)}%</span>
       </div>
       <div className="h-2 bg-io-bg rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
@@ -137,7 +124,7 @@ export default function BankingDetailPanel({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{(data.aggregate_stress * 100).toFixed(1)}%</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.total_exposure}</p>
@@ -149,7 +136,7 @@ export default function BankingDetailPanel({
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.car_impact}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-danger">-{data.capital_adequacy_impact_pct.toFixed(2)}%</p>
+          <p className="text-2xl font-bold tabular-nums text-io-danger">-{safeFixed(data.capital_adequacy_impact_pct, 2)}%</p>
         </div>
       </div>
 
@@ -179,13 +166,13 @@ export default function BankingDetailPanel({
           <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
             <span className="text-io-secondary">{t.car_impact}</span>
             <span className={`font-semibold ${data.capital_adequacy_impact_pct > 2 ? "text-io-danger" : "text-io-warning"}`}>
-              -{data.capital_adequacy_impact_pct.toFixed(2)}%
+              -{safeFixed(data.capital_adequacy_impact_pct, 2)}%
             </span>
           </div>
           <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
             <span className="text-io-secondary">{t.contagion}</span>
             <span className={`font-semibold ${data.interbank_contagion > 0.5 ? "text-io-danger" : "text-io-primary"}`}>
-              {(data.interbank_contagion * 100).toFixed(1)}%
+              {safePercent(data.interbank_contagion)}
             </span>
           </div>
         </div>
@@ -215,12 +202,12 @@ export default function BankingDetailPanel({
                   <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(inst.exposure_usd)}</td>
                   <td className="py-2.5 text-right tabular-nums">
                     <span className={inst.stress > 0.6 ? "text-io-danger font-semibold" : inst.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
-                      {(inst.stress * 100).toFixed(1)}%
+                      {safePercent(inst.stress)}
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
                     <span className={inst.projected_car_pct < 10 ? "text-io-danger font-semibold" : "text-io-primary"}>
-                      {inst.projected_car_pct.toFixed(1)}%
+                      {safeFixed(inst.projected_car_pct, 1)}%
                     </span>
                   </td>
                 </tr>
