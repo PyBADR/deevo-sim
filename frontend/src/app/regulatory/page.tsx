@@ -5,12 +5,21 @@
  * Shows Basel III / Solvency / IFRS 17 breach risk from a run result.
  */
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRunResult } from '@/hooks/use-api';
 import { safeFixed } from '@/lib/format';
 
 export default function RegulatoryPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-io-bg flex items-center justify-center"><div className="text-io-secondary text-sm">Loading regulatory data...</div></div>}>
+      <RegulatoryContent />
+    </Suspense>
+  );
+}
+
+function RegulatoryContent() {
   const searchParams = useSearchParams();
   const runId = searchParams.get('runId');
   const { data: run, isLoading } = useRunResult(runId ?? '');

@@ -5,6 +5,7 @@
  * Recovery trajectory chart + decision action columns.
  */
 
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useRunResult } from '@/hooks/use-api';
@@ -23,6 +24,14 @@ import {
 } from 'recharts';
 
 export default function TimelinePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-io-bg flex items-center justify-center"><div className="text-io-secondary text-sm">Loading timeline...</div></div>}>
+      <TimelineContent />
+    </Suspense>
+  );
+}
+
+function TimelineContent() {
   const searchParams = useSearchParams();
   const runId = searchParams.get('runId');
   const { data: run, isLoading } = useRunResult(runId ?? '');
