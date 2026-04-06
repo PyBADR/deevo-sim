@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { graphClient } from "@/lib/graph-client";
+import { useRunState } from "@/lib/run-state";
 import { deriveGraphCapabilityFromLoad } from "@/lib/capabilities";
 import type {
   KnowledgeGraphNode,
   KnowledgeGraphEdge,
   GraphLayer,
   ScenarioImpactResult,
+  UnifiedRunResult,
 } from "@/types/observatory";
 
 export interface GraphDataState {
@@ -82,6 +84,75 @@ export function useGraphData() {
     }
     load();
     return () => { cancelled = true; };
+  }, []);
+
+  // Fallback: hydrate from dashboard run-state when standalone API returns empty.
+  // Maps ImpactedNode (node_id, node_type) → KnowledgeGraphNode (id, type)
+  // and ActivatedEdge (edge_id) → KnowledgeGraphEdge (id).
+  // Only activates when standalone load produced 0 nodes to avoid overwriting
+  // a successful standalone load.
+  useEffect(() => {
+    function hydrateFromRunState(unified: UnifiedRunResult | null) {
+      if (!unified) return;
+      const rawNodes = (unified.graph_payload?.nodes ?? []) as unknown as Record<string, unknown>[];
+      const rawEdges = (unified.graph_payload?.edges ?? []) as unknown as Record<string, unknown>[];
+      if (rawNodes.length === 0) return;
+
+      setState((s) => {
+        // Don't overwrite a successful standalone load
+        if (s.nodes.length > 0) return s;
+
+        // Remap backend ImpactedNode schema → KnowledgeGraphNode
+        const nodes: KnowledgeGraphNode[] = rawNodes.map((n) => ({
+          id: ((n.node_id ?? n.id) as string) ?? "",
+          label: (n.label as string) ?? "",
+          label_ar: (n.label_ar as string) ?? "",
+          layer: (n.layer as KnowledgeGraphNode["layer"]) ?? "economy",
+          type: ((n.node_type ?? n.type) as string) ?? "Topic",
+          weight: (n.weight as number) ?? 0,
+          lat: (n.lat as number) ?? 0,
+          lng: (n.lng as number) ?? 0,
+          sensitivity: (n.sensitivity as number) ?? 0.5,
+          stress: (n.stress as number) ?? 0,
+          classification: (n.classification as KnowledgeGraphNode["classification"]) ?? "NOMINAL",
+        }));
+
+        // Remap backend ActivatedEdge schema → KnowledgeGraphEdge
+        const edges: KnowledgeGraphEdge[] = rawEdges.map((e) => ({
+          id: ((e.edge_id ?? e.id) as string) ?? "",
+          source: (e.source as string) ?? "",
+          target: (e.target as string) ?? "",
+          weight: (e.weight as number) ?? 0,
+          polarity: (e.polarity as number) ?? 1,
+          label: (e.label as string) ?? "",
+          label_ar: (e.label_ar as string) ?? "",
+          transmission: (e.transmission as number) ?? 0,
+        }));
+
+        return {
+          ...s,
+          nodes,
+          edges,
+          totalNodes: nodes.length,
+          totalEdges: edges.length,
+          layers: [...new Set(rawNodes.map((n) => (n.layer as string) ?? ""))].filter(Boolean),
+          loading: false,
+          graphSupported: nodes.length > 0 && edges.length > 0,
+        };
+      });
+    }
+
+    // Hydrate immediately if a run already completed before this page mounted
+    hydrateFromRunState(useRunState.getState().unifiedResult);
+
+    // Subscribe to future dashboard runs
+    const unsub = useRunState.subscribe((state, prevState) => {
+      if (state.unifiedResult !== prevState.unifiedResult) {
+        hydrateFromRunState(state.unifiedResult);
+      }
+    });
+
+    return () => { unsub(); };
   }, []);
 
   // Filter by layer — only callable when graphSupported = true

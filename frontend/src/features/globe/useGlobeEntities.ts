@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { graphClient } from "@/lib/graph-client";
 import { useRunState } from "@/lib/run-state";
 import type {
@@ -35,6 +35,40 @@ export function useGlobeEntities() {
     mapSupported: false,
     error: null,
   });
+
+  // On mount: hydrate from dashboard run-state if a scenario was already run.
+  // Also subscribes to future dashboard runs so navigating to this page
+  // after a dashboard run immediately shows the map without re-running.
+  useEffect(() => {
+    function hydrateFromRunState(unifiedResult: UnifiedRunResult | null) {
+      if (!unifiedResult) return;
+      const entities: ImpactedEntity[] = unifiedResult.map_payload?.impacted_entities ?? [];
+      if (entities.length === 0) return;
+
+      setState((s) => {
+        // Don't overwrite an in-progress or already-populated run
+        if (s.entities.length > 0 || s.loading) return s;
+        return {
+          ...s,
+          entities,
+          runResult: unifiedResult,
+          mapSupported: true,
+        };
+      });
+    }
+
+    // Hydrate immediately from any run that completed before this page mounted
+    hydrateFromRunState(useRunState.getState().unifiedResult);
+
+    // Subscribe for live updates when the dashboard runs a new scenario
+    const unsub = useRunState.subscribe((state, prevState) => {
+      if (state.unifiedResult !== prevState.unifiedResult) {
+        hydrateFromRunState(state.unifiedResult);
+      }
+    });
+
+    return () => { unsub(); };
+  }, []);
 
   // Load available scenarios — falls back to /api/v1/scenarios via graphClient.scenarios()
   const loadScenarios = useCallback(async () => {

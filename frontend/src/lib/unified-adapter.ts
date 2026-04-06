@@ -66,7 +66,7 @@ export function unifiedToRunResult(unified: UnifiedRunResult): RunResult {
   const math = unified.math;
   const physics = unified.physics;
 
-  void decisionInputs; void graphPayload; void math; void physics;
+  void decisionInputs; void math; void physics;
 
   // ── Financial Impacts ───────────────────────────────────
   const financial: FinancialImpact[] = (sectors?.financial_impacts ?? []).map(
