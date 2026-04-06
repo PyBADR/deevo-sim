@@ -85,6 +85,14 @@ async def lifespan(app: FastAPI):
         # will be retried per-write.  Missing tables will be recreated on next boot.
         logger.error("Signal store startup failed (non-fatal): %s", exc)
 
+    # ── Data trust quarantine store: separate SQLite DB ──────────────────────
+    try:
+        from app.data_trust.quarantine.store import init_quarantine_db
+        quarantine_path = init_quarantine_db()
+        logger.info("Data trust quarantine store initialized at: %s", quarantine_path)
+    except Exception as exc:
+        logger.error("Data trust quarantine store startup failed (non-fatal): %s", exc)
+
     yield
 
     # ── Shutdown ─────────────────────────────────────────────────────────────
