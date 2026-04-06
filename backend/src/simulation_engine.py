@@ -37,6 +37,11 @@ from src.physics_intelligence_layer import (
     PhysicsViolationError,
 )
 from src.flow_models import simulate_all_flows
+from src.entity_intelligence import (
+    generate_banking_entities,
+    generate_insurance_entities,
+    generate_fintech_entities,
+)
 from src.decision_layer import (
     build_decision_actions,
     build_five_questions,
@@ -1038,7 +1043,13 @@ class SimulationEngine:
                 "time_to_liquidity_breach_hours": float(liquidity_stress.get("time_to_breach_hours", 9999.0)),
                 "total_exposure_usd": round(total_loss_usd * sector_exposure.get("banking", 0.30), 2),
                 "classification": liquidity_stress.get("classification", "NOMINAL"),
-                "affected_institutions": [],
+                "affected_institutions": generate_banking_entities(
+                    shock_nodes=shock_nodes,
+                    severity=event_severity,
+                    sector_exposure=sector_exposure,
+                    liquidity_stress=liquidity_stress,
+                    total_loss_usd=total_loss_usd,
+                ),
                 "run_id": run_id,
             },
             # Fix 2d: stop using **insurance_stress, use explicit extraction
@@ -1067,7 +1078,13 @@ class SimulationEngine:
                     total_loss_usd * sector_exposure.get("insurance", 0.15), 2
                 ),
                 "underwriting_status": classify_stress(insurance_stress["severity_index"]),
-                "affected_lines": [],
+                "affected_lines": generate_insurance_entities(
+                    shock_nodes=shock_nodes,
+                    severity=event_severity,
+                    sector_exposure=sector_exposure,
+                    insurance_stress=insurance_stress,
+                    total_loss_usd=total_loss_usd,
+                ),
                 "run_id": run_id,
             },
             "fintech_stress": {
@@ -1100,7 +1117,13 @@ class SimulationEngine:
                 "time_to_payment_failure_hours": round(
                     liquidity_stress.get("time_to_breach_hours", 9999.0) * 0.60, 1
                 ),
-                "affected_platforms": [],
+                "affected_platforms": generate_fintech_entities(
+                    shock_nodes=shock_nodes,
+                    severity=event_severity,
+                    sector_exposure=sector_exposure,
+                    liquidity_stress=liquidity_stress,
+                    total_loss_usd=total_loss_usd,
+                ),
                 "run_id": run_id,
                 "sector": "fintech",
                 "classification": classify_stress(liquidity_stress["aggregate_stress"] * 0.75),
