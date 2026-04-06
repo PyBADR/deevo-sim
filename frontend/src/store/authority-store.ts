@@ -348,43 +348,46 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
     // ── Load from backend ──
 
     loadAll: async (params) => {
-      set({ loading: true, error: null });
+      // CRIT-185 FIX v2: eliminate synchronous set() before await and collapse
+      // 4 set() calls (loading:true, data, metrics, loading:false) into 1.
+      //
+      // Root cause: the prior version started with set({ loading: true }) BEFORE
+      // the first await. That synchronous set() fires all Zustand listeners from
+      // inside useEffect (commitPassiveMountEffects in React 19). Each listener
+      // calls forceStoreRerender(fiber) → scheduleUpdateOnFiber(root, SyncLane).
+      // React 19 processes SyncLane work synchronously, so the component
+      // re-renders immediately. The 3 subsequent async set() calls (data,
+      // metrics, loading:false) compound the scheduling until numberOfReRenders
+      // exceeds RE_RENDER_LIMIT (25) → React error #185.
+      //
+      // Fix: parallelize both API calls via Promise.all → all awaits happen
+      // before any set() → single set() at the end → one listener notification
+      // → one re-render pass → #185 impossible.
       try {
-        const response = await api.authority.list({
-          status: params?.status,
-          limit: params?.limit ?? 200,
-        });
-        // CRIT-185 FIX: batch all items into ONE set() call instead of calling
-        // _upsert() (and therefore set()) N times in a loop.
-        //
-        // Each _upsert() calls set() which synchronously fires all Zustand
-        // listeners. Each listener calls React's forceStoreRerender(fiber) →
-        // scheduleUpdateOnFiber(root, fiber, SyncLane). In React 19, SyncLane
-        // work is processed synchronously — so N items = up to N sequential
-        // render passes of AuthorityQueuePanel. Each pass sees a new Map
-        // snapshot from the next _upsert, marks the fiber, and re-renders.
-        // After 25 rapid re-entries React's numberOfReRenders overflows
-        // RE_RENDER_LIMIT and throws error #185.
-        //
-        // Collapsing to one set() call → one listener notification → one
-        // render pass eliminates the cascade regardless of item count.
+        const [response, metricsResult] = await Promise.all([
+          api.authority.list({
+            status: params?.status,
+            limit: params?.limit ?? 200,
+          }),
+          api.authority.metrics().catch(() => null),
+        ]);
         const rawItems = response?.items ?? [];
-        if (rawItems.length > 0) {
-          const newAuth  = new Map(get().authorities);
-          const newIndex = new Map(get().decisionIndex);
-          for (const raw of rawItems) {
-            const authority = rawToAuthority(raw as Record<string, unknown>);
-            newAuth.set(authority.authority_id, authority);
-            newIndex.set(authority.decision_id, authority.authority_id);
-          }
-          set({ authorities: newAuth, decisionIndex: newIndex });
+        const newAuth  = new Map(get().authorities);
+        const newIndex = new Map(get().decisionIndex);
+        for (const raw of rawItems) {
+          const authority = rawToAuthority(raw as Record<string, unknown>);
+          newAuth.set(authority.authority_id, authority);
+          newIndex.set(authority.decision_id, authority.authority_id);
         }
-        // Always load authoritative metrics on full hydration
-        await get().loadMetrics();
+        set({
+          authorities:   newAuth,
+          decisionIndex: newIndex,
+          metrics:       (metricsResult as unknown as AuthorityQueueSummary | null) ?? get().metrics,
+          loading:       false,
+          error:         null,
+        });
       } catch (err) {
-        set({ error: err instanceof Error ? err.message : String(err) });
-      } finally {
-        set({ loading: false });
+        set({ error: err instanceof Error ? err.message : String(err), loading: false });
       }
     },
 
