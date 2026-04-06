@@ -15,7 +15,6 @@
 
 import React from "react";
 import type { FintechStress, Classification, Language } from "@/types/observatory";
-import { StressGauge } from "@/components/StressGauge";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -25,9 +24,6 @@ const classificationColors: Record<Classification, string> = {
   MODERATE: "bg-io-moderate text-white",
   LOW: "bg-io-low text-white",
   NOMINAL: "bg-io-nominal text-white",
-  GUARDED: "bg-yellow-500 text-white",
-  HIGH: "bg-orange-600 text-white",
-  SEVERE: "bg-red-700 text-white",
 };
 
 function Badge({ level }: { level: Classification }) {
@@ -38,17 +34,10 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatHours(hours: number): string {
-  if (!isFinite(hours)) return "N/A";
-  if (hours >= 720) return `${Math.round(hours / 720)}mo`;
-  if (hours >= 168) return `${Math.round(hours / 168)}w`;
-  if (hours >= 24) return `${Math.round(hours / 24)}d`;
-  return `${Math.round(hours)}h`;
-}
+import { formatHours, safeFixed, safePercent } from "@/lib/format";
 
-function MetricRing({ value, label, unit, color }: { value: number | null | undefined; label: string; unit: string; color: string }) {
-  const safeValue = value ?? 0;
-  const pct = Math.min(Math.abs(safeValue), 100);
+function MetricRing({ value, label, unit, color }: { value: number; label: string; unit: string; color: string }) {
+  const pct = Math.min(Math.abs(value ?? 0), 100);
   const circumference = 2 * Math.PI * 36;
   const offset = circumference - (pct / 100) * circumference;
 
@@ -68,7 +57,7 @@ function MetricRing({ value, label, unit, color }: { value: number | null | unde
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <span className="text-lg font-bold tabular-nums text-io-primary">
-            {safeValue.toFixed(1)}
+            {safeFixed(value, 1)}
           </span>
           <span className="text-[10px] text-io-secondary">{unit}</span>
         </div>
@@ -137,39 +126,19 @@ export default function FintechDetailPanel({
         <Badge level={data.classification as Classification} />
       </div>
 
-      {/* Stress Gauge */}
-      <div className="flex justify-center">
-        <StressGauge
-          sector="fintech"
-          sectorLabel="Fintech Stress"
-          sectorLabelAr="ضغط الفنتك"
-          score={Math.round(data.aggregate_stress * 100)}
-          classification={data.classification}
-          indicators={[
-            `Payments −${(data?.payment_volume_impact_pct ?? 0).toFixed(1)}%`,
-            `API ${(data?.api_availability_pct ?? 100).toFixed(0)}% up`,
-          ]}
-          indicatorsAr={[
-            `المدفوعات −${(data?.payment_volume_impact_pct ?? 0).toFixed(1)}%`,
-            `الإتاحة ${(data?.api_availability_pct ?? 100).toFixed(0)}%`,
-          ]}
-          locale={lang}
-        />
-      </div>
-
       {/* Top Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{((data?.aggregate_stress ?? 0) * 100).toFixed(1)}%</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.tt_failure}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(data?.time_to_payment_failure_hours ?? Infinity)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(data.time_to_payment_failure_hours)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.digital_banking}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{((data?.digital_banking_stress ?? 0) * 100).toFixed(1)}%</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.digital_banking_stress)}</p>
         </div>
       </div>
 
@@ -227,15 +196,15 @@ export default function FintechDetailPanel({
                   <td className="py-2.5 text-io-secondary">{platform.country}</td>
                   <td className="py-2.5 text-right tabular-nums">
                     <span className={platform.volume_impact_pct > 30 ? "text-io-danger font-semibold" : "text-io-primary"}>
-                      {(platform?.volume_impact_pct ?? 0).toFixed(1)}%
+                      {safeFixed(platform.volume_impact_pct, 1)}%
                     </span>
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
-                    {((platform?.cross_border_stress ?? 0) * 100).toFixed(1)}%
+                    {safePercent(platform.cross_border_stress)}
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={(platform?.stress ?? 0) > 0.6 ? "text-io-danger font-semibold" : (platform?.stress ?? 0) > 0.4 ? "text-io-warning" : "text-io-primary"}>
-                      {((platform?.stress ?? 0) * 100).toFixed(1)}%
+                    <span className={platform.stress > 0.6 ? "text-io-danger font-semibold" : platform.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                      {safePercent(platform.stress)}
                     </span>
                   </td>
                 </tr>

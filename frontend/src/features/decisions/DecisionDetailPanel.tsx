@@ -18,8 +18,6 @@ import type {
   Classification,
   Language,
 } from "@/types/observatory";
-import { DecisionActionCard } from "@/components/DecisionActionCard";
-import { safeFixed, safeNum } from "@/lib/format";
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
@@ -29,9 +27,6 @@ const classificationColors: Record<Classification, string> = {
   MODERATE: "bg-io-moderate text-white",
   LOW: "bg-io-low text-white",
   NOMINAL: "bg-io-nominal text-white",
-  GUARDED: "bg-yellow-500 text-white",
-  HIGH: "bg-orange-600 text-white",
-  SEVERE: "bg-red-700 text-white",
 };
 
 function Badge({ level }: { level: Classification }) {
@@ -42,32 +37,19 @@ function Badge({ level }: { level: Classification }) {
   );
 }
 
-function formatUSD(value: number | null | undefined): string {
-  const v = safeNum(value);
-  if (v >= 1e12) return `$${(v / 1e12).toFixed(2)}T`;
-  if (v >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(0)}M`;
-  return `$${v.toLocaleString()}`;
-}
+import {
+  formatUSD,
+  formatHours,
+  safeFixed,
+  safePercent,
+} from "@/lib/format";
 
-function formatHours(hours: number | null | undefined): string {
-  const h = safeNum(hours, Infinity);
-  if (!isFinite(h)) return "N/A";
-  if (h >= 720) return `${Math.round(h / 720)}mo`;
-  if (h >= 168) return `${Math.round(h / 168)}w`;
-  if (h >= 24) return `${Math.round(h / 24)}d`;
-  return `${Math.round(h)}h`;
-}
-
-function PriorityBar({ urgency, value, regulatory }: { urgency: number | null | undefined; value: number | null | undefined; regulatory: number | null | undefined }) {
-  const u = urgency ?? 0;
-  const v = value ?? 0;
-  const r = regulatory ?? 0;
-  const total = u + v + r;
+function PriorityBar({ urgency, value, regulatory }: { urgency: number; value: number; regulatory: number }) {
+  const total = urgency + value + regulatory;
   if (total === 0) return null;
-  const uPct = (u / total) * 100;
-  const vPct = (v / total) * 100;
-  const rPct = (r / total) * 100;
+  const uPct = (urgency / total) * 100;
+  const vPct = (value / total) * 100;
+  const rPct = (regulatory / total) * 100;
 
   return (
     <div className="space-y-1">
@@ -77,9 +59,9 @@ function PriorityBar({ urgency, value, regulatory }: { urgency: number | null | 
         <div className="bg-io-warning" style={{ width: `${rPct}%` }} title="Regulatory Risk" />
       </div>
       <div className="flex gap-3 text-[10px] text-io-secondary">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-danger inline-block" /> Urgency {safeFixed(u, 1)}</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-accent inline-block" /> Value {safeFixed(v, 1)}</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-warning inline-block" /> Reg. Risk {safeFixed(r, 1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-danger inline-block" /> Urgency {safeFixed(urgency, 1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-accent inline-block" /> Value {safeFixed(value, 1)}</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-io-warning inline-block" /> Reg. Risk {safeFixed(regulatory, 1)}</span>
       </div>
     </div>
   );
@@ -155,9 +137,7 @@ export default function DecisionDetailPanel({
 }) {
   const t = labels[lang];
   const isRTL = lang === "ar";
-  const actionsArr: import("@/types/observatory").DecisionAction[] = Array.isArray(decisions.actions) ? decisions.actions : [];
-  const allActionsArr: import("@/types/observatory").DecisionAction[] = Array.isArray((decisions as any).all_actions) ? (decisions as any).all_actions : [];
-  const allActions: import("@/types/observatory").DecisionAction[] = allActionsArr.length > 0 ? allActionsArr : actionsArr;
+  const allActions = decisions.all_actions?.length > 0 ? decisions.all_actions : decisions.actions;
 
   return (
     <div className={`space-y-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>
@@ -171,15 +151,15 @@ export default function DecisionDetailPanel({
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.headline_loss}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD((decisions as any).total_loss_usd)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD(decisions.total_loss_usd)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.peak_day}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">Day {safeNum((decisions as any).peak_day, 0)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">Day {decisions.peak_day}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.ttf}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours((decisions as any).time_to_failure_hours ?? (decisions as any).system_time_to_first_failure_hours)}</p>
+          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(decisions.time_to_failure_hours)}</p>
         </div>
         <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.total_actions}</p>
@@ -191,23 +171,43 @@ export default function DecisionDetailPanel({
       <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
         <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.prioritized_actions}</h3>
         <div className="space-y-4">
-          {actionsArr.slice(0, 3).map((action, i) => (
-            <DecisionActionCard
-              key={action.id || i}
-              rank={(i + 1) as 1 | 2 | 3}
-              actionId={action.id || String(i)}
-              priority_score={Math.min(safeNum(action.priority_score ?? action.priority) / 100, 1)}
-              title_en={action.action || ""}
-              title_ar={action.action_ar || action.action || ""}
-              urgency={Math.min(safeNum(action.urgency) / 100, 1)}
-              value={Math.min(safeNum(action.value ?? action.priority_score ?? action.priority) / 100, 1)}
-              time_to_act_hours={safeNum(action.time_to_act_hours, 24)}
-              cost_usd={safeNum(action.cost_usd)}
-              loss_avoided_usd={safeNum(action.loss_avoided_usd)}
-              status="PENDING_REVIEW"
-              locale={lang}
-              onSubmitForReview={() => {}}
-            />
+          {decisions.actions.map((action, i) => (
+            <div key={action.id} className="p-4 rounded-lg bg-io-bg border border-io-border">
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-io-accent text-white flex items-center justify-center text-lg font-bold">
+                  {i + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-io-primary text-base">
+                    {lang === "ar" ? action.action_ar || action.action : action.action}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-io-secondary">
+                    <span><strong>{t.sector}:</strong> {action.sector}</span>
+                    <span><strong>{t.owner}:</strong> {action.owner}</span>
+                    <span><strong>{t.time_to_act}:</strong> {formatHours(action.time_to_act_hours)}</span>
+                    <span><strong>{t.confidence}:</strong> {safePercent(action.confidence, 0)}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 mt-3 text-sm">
+                    <div className="bg-io-surface border border-io-border rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-io-secondary uppercase">{t.loss_avoided}</p>
+                      <p className="font-bold text-io-success tabular-nums">{formatUSD(action.loss_avoided_usd)}</p>
+                    </div>
+                    <div className="bg-io-surface border border-io-border rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-io-secondary uppercase">{t.cost}</p>
+                      <p className="font-bold text-io-primary tabular-nums">{formatUSD(action.cost_usd)}</p>
+                    </div>
+                    <div className="bg-io-surface border border-io-border rounded-lg p-2 text-center">
+                      <p className="text-[10px] text-io-secondary uppercase">{t.net_benefit}</p>
+                      <p className="font-bold text-io-accent tabular-nums">{formatUSD(action.loss_avoided_usd - action.cost_usd)}</p>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <PriorityBar urgency={action.urgency} value={action.value} regulatory={action.regulatory_risk} />
+                  </div>
+                </div>
+                <Badge level={action.urgency > 50 ? "CRITICAL" : action.urgency > 10 ? "ELEVATED" : "MODERATE"} />
+              </div>
+            </div>
           ))}
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function DecisionDetailPanel({
                       {lang === "ar" ? action.action_ar || action.action : action.action}
                     </td>
                     <td className="py-2 text-io-secondary">{action.sector}</td>
-                    <td className="py-2 text-right tabular-nums font-semibold">{safeFixed(action?.priority_score ?? action?.priority, 1)}</td>
+                    <td className="py-2 text-right tabular-nums font-semibold">{safeFixed(action.priority, 1)}</td>
                     <td className="py-2 text-right tabular-nums text-io-success">{formatUSD(action.loss_avoided_usd)}</td>
                     <td className="py-2 text-right tabular-nums">{formatUSD(action.cost_usd)}</td>
                   </tr>
@@ -262,10 +262,10 @@ export default function DecisionDetailPanel({
 
           {/* Chain steps */}
           <div className="space-y-0">
-            {explanation.causal_chain.slice(0, 12).map((step, i) => (
+            {(explanation.causal_chain ?? []).slice(0, 12).map((step, i) => (
               <div key={step.step} className="flex gap-3 relative">
                 {/* Connector line */}
-                {i < Math.min(explanation.causal_chain.length, 12) - 1 && (
+                {i < Math.min((explanation.causal_chain ?? []).length, 12) - 1 && (
                   <div className="absolute left-[15px] top-8 bottom-0 w-0.5 bg-io-border" />
                 )}
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-io-accent/10 text-io-accent flex items-center justify-center text-xs font-bold z-10">
@@ -280,16 +280,16 @@ export default function DecisionDetailPanel({
                   </p>
                   <div className="flex gap-3 mt-1 text-xs text-io-secondary">
                     <span>Impact: {formatUSD(step.impact_usd)}</span>
-                    <span>Stress: +{safeFixed(safeNum(step?.stress_delta) * 100, 1)}%</span>
+                    <span>Stress: +{safePercent(step.stress_delta)}</span>
                     <span className="text-io-accent">{step.mechanism}</span>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-          {explanation.causal_chain.length > 12 && (
+          {(explanation.causal_chain ?? []).length > 12 && (
             <p className="text-xs text-io-secondary text-center mt-2">
-              +{explanation.causal_chain.length - 12} more steps
+              +{(explanation.causal_chain ?? []).length - 12} more steps
             </p>
           )}
 

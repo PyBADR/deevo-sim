@@ -17,7 +17,7 @@ const EVENT_COLORS: Record<string, string> = {
   terrorism: "#dc2626",
   sanctions: "#f97316",
   protest: "#eab308",
-  cyber: "#a855f7",
+  cyber: "#1D4ED8",
   natural_disaster: "#06b6d4",
   political: "#f59e0b",
   economic: "#3b82f6",
@@ -49,7 +49,7 @@ export function ConflictLayer({ events }: ConflictLayerProps) {
             key={event.id}
             id={event.id}
             name={event.title}
-            description={`${event.event_type} | Severity: ${((event.severity_score ?? 0) * 100).toFixed(0)}% | ${event.region}`}
+            description={`${event.event_type} | Severity: ${(event.severity_score * 100).toFixed(0)}% | ${event.region}`}
             position={Cartesian3.fromDegrees(
               event.location.lng,
               event.location.lat,

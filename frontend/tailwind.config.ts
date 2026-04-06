@@ -26,6 +26,12 @@ const config: Config = {
           warning:    '#B45309',
           danger:     '#B91C1C',
           border:     '#E2E8F0',
+          // Classification status ladder — used in ClassificationBadge and status chips
+          critical:   '#991B1B',   // CRITICAL  → Critical
+          elevated:   '#B45309',   // ELEVATED  → Severe
+          moderate:   '#A16207',   // MODERATE  → Elevated
+          guarded:    '#15803D',   // LOW       → Guarded
+          stable:     '#475569',   // NOMINAL   → Stable
         },
         // Design system tokens (ds-* for backward compatibility)
         ds: {

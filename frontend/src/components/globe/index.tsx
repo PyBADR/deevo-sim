@@ -12,10 +12,10 @@ const CesiumGlobeDynamic = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
+      <div className="flex-1 flex items-center justify-center bg-io-primary">
         <div className="text-center">
           <div className="w-12 h-12 border-2 border-io-accent border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-sm text-gray-400">Initializing Globe...</p>
+          <p className="text-sm text-io-border">Initializing Globe...</p>
         </div>
       </div>
     ),
@@ -37,8 +37,8 @@ export function GlobeWrapper(props: GlobeWrapperProps) {
 
   if (!hasCesiumToken) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-slate-900">
-        <div className="text-center text-gray-400">
+      <div className="flex-1 flex items-center justify-center bg-io-primary">
+        <div className="text-center text-io-border">
           <div className="text-6xl mb-4">🌐</div>
           <p className="text-sm">
             CesiumJS Globe — awaiting token configuration

@@ -1,30 +1,24 @@
-import type {
-  EventsResponse,
-  FlightsResponse,
-  VesselsResponse,
-  TemplatesResponse,
-  ScenarioResult,
-  RiskScore,
-  DisruptionScore,
-  SystemStress,
-  InsuranceExposure,
-  ClaimsSurge,
-  UnderwritingWatch,
-  SeverityProjection,
-  DecisionOutput,
-  ChokepointsResponse,
-  PropagationResponse,
-  GraphNode,
-  GraphEdge,
-} from "@/types";
-import type { RunSummary, GccNode } from "@/types/observatory";
+/**
+ * Impact Observatory | مرصد الأثر — API Client (unified pipeline)
+ *
+ * 3 endpoints only:
+ *   POST /api/v1/runs          → Launch unified pipeline (13 stages)
+ *   GET  /api/v1/runs/{id}     → Full UnifiedRunResult
+ *   GET  /api/v1/runs/{id}/status → Poll run status
+ *   GET  /api/v1/scenarios     → Scenario catalog
+ *
+ * All section-fetch endpoints removed — unified payload replaces them.
+ */
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const BASE = "";
+const API_KEY = process.env.NEXT_PUBLIC_IO_API_KEY || "io_master_key_2026";
 
-/** Return auth headers for authenticated API calls. */
-function getAuthHeaders(): Record<string, string> {
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY || "";
-  return apiKey ? { "X-API-Key": apiKey } : {};
+function apiErrorMessage(status: number): string {
+  if (status === 422) return "The request could not be processed. Please verify the inputs and try again.";
+  if (status === 404) return "The requested resource was not found. Please refresh or try a different selection.";
+  if (status === 401 || status === 403) return "Access to this resource is restricted. Please contact your administrator.";
+  if (status >= 500) return "The analysis service is temporarily unavailable. Please try again in a moment.";
+  return "An unexpected error occurred. Please try again.";
 }
 
 async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
@@ -32,298 +26,394 @@ async function fetchJSON<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: {
       "Content-Type": "application/json",
+      "X-IO-API-Key": API_KEY,
       ...init?.headers,
     },
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`API ${res.status}: ${body}`);
+    throw new Error(apiErrorMessage(res.status));
   }
   return res.json() as Promise<T>;
 }
 
-/** fetchJSON with automatic API key auth header injection. */
-async function fetchAuthJSON<T>(path: string, init?: RequestInit): Promise<T> {
-  return fetchJSON<T>(path, {
-    ...init,
-    headers: {
-      ...getAuthHeaders(),
-      ...init?.headers,
-    },
-  });
-}
-
 export const api = {
-  // ================================================================
-  // DEPRECATED — Legacy V0 API (globe-only, pre-Observatory)
-  // Use api.observatory.* for all new code.
-  // Routes below target /events /flights /vessels /scores /graph etc.
-  // These endpoints no longer exist in the active backend.
-  // ================================================================
-
-  /** @deprecated Legacy V0 — use api.observatory.run() */
   health: () => fetchJSON<{ status: string }>("/health"),
 
-  /** @deprecated Legacy V0 — no active /events route */
-  events: (params?: { limit?: number; severity_min?: number; event_type?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.severity_min) qs.set("severity_min", String(params.severity_min));
-    if (params?.event_type) qs.set("event_type", params.event_type);
-    return fetchJSON<EventsResponse>(`/events?${qs}`);
-  },
+  signals: {
+    /** POST /api/v1/signals — Submit a raw signal → returns pending ScenarioSeed (202) */
+    ingest: (raw: Record<string, unknown>) =>
+      fetchJSON<import("@/types/observatory").IngestSignalResponse>("/api/v1/signals", {
+        method: "POST",
+        body: JSON.stringify(raw),
+      }),
 
-  /** @deprecated Legacy V0 — no active /flights route */
-  flights: (params?: { limit?: number; status?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.status) qs.set("status", params.status);
-    return fetchJSON<FlightsResponse>(`/flights?${qs}`);
-  },
+    /** GET /api/v1/signals/pending — List all seeds awaiting HITL review */
+    listPending: () =>
+      fetchJSON<import("@/types/observatory").SeedListResponse>("/api/v1/signals/pending"),
 
-  /** @deprecated Legacy V0 — no active /vessels route */
-  vessels: (params?: { limit?: number; vessel_type?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.vessel_type) qs.set("vessel_type", params.vessel_type);
-    return fetchJSON<VesselsResponse>(`/vessels?${qs}`);
-  },
+    /** GET /api/v1/signals/seeds/{seedId} — Get a seed by ID */
+    getSeed: (seedId: string) =>
+      fetchJSON<import("@/types/observatory").ScenarioSeed>(`/api/v1/signals/seeds/${seedId}`),
 
-  /** @deprecated Legacy V0 — no active /events/threat-field route */
-  threatField: (lat: number, lng: number) =>
-    fetchJSON<{ threat_intensity: number; top_contributors: { id: string; contribution: number }[] }>(
-      `/events/threat-field?lat=${lat}&lng=${lng}`
-    ),
-
-  /** @deprecated Legacy V0 — use api.observatory.run() for scenario-driven risk */
-  riskScore: (body: Record<string, number>) =>
-    fetchJSON<RiskScore>("/scores/risk", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  /** @deprecated Legacy V0 — use api.observatory.run() for scenario-driven risk */
-  riskScores: (params?: { sector?: string; region?: string; limit?: number }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.region) qs.set("region", params.region);
-    if (params?.limit) qs.set("limit", String(params.limit));
-    return fetchJSON<{ scores: RiskScore[] }>(`/scores/risk?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.run() for scenario-driven disruption */
-  disruptionScore: (body: Record<string, number>) =>
-    fetchJSON<DisruptionScore>("/scores/disruption", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  /** @deprecated Legacy V0 — no active /scores/confidence route */
-  confidenceScore: (params: Record<string, number | string>) => {
-    const qs = new URLSearchParams(
-      Object.entries(params).map(([k, v]) => [k, String(v)])
-    );
-    return fetchJSON<{ score: number; factors: { name: string; value: number }[] }>(
-      `/scores/confidence?${qs}`
-    );
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.run() for system-wide stress */
-  systemStress: () => fetchJSON<SystemStress>("/system/stress"),
-
-  /** @deprecated Legacy V0 — use api.observatory.templates() */
-  scenarioTemplates: () =>
-    fetchJSON<TemplatesResponse>("/scenario/templates"),
-
-  /** @deprecated Legacy V0 — use api.observatory.run() */
-  scenarioRun: (body: {
-    scenario_id?: string;
-    severity_override?: number;
-    custom_shocks?: { shock_type: string; severity: number; target_entity_id?: string }[];
-    horizon_hours?: number;
-  }) =>
-    fetchJSON<ScenarioResult>("/scenario/run", {
-      method: "POST",
-      body: JSON.stringify(body),
-    }),
-
-  /** @deprecated Legacy V0 — no active /graph/propagation-path route */
-  graphPropagation: (startNodeId: string, maxHops?: number) => {
-    const qs = new URLSearchParams({ start_node_id: startNodeId });
-    if (maxHops) qs.set("max_hops", String(maxHops));
-    return fetchJSON<PropagationResponse>(`/graph/propagation-path?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — no active /graph/chokepoints route */
-  graphChokepoints: () =>
-    fetchJSON<ChokepointsResponse>("/graph/chokepoints"),
-
-  /** @deprecated Legacy V0 — no active /graph/nodes route */
-  graphNodes: (params?: { sector?: string; limit?: number }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.limit) qs.set("limit", String(params.limit));
-    return fetchJSON<{ nodes: GraphNode[]; edges: GraphEdge[] }>(`/graph/nodes?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.insurance() */
-  insuranceExposure: (params?: { sector?: string; region?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.sector) qs.set("sector", params.sector);
-    if (params?.region) qs.set("region", params.region);
-    return fetchJSON<{ exposures: InsuranceExposure[] }>(`/insurance/exposure?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.insurance() */
-  claimsSurge: (scenarioId: string) =>
-    fetchJSON<ClaimsSurge>(`/insurance/claims-surge?scenario_id=${scenarioId}`),
-
-  /** @deprecated Legacy V0 — use api.observatory.insurance() */
-  underwritingWatch: (params?: { watch_level?: string }) => {
-    const qs = new URLSearchParams();
-    if (params?.watch_level) qs.set("watch_level", params.watch_level);
-    return fetchJSON<{ watches: UnderwritingWatch[] }>(`/insurance/underwriting?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.insurance() */
-  severityProjection: (scenarioId: string, horizonHours?: number) => {
-    const qs = new URLSearchParams({ scenario_id: scenarioId });
-    if (horizonHours) qs.set("horizon_hours", String(horizonHours));
-    return fetchJSON<SeverityProjection>(`/insurance/severity-projection?${qs}`);
-  },
-
-  /** @deprecated Legacy V0 — use api.observatory.decision() */
-  decisionOutput: (scenarioId: string) =>
-    fetchJSON<DecisionOutput>(`/decision/output?scenario_id=${scenarioId}`),
-
-  /** @deprecated Legacy V0 — no active /entity/:id route */
-  entityDetail: (entityId: string) =>
-    fetchJSON<{
-      id: string;
-      name: string;
-      name_ar?: string;
-      type: string;
-      sector: string;
-      region: string;
-      risk_score: RiskScore;
-      disruption_score: DisruptionScore;
-      insurance_exposure?: InsuranceExposure;
-      connected_entities: { id: string; name: string; edge_type: string; weight: number }[];
-    }>(`/entity/${entityId}`),
-
-  // ================================================================
-  // Impact Observatory v1 API
-  // ================================================================
-
-  /** List scenario templates */
-  observatory: {
-    templates: () =>
-      fetchAuthJSON<{ count: number; templates: import("@/types/observatory").ScenarioTemplate[] }>(
-        "/api/v1/scenarios"
+    /** POST /api/v1/signals/seeds/{seedId}/approve — Approve → triggers pipeline */
+    approve: (seedId: string, reason?: string, reviewedBy?: string) =>
+      fetchJSON<import("@/types/observatory").ApproveSeedResponse>(
+        `/api/v1/signals/seeds/${seedId}/approve`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason: reason ?? null, reviewed_by: reviewedBy ?? null }),
+        }
       ),
 
-    /** Execute a full run through all 12 services */
-    run: (body: import("@/types/observatory").ScenarioCreate) =>
-      fetchAuthJSON<import("@/types/observatory").RunResult>("/api/v1/runs", {
+    /** POST /api/v1/signals/seeds/{seedId}/reject — Reject → no pipeline */
+    reject: (seedId: string, reason?: string, reviewedBy?: string) =>
+      fetchJSON<import("@/types/observatory").RejectSeedResponse>(
+        `/api/v1/signals/seeds/${seedId}/reject`,
+        {
+          method: "POST",
+          body: JSON.stringify({ reason: reason ?? null, reviewed_by: reviewedBy ?? null }),
+        }
+      ),
+  },
+
+  outcomes: {
+    /** GET /api/v1/outcomes — List outcomes, optionally filtered */
+    list: (params?: { decision_id?: string; run_id?: string; status?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.decision_id) qs.set("decision_id", params.decision_id);
+      if (params?.run_id) qs.set("run_id", params.run_id);
+      if (params?.status) qs.set("status", params.status);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").OutcomeListResponse>(
+        `/api/v1/outcomes${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/outcomes/{id} — Get outcome by ID */
+    get: (outcomeId: string) =>
+      fetchJSON<import("@/types/observatory").Outcome>(`/api/v1/outcomes/${outcomeId}`),
+
+    /** POST /api/v1/outcomes — Record a new outcome */
+    create: (body: import("@/types/observatory").CreateOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>("/api/v1/outcomes", {
         method: "POST",
         body: JSON.stringify(body),
       }),
 
-    /** Get full run result */
-    getResult: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").RunResult>(`/api/v1/runs/${runId}`),
-
-    /** Get financial impacts */
-    financial: (runId: string) =>
-      fetchAuthJSON<{ run_id: string; headline: import("@/types/observatory").RunHeadline; financial: import("@/types/observatory").FinancialImpact[] }>(
-        `/api/v1/runs/${runId}/financial`
+    /** POST /api/v1/outcomes/{id}/observe — Observe an outcome */
+    observe: (outcomeId: string, body?: import("@/types/observatory").ObserveOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/observe`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
       ),
 
-    /** Get banking stress */
-    banking: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").BankingStress>(`/api/v1/runs/${runId}/banking`),
+    /** POST /api/v1/outcomes/{id}/confirm — Confirm with classification */
+    confirm: (outcomeId: string, body: import("@/types/observatory").ConfirmOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/confirm`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
 
-    /** Get insurance stress */
-    insurance: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").InsuranceStress>(`/api/v1/runs/${runId}/insurance`),
+    /** POST /api/v1/outcomes/{id}/dispute — Dispute an outcome observation */
+    dispute: (outcomeId: string, body: import("@/types/observatory").DisputeOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/dispute`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
 
-    /** Get fintech stress */
-    fintech: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").FintechStress>(`/api/v1/runs/${runId}/fintech`),
+    /** POST /api/v1/outcomes/{id}/close — Close an outcome (terminal) */
+    close: (outcomeId: string, body?: import("@/types/observatory").CloseOutcomeRequest) =>
+      fetchJSON<import("@/types/observatory").Outcome>(
+        `/api/v1/outcomes/${outcomeId}/close`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
+  },
 
-    /** Get decision plan (top 3 actions) */
-    decision: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").DecisionPlan>(`/api/v1/runs/${runId}/decision`),
-
-    /** Get explanation pack (bilingual) */
-    explanation: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").ExplanationPack>(`/api/v1/runs/${runId}/explanation`),
-
-    /** Get report in mode: executive | analyst | regulatory */
-    report: (runId: string, mode: string, lang: string = "en") =>
-      fetchAuthJSON<Record<string, unknown>>(`/api/v1/runs/${runId}/report/${mode}?lang=${lang}`),
-
-    /** Get bilingual labels */
-    labels: (lang: string = "en") =>
-      fetchAuthJSON<Record<string, string>>(`/api/v1/runs/labels?lang=${lang}`),
-
-    /** Get run history (paginated) */
-    listRuns: (params?: { limit?: number; offset?: number }) => {
+  decisions: {
+    /** GET /api/v1/decisions — List operator decisions */
+    list: (params?: { status?: string; decision_type?: string; limit?: number }) => {
       const qs = new URLSearchParams();
-      if (params?.limit) qs.set("limit", String(params.limit));
-      if (params?.offset) qs.set("offset", String(params.offset));
-      return fetchAuthJSON<{ runs: RunSummary[]; count: number; limit: number; offset: number }>(
-        `/api/v1/runs?${qs}`
+      if (params?.status) qs.set("status", params.status);
+      if (params?.decision_type) qs.set("decision_type", params.decision_type);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").DecisionListResponse>(
+        `/api/v1/decisions${q ? `?${q}` : ""}`
       );
     },
 
-    /** Export a run as a PDF report. Returns a blob URL for download. */
-    exportPdf: (runId: string, mode: "executive" | "analyst" | "regulatory" = "executive", lang: string = "en") =>
-      `${BASE}/api/v1/runs/${runId}/report/${mode}/pdf?lang=${lang}`,
+    /** GET /api/v1/decisions/{id} — Get decision by ID */
+    get: (decisionId: string) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(`/api/v1/decisions/${decisionId}`),
 
-    /** Return the static GCC node registry (42 nodes with lat/lng).
-     *  Stale-time = Infinity — nodes never move. Used for globe/map rendering. */
-    nodes: () =>
-      fetchAuthJSON<{ nodes: GccNode[]; count: number }>("/api/v1/nodes"),
-
-    /** Get map payload — entities with geo-coordinates + propagation arcs.
-     *  Co-origin with graph_payload: both from the same simulation run. */
-    mapPayload: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").MapPayload>(`/api/v1/runs/${runId}/map`),
-
-    /** Get graph payload — nodes and edges for graph visualization. */
-    graphPayload: (runId: string) =>
-      fetchAuthJSON<import("@/types/observatory").GraphPayload>(`/api/v1/runs/${runId}/graph`),
-
-    /** Approve a decision action (HITL workflow). */
-    approveAction: (runId: string, actionId: string) =>
-      fetchAuthJSON<{ status: string }>(`/api/v1/runs/${runId}/actions/${actionId}/approve`, {
+    /** POST /api/v1/decisions — Create a new decision */
+    create: (body: import("@/types/observatory").CreateDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>("/api/v1/decisions", {
         method: "POST",
+        body: JSON.stringify(body),
       }),
 
-    /** Reject a decision action (HITL workflow). */
-    rejectAction: (runId: string, actionId: string) =>
-      fetchAuthJSON<{ status: string }>(`/api/v1/runs/${runId}/actions/${actionId}/reject`, {
-        method: "POST",
-      }),
+    /** POST /api/v1/decisions/{id}/execute — Execute a decision */
+    execute: (decisionId: string, body?: import("@/types/observatory").ExecuteDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(
+        `/api/v1/decisions/${decisionId}/execute`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
 
-    /** Get system status — all connectors, engine health, deployment state. */
-    systemStatus: () =>
-      fetchAuthJSON<{
-        service: string;
-        model_version: string;
-        connectors: Record<string, { configured: boolean; status?: string; state?: string }>;
-        engine: { version: string; scenarios: number; status: string };
-      }>("/api/v1/runs/system/status"),
+    /** POST /api/v1/decisions/{id}/close — Close a decision */
+    close: (decisionId: string, body?: import("@/types/observatory").CloseDecisionRequest) =>
+      fetchJSON<import("@/types/observatory").OperatorDecision>(
+        `/api/v1/decisions/${decisionId}/close`,
+        { method: "POST", body: JSON.stringify(body ?? {}) }
+      ),
   },
 
-  // ---- Runs List (v1) ----
-  runsList: (params?: { limit?: number; offset?: number }) => {
-    const qs = new URLSearchParams();
-    if (params?.limit) qs.set("limit", String(params.limit));
-    if (params?.offset) qs.set("offset", String(params.offset));
-    return fetchAuthJSON<{ runs: RunSummary[]; count: number; limit: number; offset: number }>(
-      `/api/v1/runs?${qs}`
-    );
+  values: {
+    /** POST /api/v1/values/compute — Compute ROI from an existing Outcome (OPERATOR+) */
+    compute: (body: import("@/types/observatory").ComputeValueRequest) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>("/api/v1/values/compute", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/values/{id}/recompute — Recompute with updated inputs, writes new row */
+    recompute: (valueId: string, body: import("@/types/observatory").RecomputeValueRequest) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>(
+        `/api/v1/values/${valueId}/recompute`,
+        { method: "POST", body: JSON.stringify(body) }
+      ),
+
+    /** GET /api/v1/values — List values, optionally filtered (ANALYST+) */
+    list: (params?: { outcome_id?: string; decision_id?: string; run_id?: string; limit?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.outcome_id)  qs.set("outcome_id",  params.outcome_id);
+      if (params?.decision_id) qs.set("decision_id", params.decision_id);
+      if (params?.run_id)      qs.set("run_id",       params.run_id);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      const q = qs.toString();
+      return fetchJSON<import("@/types/observatory").DecisionValueListResponse>(
+        `/api/v1/values${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/values/{id} — Get value by ID (ANALYST+) */
+    get: (valueId: string) =>
+      fetchJSON<import("@/types/observatory").DecisionValue>(`/api/v1/values/${valueId}`),
+  },
+
+  observatory: {
+    /** POST /api/v1/runs — Launch unified pipeline */
+    run: (body: { template_id: string; severity?: number; horizon_hours?: number; label?: string }) =>
+      fetchJSON<{ data: Record<string, unknown> }>("/api/v1/runs", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** GET /api/v1/runs/{id} — Full UnifiedRunResult */
+    result: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}`),
+
+    /** GET /api/v1/runs/{id}/status — Poll run status */
+    status: (runId: string) =>
+      fetchJSON<{ data: Record<string, unknown> }>(`/api/v1/runs/${runId}/status`),
+
+    /** GET /api/v1/scenarios — Scenario catalog */
+    scenarios: () =>
+      fetchJSON<{ data: Record<string, unknown> }>("/api/v1/scenarios"),
+  },
+
+  /**
+   * Decision Authority Layer — backend source of truth.
+   * All actions produce stable authority envelope responses.
+   * Errors: 400 (bad transition), 403 (unauthorized), 404 (not found), 409 (conflict).
+   */
+  authority: {
+    /** POST /api/v1/authority/propose — Create authority envelope (PROPOSED) */
+    propose: (body: {
+      decision_id: string;
+      rationale?: string;
+      priority?: number;
+      source_run_id?: string;
+      source_scenario_label?: string;
+      tags?: string[];
+      notes?: string;
+      actor_id?: string;
+    }) =>
+      fetchJSON<Record<string, unknown>>("/api/v1/authority/propose", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/authority/{id}/submit — Submit for review */
+    submit: (decisionId: string, body?: { reviewer_id?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/submit`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/approve — Approve (ADMIN) */
+    approve: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/approve`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/reject — Reject (ADMIN) */
+    reject: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/reject`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/return — Return for revision (ADMIN) */
+    returnForRevision: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/return`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/escalate — Escalate (OPERATOR+) */
+    escalate: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/escalate`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/queue-execution — Queue for execution (OPERATOR+) */
+    queueExecution: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/queue-execution`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/execute — Execute (OPERATOR+). Requires APPROVED/EXECUTION_PENDING. */
+    execute: (decisionId: string, body?: {
+      execution_result?: string;
+      linked_outcome_id?: string;
+      linked_value_id?: string;
+      notes?: string;
+      actor_id?: string;
+    }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/execute`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/execution-failed — Report execution failure */
+    executionFailed: (decisionId: string, body?: { failure_reason?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/execution-failed`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/revoke — Revoke (ADMIN) */
+    revoke: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/revoke`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/withdraw — Withdraw (ANALYST+) */
+    withdraw: (decisionId: string, body?: { notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/withdraw`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/resubmit — Resubmit after rejection/return/failure */
+    resubmit: (decisionId: string, body?: { rationale?: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/resubmit`, {
+        method: "POST",
+        body: JSON.stringify(body ?? {}),
+      }),
+
+    /** POST /api/v1/authority/{id}/override — Admin force-transition */
+    override: (decisionId: string, body: { target_status: string; rationale: string; notes?: string; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/override`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** POST /api/v1/authority/{id}/annotate — Append annotation (no status change) */
+    annotate: (decisionId: string, body: { notes: string; metadata?: Record<string, unknown>; actor_id?: string }) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/annotate`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    /** GET /api/v1/authority — List authority envelopes */
+    list: (params?: { status?: string; limit?: number; offset?: number }) => {
+      const qs = new URLSearchParams();
+      if (params?.status) qs.set("status", params.status);
+      if (params?.limit != null) qs.set("limit", String(params.limit));
+      if (params?.offset != null) qs.set("offset", String(params.offset));
+      const q = qs.toString();
+      return fetchJSON<{ items: Record<string, unknown>[]; count: number }>(
+        `/api/v1/authority${q ? `?${q}` : ""}`
+      );
+    },
+
+    /** GET /api/v1/authority/{decision_id} — Get authority envelope */
+    get: (decisionId: string) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}`),
+
+    /** GET /api/v1/authority/{decision_id}/events — Full audit event log */
+    events: (decisionId: string, limit?: number) => {
+      const q = limit != null ? `?limit=${limit}` : "";
+      return fetchJSON<{ events: Record<string, unknown>[]; count: number }>(
+        `/api/v1/authority/${decisionId}/events${q}`
+      );
+    },
+
+    /** POST /api/v1/authority/{id}/link — Attach outcome/value links (backend-authoritative) */
+    link: (decisionId: string, body: Record<string, unknown>) =>
+      fetchJSON<Record<string, unknown>>(`/api/v1/authority/${decisionId}/link`, {
+        method: "POST", body: JSON.stringify(body),
+      }),
+
+    /** GET /api/v1/authority/{decision_id}/verify — Verify hash chain integrity */
+    verify: (decisionId: string) =>
+      fetchJSON<{
+        valid: boolean;
+        broken_at: number | null;
+        expected_hash: string | null;
+        actual_hash: string | null;
+        events_checked: number;
+        authority_id: string;
+        chain_trace: Array<{
+          index: number;
+          event_id: string;
+          action: string;
+          from_status: string | null;
+          to_status: string;
+          timestamp: string;
+          event_hash: string;
+          previous_event_hash: string | null;
+          recomputed_hash: string;
+          link_valid: boolean;
+          hash_valid: boolean;
+        }>;
+        errors: unknown[];
+      }>(
+        `/api/v1/authority/${decisionId}/verify`
+      ),
+
+    /** GET /api/v1/authority/metrics — Authoritative queue metrics (backend source of truth) */
+    metrics: () =>
+      fetchJSON<{
+        proposed: number;
+        under_review: number;
+        approved_pending_execution: number;
+        executed: number;
+        rejected: number;
+        failed: number;
+        escalated: number;
+        returned: number;
+        revoked: number;
+        withdrawn: number;
+        total_active: number;
+        total: number;
+      }>("/api/v1/authority/metrics"),
   },
 };
