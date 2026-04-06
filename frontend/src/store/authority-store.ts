@@ -392,14 +392,19 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
     },
 
     loadByDecision: async (decisionId) => {
-      set({ loading: true, error: null });
+      // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
       try {
         const raw = await api.authority.get(decisionId);
-        _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
       } catch (err) {
-        set({ error: err instanceof Error ? err.message : String(err) });
-      } finally {
-        set({ loading: false });
+        set({ error: err instanceof Error ? err.message : String(err), loading: false });
       }
     },
 
@@ -449,8 +454,8 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
     },
 
     // ── PROPOSE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     propose: async (params) => {
-      set({ loading: true, error: null });
       try {
         const raw = await api.authority.propose({
           decision_id:           params.decision_id,
@@ -461,38 +466,50 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           tags:                  params.tags,
           actor_id:              params.proposed_by,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── SUBMIT_FOR_REVIEW ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     submitForReview: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.submit(decisionId, {
           notes:    params.notes,
           actor_id: params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── APPROVE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     approve: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.approve(decisionId, {
@@ -500,19 +517,25 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:     params.notes,
           actor_id:  params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── REJECT ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     reject: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.reject(decisionId, {
@@ -520,19 +543,25 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:     params.notes,
           actor_id:  params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── RETURN_FOR_REVISION ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     returnForRevision: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.returnForRevision(decisionId, {
@@ -540,57 +569,75 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:     params.notes,
           actor_id:  params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── ESCALATE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     escalate: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.escalate(decisionId, {
           notes:    params.notes,
           actor_id: params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── QUEUE_EXECUTION ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     queueExecution: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.queueExecution(decisionId, {
           notes:    params.notes,
           actor_id: params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── EXECUTE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     markExecuted: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.execute(decisionId, {
@@ -599,19 +646,25 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:             params.notes,
           actor_id:          params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── REPORT_EXECUTION_FAILURE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     reportExecutionFailure: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.executionFailed(decisionId, {
@@ -619,19 +672,25 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:          params.notes,
           actor_id:       params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── REVOKE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     revoke: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.revoke(decisionId, {
@@ -639,38 +698,50 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:     params.notes,
           actor_id:  params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── WITHDRAW ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     withdraw: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.withdraw(decisionId, {
           notes:    params.notes,
           actor_id: params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── RESUBMIT ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     resubmit: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.resubmit(decisionId, {
@@ -678,19 +749,25 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:     params.notes,
           actor_id:  params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── OVERRIDE ──
+    // CRIT-185 FIX v2: no synchronous set() before await — single set() at end.
     override: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
         const raw = await api.authority.override(decisionId, {
@@ -699,86 +776,135 @@ export const useAuthorityStore = create<AuthorityState>((set, get) => {
           notes:         params.notes,
           actor_id:      params.actor_id,
         });
-        return _upsert(raw as Record<string, unknown>);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return { authorities: newAuth, decisionIndex: newIndex, loading: false, error: null };
+        });
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── ANNOTATE ──
+    // CRIT-185 FIX v2: no synchronous set() before await.
+    // Parallelise annotate + events + metrics → single set() with all three.
     annotate: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
-        // Backend is authoritative — use response to refresh authority AND events
-        const raw = await api.authority.annotate(decisionId, {
-          notes:    params.notes,
-          actor_id: params.actor_id,
-        });
-        // Upsert the authority from backend response to prevent drift
-        if (raw && typeof raw === "object") {
-          _upsert(raw as Record<string, unknown>);
-        }
-        // Refresh events and metrics from backend
-        await Promise.all([
-          get().loadEvents(decisionId),
-          get().loadMetrics(),
+        const [raw, eventsResponse, metricsResult] = await Promise.all([
+          api.authority.annotate(decisionId, {
+            notes:    params.notes,
+            actor_id: params.actor_id,
+          }),
+          api.authority.events(decisionId).catch(() => null),
+          api.authority.metrics().catch(() => null),
         ]);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          const newIndex = new Map(s.decisionIndex);
+          if (raw && typeof raw === "object") {
+            const authority = rawToAuthority(raw as Record<string, unknown>);
+            newAuth.set(authority.authority_id, authority);
+            newIndex.set(authority.decision_id, authority.authority_id);
+          }
+          const newEvents = new Map(s.events);
+          if (eventsResponse) {
+            const mapped = (eventsResponse.events as Record<string, unknown>[]).map(rawToEvent);
+            mapped.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            const authorityId = newIndex.get(decisionId);
+            if (authorityId) newEvents.set(authorityId, mapped);
+          }
+          return {
+            authorities:   newAuth,
+            decisionIndex: newIndex,
+            events:        newEvents,
+            metrics:       (metricsResult as unknown as AuthorityQueueSummary | null) ?? s.metrics,
+            loading:       false,
+            error:         null,
+          };
+        });
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     // ── Link Management (backend-authoritative — NO local-only mutations) ──
+    // CRIT-185 FIX v2: no synchronous set() before await.
+    // Parallelise link + metrics → single set() with both.
     linkOutcome: async (params) => {
-      set({ loading: true, error: null });
       try {
         const decisionId = getDecisionId(params.authority_id);
-        const raw = await api.authority.link(decisionId, {
-          linked_outcome_id: params.outcome_id,
-          notes: params.notes,
-          actor_id: params.actor_id,
+        const [raw, metricsResult] = await Promise.all([
+          api.authority.link(decisionId, {
+            linked_outcome_id: params.outcome_id,
+            notes:             params.notes,
+            actor_id:          params.actor_id,
+          }),
+          api.authority.metrics().catch(() => null),
+        ]);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return {
+            authorities:   newAuth,
+            decisionIndex: newIndex,
+            metrics:       (metricsResult as unknown as AuthorityQueueSummary | null) ?? s.metrics,
+            loading:       false,
+            error:         null,
+          };
         });
-        const result = _upsert(raw as Record<string, unknown>);
-        // Refresh metrics after mutation
-        await get().loadMetrics();
-        return result;
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
     linkValue: async (params) => {
-      set({ loading: true, error: null });
+      // CRIT-185 FIX v2: no synchronous set() before await.
+      // Parallelise link + metrics → single set() with both.
       try {
         const decisionId = getDecisionId(params.authority_id);
-        const raw = await api.authority.link(decisionId, {
-          linked_value_id: params.value_id,
-          notes: params.notes,
-          actor_id: params.actor_id,
+        const [raw, metricsResult] = await Promise.all([
+          api.authority.link(decisionId, {
+            linked_value_id: params.value_id,
+            notes:           params.notes,
+            actor_id:        params.actor_id,
+          }),
+          api.authority.metrics().catch(() => null),
+        ]);
+        const authority = rawToAuthority(raw as Record<string, unknown>);
+        set((s) => {
+          const newAuth  = new Map(s.authorities);
+          newAuth.set(authority.authority_id, authority);
+          const newIndex = new Map(s.decisionIndex);
+          newIndex.set(authority.decision_id, authority.authority_id);
+          return {
+            authorities:   newAuth,
+            decisionIndex: newIndex,
+            metrics:       (metricsResult as unknown as AuthorityQueueSummary | null) ?? s.metrics,
+            loading:       false,
+            error:         null,
+          };
         });
-        const result = _upsert(raw as Record<string, unknown>);
-        // Refresh metrics after mutation
-        await get().loadMetrics();
-        return result;
+        return authority;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        set({ error: msg });
+        set({ error: msg, loading: false });
         throw err;
-      } finally {
-        set({ loading: false });
       }
     },
 
