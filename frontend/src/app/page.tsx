@@ -277,8 +277,17 @@ export default function HomePage() {
   useOutcomes();
   useDecisionValues();
 
-  const sharedResult = useRunState((s) => s.getRunResult());
-  const sharedSource = useRunState((s) => s.activeSource);
+  // CRIT-FIX: Do NOT call s.getRunResult() inside a Zustand selector.
+  // getRunResult() calls get() internally; in Zustand v5 the selector runs inside
+  // useCallback([api, selector]) in useSyncExternalStore. A method call returns the
+  // SAME stored reference (adaptedResult / legacyResult), but the method itself is
+  // a new closure on each render, making the selector reference unstable → React 19
+  // re-validates the snapshot on every render → potential infinite loop.
+  // Fix: select stored fields directly — identical semantics, zero instability.
+  const _adaptedResult = useRunState((s) => s.adaptedResult);
+  const _legacyResult  = useRunState((s) => s.legacyResult);
+  const sharedResult   = _adaptedResult ?? _legacyResult;
+  const sharedSource   = useRunState((s) => s.activeSource);
 
   useEffect(() => {
     if (sharedResult && sharedSource === "unified" && !result) {

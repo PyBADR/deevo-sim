@@ -34,6 +34,7 @@ import {
 import { useAppStore } from "@/store/app-store";
 import { useRunState } from "@/lib/run-state";
 import { ApiError } from "@/lib/api";
+import { emitAudit } from "@/lib/audit";
 import type {
   OperatorDecision,
   DecisionType,
@@ -148,6 +149,15 @@ const USER_ERROR_MESSAGES: Record<string, { en: string; ar: string }> = {
   close:   {
     en: "Unable to close decision. It may not be in a closeable state.",
     ar: "تعذّر إغلاق القرار. قد لا يكون في حالة قابلة للإغلاق.",
+  },
+  // DEF-NEW-01: status-differentiated close messages
+  close_conflict: {
+    en: "Decision already closed or in a conflicting state. Refresh and retry.",
+    ar: "تمّ إغلاق القرار مسبقاً أو هو في حالة متعارضة. حدّث الصفحة وأعد المحاولة.",
+  },
+  close_forbidden: {
+    en: "You do not have permission to close this decision.",
+    ar: "لا تملك صلاحية إغلاق هذا القرار.",
   },
   load:    {
     en: "Unable to load decisions. Please retry or contact support.",
@@ -734,8 +744,10 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
 
   const selectedDecisionId = useAppStore((s) => s.selectedDecisionId);
   const setSelectedDecisionId = useAppStore((s) => s.setSelectedDecisionId);
+  const activeRunId   = useRunState((s) => s.unifiedResult?.run_id ?? null);
+  const adaptedResult = useRunState((s) => s.adaptedResult);
 
-  const { data, isLoading, isError } = useDecisions({
+  const { data, isLoading, isError, refetch: refetchDecisions } = useDecisions({
     status: statusFilter || undefined,
     decision_type: typeFilter || undefined,
     limit: 50,
@@ -754,6 +766,18 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
     setActionError(null);
     try {
       await executeDecision.mutateAsync({ decisionId: id });
+      emitAudit({
+        event_type:  "lifecycle_transition",
+        entity_id:   id,
+        run_id:      activeRunId,
+        scenario_id: adaptedResult?.scenario?.template_id ?? null,
+        actor:       "operator",
+        details: {
+          action:      "execute",
+          entity_kind: "decision",
+        },
+        lineage_ref: null,
+      });
     } catch (err: unknown) {
       // CRIT-03: differentiate error message by HTTP status so operators can
       // distinguish a lifecycle conflict (409) from a server failure (5xx).
@@ -762,6 +786,9 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
           setActionError(safeErrorMessage("execute_conflict", lang));
         } else if (err.status === 404) {
           setActionError(safeErrorMessage("execute_not_found", lang));
+          // Decision no longer exists on backend — refresh list so the stale
+          // card is removed from the sidebar and doesn't confuse the user.
+          void refetchDecisions();
         } else if (err.status === 401 || err.status === 403) {
           setActionError(safeErrorMessage("execute_forbidden", lang));
         } else {
@@ -781,8 +808,27 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
     try {
       await closeDecision.mutateAsync({ decisionId: id });
       if (selectedDecisionId === id) setSelectedDecisionId(null);
-    } catch {
-      setActionError(safeErrorMessage("close", lang));
+      emitAudit({
+        event_type:  "lifecycle_transition",
+        entity_id:   id,
+        run_id:      activeRunId,
+        scenario_id: adaptedResult?.scenario?.template_id ?? null,
+        actor:       "operator",
+        details: {
+          action:      "close",
+          entity_kind: "decision",
+        },
+        lineage_ref: null,
+      });
+    } catch (err: unknown) {
+      // DEF-NEW-01: differentiate HTTP status codes on close
+      if (err instanceof ApiError) {
+        if (err.status === 409) setActionError(safeErrorMessage("close_conflict", lang));
+        else if (err.status === 401 || err.status === 403) setActionError(safeErrorMessage("close_forbidden", lang));
+        else setActionError(safeErrorMessage("close", lang));
+      } else {
+        setActionError(safeErrorMessage("close", lang));
+      }
     } finally {
       setClosingId(null);
     }

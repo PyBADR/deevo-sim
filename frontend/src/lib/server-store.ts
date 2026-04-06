@@ -10,6 +10,8 @@
  * that the existing frontend mapper functions (rawToAuthority, etc.) work as-is.
  */
 
+import { emitAudit } from "@/lib/audit";
+
 // ── Utility ───────────────────────────────────────────────────────────────────
 
 function uid(): string {
@@ -203,6 +205,21 @@ function _makeAuthority(decisionId: string, runId: string | null, sector?: strin
   };
   _authority.set(id, auth);
   _authDecisionIdx.set(decisionId, id);
+
+  emitAudit({
+    event_type:  "authority_item_created",
+    entity_id:   id,
+    run_id:      runId,
+    actor:       "system",
+    details: {
+      authority_status: "PROPOSED",
+      priority:         auth.priority,
+      sector:           sector ?? null,
+      decision_id:      decisionId,
+    },
+    lineage_ref: decisionId,
+  });
+
   return auth;
 }
 
@@ -230,6 +247,20 @@ function _makeOutcome(decisionId: string, runId: string | null, expectedValue: n
     notes:                      null,
   };
   _outcomes.set(id, out);
+
+  emitAudit({
+    event_type:  "outcome_derived",
+    entity_id:   id,
+    run_id:      runId,
+    actor:       "system",
+    details: {
+      outcome_status: "PENDING_OBSERVATION",
+      expected_value: out.expected_value,
+      source_decision_id: decisionId,
+    },
+    lineage_ref: decisionId,
+  });
+
   return out;
 }
 
@@ -274,6 +305,24 @@ function _makeValue(
     notes: null,
   };
   _values.set(id, val);
+
+  emitAudit({
+    event_type:  "value_computed",
+    entity_id:   id,
+    run_id:      runId,
+    actor:       "system",
+    details: {
+      net_value:              val.net_value,
+      avoided_loss:           val.avoided_loss,
+      total_cost:             val.total_cost,
+      value_classification:   val.value_classification,
+      value_confidence_score: val.value_confidence_score,
+      source_outcome_id:      outcomeId,
+      source_decision_id:     decisionId,
+    },
+    lineage_ref: outcomeId,
+  });
+
   return val;
 }
 
@@ -330,6 +379,20 @@ export const serverStore = {
         closed_at:        null,
       };
       _decisions.set(id, dec);
+
+      emitAudit({
+        event_type:  "decision_created",
+        entity_id:   id,
+        run_id:      body.source_run_id ?? null,
+        actor:       dec.created_by,
+        details: {
+          decision_type:    dec.decision_type,
+          confidence_score: dec.confidence_score,
+          source_signal_id: dec.source_signal_id,
+          source_seed_id:   dec.source_seed_id,
+        },
+        lineage_ref: null,
+      });
 
       // Derive financial data from payload
       const payload     = body.decision_payload ?? {};

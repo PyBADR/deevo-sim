@@ -117,6 +117,18 @@ function FlowAnalystView({
 
 // ─── Flow-Aware Regulator View ──────────────────────────────────────────────
 
+/** Safe ISO date formatter — returns a fallback string for invalid dates. */
+function safeFlowDate(createdAt: string | undefined | null): string {
+  try {
+    if (!createdAt) return "—";
+    const t = new Date(createdAt).getTime();
+    if (!Number.isFinite(t)) return createdAt;
+    return new Date(createdAt).toISOString().replace("T", " ").slice(0, 19);
+  } catch {
+    return createdAt ?? "—";
+  }
+}
+
 function FlowRegulatorView({
   result,
   lang,
@@ -146,7 +158,7 @@ function FlowRegulatorView({
               <span>
                 <span className="font-semibold">{isAr ? "بدأ" : "Started"}:</span>{" "}
                 <code className="font-mono text-[10px]">
-                  {new Date(activeFlow.createdAt).toISOString().replace("T", " ").slice(0, 19)}
+                  {safeFlowDate(activeFlow.createdAt)}
                 </code>
               </span>
               <span>
