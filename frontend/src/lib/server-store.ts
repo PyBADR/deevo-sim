@@ -38,6 +38,7 @@ export interface StoredDecision {
   source_signal_id: string | null;
   source_seed_id:   string | null;
   source_run_id:    string | null;
+  scenario_id:      string | null;
   decision_type:    string;
   decision_status:  string;
   decision_payload: Record<string, unknown>;
@@ -46,6 +47,7 @@ export interface StoredDecision {
   created_by:       string;
   outcome_status:   string;
   outcome_payload:  Record<string, unknown>;
+  outcome_id:       string | null;
   created_at:       string;
   updated_at:       string;
   closed_at:        string | null;
@@ -353,6 +355,7 @@ export const serverStore = {
     create(body: {
       decision_type?:    string;
       source_run_id?:    string | null;
+      scenario_id?:      string | null;
       source_signal_id?: string | null;
       source_seed_id?:   string | null;
       decision_payload?: Record<string, unknown>;
@@ -367,6 +370,7 @@ export const serverStore = {
         source_signal_id: body.source_signal_id ?? null,
         source_seed_id:   body.source_seed_id   ?? null,
         source_run_id:    body.source_run_id     ?? null,
+        scenario_id:      body.scenario_id       ?? null,
         decision_type:    body.decision_type     ?? "APPROVE_ACTION",
         decision_status:  "CREATED",
         decision_payload: body.decision_payload  ?? {},
@@ -375,6 +379,7 @@ export const serverStore = {
         created_by:       body.created_by        ?? "system",
         outcome_status:   "PENDING",
         outcome_payload:  {},
+        outcome_id:       null,
         created_at:       now,
         updated_at:       now,
         closed_at:        null,
@@ -407,6 +412,9 @@ export const serverStore = {
 
       // Auto-create pending outcome
       const outcome = _makeOutcome(id, body.source_run_id ?? null, avoidedLoss);
+
+      // Bidirectional linkage: write outcome_id back to decision
+      dec.outcome_id = outcome.outcome_id;
 
       // Auto-compute value when we have financial data
       if (avoidedLoss > 0 || cost > 0) {

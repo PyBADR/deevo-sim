@@ -12,13 +12,14 @@
  * activeRoute="decisions" highlights Decision Room in nav.
  */
 
+import { useEffect } from "react";
 import AppShell from "@/components/shell/AppShell";
 import { useAppStore } from "@/store/app-store";
 import { useRunState } from "@/lib/run-state";
-import { useDecisions } from "@/hooks/use-api";
+import { useDecisions, useRunResult } from "@/hooks/use-api";
 import { OperatorDecisionPanel } from "@/features/decisions/OperatorDecisionPanel";
 import DecisionDetailPanel from "@/features/decisions/DecisionDetailPanel";
-import type { Language } from "@/types/observatory";
+import type { Language, UnifiedRunResult } from "@/types/observatory";
 
 // ─── Module-level stable selectors ───────────────────────────────────────────
 type RS_DP = ReturnType<typeof useRunState.getState>;
@@ -128,6 +129,24 @@ export default function DecisionsPage() {
   // current session's run plan — if those diverge, say so clearly.
   const { data: backendDecisions } = useDecisions({ limit: 1 });
   const hasBackendDecisions = (backendDecisions?.decisions?.length ?? 0) > 0;
+
+  // Decision Room hydration: if decisions have a source_run_id but no active
+  // in-session run exists, fetch that run and populate run state so the
+  // decision plan renders without requiring the user to re-run the scenario.
+  const mostRecentRunId = (!hasRun
+    ? (backendDecisions?.decisions?.[0]?.source_run_id ?? null)
+    : null);
+  const { data: storedRun } = useRunResult(mostRecentRunId);
+
+  useEffect(() => {
+    if (!storedRun) return;
+    // Handle both v4 envelope ({ data: UnifiedRunResult }) and direct shape.
+    const unified = (storedRun as Record<string, unknown>)?.data
+      ?? storedRun as unknown as Record<string, unknown>;
+    if (unified && (unified as Record<string, unknown>).run_id) {
+      useRunState.getState().setUnifiedResult(unified as unknown as UnifiedRunResult);
+    }
+  }, [storedRun]);
 
   return (
     <AppShell activeRoute="decisions" scenarioLabel={scenarioLabel}>
