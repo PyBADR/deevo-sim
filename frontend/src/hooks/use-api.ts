@@ -233,16 +233,32 @@ export function useApproveSeed() {
 // ============================================================================
 
 /**
- * List OperatorDecisions, optionally filtered by status and/or type.
+ * List OperatorDecisions, optionally filtered by status, type, and/or run_id.
  * GET /api/v1/decisions
+ *
+ * When called with no params (app-level), syncs result into the Zustand
+ * operatorDecisions slice so all persona views receive decision data from
+ * the store. Pattern mirrors useOutcomes / usePendingSeeds.
  */
-export function useDecisions(params?: { status?: string; decision_type?: string; limit?: number }) {
-  return useQuery({
+export function useDecisions(params?: { status?: string; decision_type?: string; run_id?: string; limit?: number }) {
+  const setOperatorDecisions = useAppStore((s) => s.setOperatorDecisions);
+  const query = useQuery({
     queryKey: ["decisions", params],
     queryFn: () => api.decisions.list(params),
     staleTime: 10_000,
     refetchInterval: 20_000,
   });
+
+  // Sync into store only for top-level (unfiltered) fetches.
+  // Limited / filtered calls (e.g. existence-check {limit:1}) must not
+  // clobber the full list. Pattern mirrors useOutcomes.
+  useEffect(() => {
+    if (!params && query.data) {
+      setOperatorDecisions(query.data.decisions);
+    }
+  }, [params, query.data, setOperatorDecisions]);
+
+  return query;
 }
 
 /**

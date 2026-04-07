@@ -758,6 +758,7 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
   const { data, isLoading, isError, refetch: refetchDecisions } = useDecisions({
     status: statusFilter || undefined,
     decision_type: typeFilter || undefined,
+    run_id: activeRunId || undefined,
     limit: 50,
   });
 

@@ -25,7 +25,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useRunState } from "@/lib/run-state";
 import { useAppStore } from "@/store/app-store";
 import { useFlowStore } from "@/store/flow-store";
-import { useOutcomes, useDecisionValues } from "@/hooks/use-api";
+import { useOutcomes, useDecisionValues, useDecisions } from "@/hooks/use-api";
 import { api } from "@/lib/api";
 import type { RunResult, Language } from "@/types/observatory";
 import type { Persona } from "@/lib/persona-view-model";
@@ -287,6 +287,7 @@ export default function HomePage() {
 
   useOutcomes();
   useDecisionValues();
+  useDecisions();
 
   // CRIT-FIX: Do NOT call s.getRunResult() inside a Zustand selector.
   // getRunResult() calls get() internally; in Zustand v5 the selector runs inside
@@ -433,6 +434,7 @@ export default function HomePage() {
                   loss_avoided_usd: a.loss_avoided_usd,
                   cost_usd:        a.cost_usd,
                   priority:        a.priority,
+                  scenario_id:     templateId,
                 },
                 rationale:        a.action,
                 confidence_score: a.confidence,

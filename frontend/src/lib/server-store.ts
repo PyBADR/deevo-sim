@@ -333,10 +333,11 @@ export const serverStore = {
   // ── Decisions ──────────────────────────────────────────────────────────────
 
   decisions: {
-    list(params?: { status?: string; decision_type?: string; limit?: number }): StoredDecision[] {
+    list(params?: { status?: string; decision_type?: string; run_id?: string; limit?: number }): StoredDecision[] {
       let items = Array.from(_decisions.values()).reverse(); // newest first
       if (params?.status)        items = items.filter((d) => d.decision_status === params.status);
       if (params?.decision_type) items = items.filter((d) => d.decision_type   === params.decision_type);
+      if (params?.run_id)        items = items.filter((d) => d.source_run_id   === params.run_id);
       if (params?.limit != null) items = items.slice(0, params.limit);
       return items;
     },

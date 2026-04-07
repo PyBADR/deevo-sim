@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
   const items = serverStore.decisions.list({
     status:        sp.get("status")        ?? undefined,
     decision_type: sp.get("decision_type") ?? undefined,
+    run_id:        sp.get("run_id")        ?? undefined,
     limit:         sp.has("limit") ? Number(sp.get("limit")) : undefined,
   });
   return NextResponse.json({ decisions: items, count: items.length });
