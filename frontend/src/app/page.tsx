@@ -416,8 +416,11 @@ export default function HomePage() {
       // For each recommended action, create an OperatorDecision in the
       // execution layer (POST /api/v1/decisions → in-memory server-store).
       // This populates: operatorDecisions, authority queue, outcomes, values.
+      if (!runId) {
+        console.warn("[auto-seed] runId missing — skipping decision seeding");
+      }
       const actions = adapted.decisions?.actions ?? [];
-      if (actions.length > 0) {
+      if (runId && actions.length > 0) {
         const seeded: import("@/types/observatory").OperatorDecision[] = [];
         await Promise.allSettled(
           actions.slice(0, 8).map(async (a) => {

@@ -424,6 +424,47 @@ export const serverStore = {
       return dec;
     },
 
+    /**
+     * Transition decision to EXECUTED status (mirrors backend execute endpoint).
+     * Guards: status must be CREATED or IN_REVIEW.
+     */
+    execute(id: string): StoredDecision | null {
+      const dec = _decisions.get(id);
+      if (!dec) {
+        console.warn("[server-store] execute: decision not found", id);
+        return null;
+      }
+      if (!["CREATED", "IN_REVIEW"].includes(dec.decision_status)) {
+        console.warn("[server-store] execute: invalid status", dec.decision_status);
+        return null;
+      }
+      dec.decision_status = "EXECUTED";
+      dec.outcome_status  = "SUCCESS";
+      dec.updated_at      = new Date().toISOString();
+      return dec;
+    },
+
+    /**
+     * Transition decision to CLOSED status (mirrors backend close endpoint).
+     * Guards: must not already be CLOSED.
+     */
+    close(id: string): StoredDecision | null {
+      const dec = _decisions.get(id);
+      if (!dec) {
+        console.warn("[server-store] close: decision not found", id);
+        return null;
+      }
+      if (dec.decision_status === "CLOSED") {
+        console.warn("[server-store] close: already closed", id);
+        return null;
+      }
+      const now = new Date().toISOString();
+      dec.decision_status = "CLOSED";
+      dec.closed_at       = now;
+      dec.updated_at      = now;
+      return dec;
+    },
+
     count(): number {
       return _decisions.size;
     },

@@ -755,6 +755,11 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
   const activeRunId   = useRunState(selectActiveRunId_ODP);
   const adaptedResult = useRunState(selectAdaptedResult_ODP);
 
+  // Apply run_id filter only when we're inside an active live run (adaptedResult present).
+  // After a cold hydration from Decision Room, adaptedResult comes from a stored run —
+  // in that case we rely on the backend's DB warmup to return the correct decisions.
+  // Passing run_id when the backend cache is still cold would produce an empty list,
+  // so we always include run_id to let the backend filter correctly after warmup.
   const { data, isLoading, isError, refetch: refetchDecisions } = useDecisions({
     status: statusFilter || undefined,
     decision_type: typeFilter || undefined,
