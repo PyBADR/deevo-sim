@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useAppStore } from "@/store/app-store";
+import { filterValidDecisions, filterValidOutcomes, filterValidValues } from "@/lib/graph-contracts";
 import type { WsSignalEvent } from "@/types/observatory";
 
 // ============================================================================
@@ -252,9 +253,10 @@ export function useDecisions(params?: { status?: string; decision_type?: string;
   // Sync into store only for top-level (unfiltered) fetches.
   // Limited / filtered calls (e.g. existence-check {limit:1}) must not
   // clobber the full list. Pattern mirrors useOutcomes.
+  // Contract enforcement: drop orphan decisions before writing to store.
   useEffect(() => {
     if (!params && query.data) {
-      setOperatorDecisions(query.data.decisions);
+      setOperatorDecisions(filterValidDecisions(query.data.decisions));
     }
   }, [params, query.data, setOperatorDecisions]);
 
@@ -346,7 +348,8 @@ export function useCloseDecision() {
  * Pattern mirrors usePendingSeeds.
  */
 export function useOutcomes(params?: { decision_id?: string; run_id?: string; status?: string; limit?: number }) {
-  const setOutcomes = useAppStore((s) => s.setOutcomes);
+  const setOutcomes        = useAppStore((s) => s.setOutcomes);
+  const operatorDecisions  = useAppStore((s) => s.operatorDecisions);
   const query = useQuery({
     queryKey: ["outcomes", params],
     queryFn: () => api.outcomes.list(params),
@@ -356,12 +359,12 @@ export function useOutcomes(params?: { decision_id?: string; run_id?: string; st
 
   // Sync into store only for top-level (unfiltered) fetches.
   // Filtered calls (e.g. by decision_id or run_id) must not clobber the full list.
-  // Pattern mirrors useDecisions.
+  // Contract enforcement: drop outcomes whose parent decision is not in the store.
   useEffect(() => {
     if (!params && query.data) {
-      setOutcomes(query.data.outcomes);
+      setOutcomes(filterValidOutcomes(query.data.outcomes, operatorDecisions));
     }
-  }, [params, query.data, setOutcomes]);
+  }, [params, query.data, setOutcomes, operatorDecisions]);
 
   return query;
 }
@@ -479,6 +482,8 @@ export function useCloseOutcome() {
  */
 export function useDecisionValues(params?: { outcome_id?: string; decision_id?: string; run_id?: string; limit?: number }) {
   const setDecisionValues = useAppStore((s) => s.setDecisionValues);
+  const operatorDecisions = useAppStore((s) => s.operatorDecisions);
+  const outcomes          = useAppStore((s) => s.outcomes);
   const query = useQuery({
     queryKey: ["decision-values", params],
     queryFn: () => api.values.list(params),
@@ -486,11 +491,14 @@ export function useDecisionValues(params?: { outcome_id?: string; decision_id?: 
     refetchInterval: 30_000,
   });
 
+  // Sync into store only for top-level (unfiltered) fetches.
+  // Filtered calls (e.g. by outcome_id or decision_id) must not clobber the full list.
+  // Contract enforcement: drop values whose full chain (value→outcome→decision) is broken.
   useEffect(() => {
-    if (query.data) {
-      setDecisionValues(query.data.values);
+    if (!params && query.data) {
+      setDecisionValues(filterValidValues(query.data.values, outcomes, operatorDecisions));
     }
-  }, [query.data, setDecisionValues]);
+  }, [params, query.data, setDecisionValues, outcomes, operatorDecisions]);
 
   return query;
 }

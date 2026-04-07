@@ -34,6 +34,7 @@ import {
 import { useAppStore } from "@/store/app-store";
 import { useRunState } from "@/lib/run-state";
 import { ApiError } from "@/lib/api";
+import { filterValidDecisions } from "@/lib/graph-contracts";
 import { emitAudit } from "@/lib/audit";
 import type {
   OperatorDecision,
@@ -770,7 +771,7 @@ export function OperatorDecisionPanel({ lang = "en" }: { lang?: Language }) {
   const executeDecision = useExecuteDecision();
   const closeDecision = useCloseDecision();
 
-  const decisions = data?.decisions ?? [];
+  const decisions = filterValidDecisions(data?.decisions ?? []);
   const selected = selectedDecisionId
     ? decisions.find((d) => d.decision_id === selectedDecisionId) ?? null
     : null;
