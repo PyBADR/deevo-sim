@@ -314,3 +314,73 @@ def propagate(
         total_domains_reached=len(state.visited),
         max_depth=max_hit_depth,
     )
+
+
+# ── Graph-Enriched Variant (Integration Pack A) ────────────────────────────
+# The propagate() function above is UNCHANGED. This variant wraps it
+# with optional post-propagation Graph Brain explanation enrichment.
+
+def propagate_graph_enriched(
+    mapping: CausalMapping,
+    max_depth: int = MAX_PROPAGATION_DEPTH,
+    min_severity: float = MIN_SEVERITY_THRESHOLD,
+    graph_service: object | None = None,
+) -> tuple[PropagationResult, object | None]:
+    """Graph-enriched propagation: runs Pack 2 propagation + graph explanation.
+
+    Returns:
+        Tuple of (PropagationResult, ExplanationEnrichment or None).
+        The PropagationResult is always the standard Pack 2 output
+        (with graph reasoning optionally appended to hit descriptions).
+
+    If graph enrichment is disabled or fails, returns (result, None).
+    """
+    import logging
+    _logger = logging.getLogger(__name__)
+
+    # Step 1: Standard Pack 2 propagation (always runs)
+    result = propagate(mapping, max_depth=max_depth, min_severity=min_severity)
+
+    # Step 2: Graph explanation enrichment (optional, fail-safe)
+    explanation_enrichment = None
+    try:
+        from src.graph_brain.enrichment import (
+            enrich_explanation,
+            is_enrichment_active,
+        )
+
+        if not is_enrichment_active("explanation"):
+            return result, None
+
+        from src.graph_brain.service import get_graph_brain_service
+
+        service = graph_service or get_graph_brain_service()
+        store = service.store  # type: ignore[union-attr]
+
+        reached_domains = [h.domain for h in result.hits]
+        explanation_enrichment = enrich_explanation(
+            store,
+            signal_id=str(mapping.entry_point.signal_id),
+            reached_domains=reached_domains,
+        )
+
+        # Append graph reasoning to hits (additive, never replaces)
+        if explanation_enrichment.has_enrichment:
+            count = 0
+            for hit in result.hits:
+                fragment = explanation_enrichment.get_fragment_for_domain(hit.domain)
+                if fragment is not None:
+                    hit.reasoning = f"{hit.reasoning}\n  {fragment.reasoning}"
+                    count += 1
+            _logger.info(
+                "Graph enriched %d/%d propagation hits for signal %s",
+                count, len(result.hits), mapping.entry_point.signal_id,
+            )
+
+    except Exception as e:
+        _logger.warning(
+            "Graph-enriched propagation failed for signal %s: %s",
+            mapping.entry_point.signal_id, e,
+        )
+
+    return result, explanation_enrichment

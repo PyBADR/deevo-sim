@@ -161,3 +161,65 @@ def map_signal_to_causal(
         activated_channels=activated,
         total_reachable_domains=len(reachable),
     )
+
+
+# ── Graph-Aware Variant (Integration Pack A) ───────────────────────────────
+# The functions above are UNCHANGED. This variant wraps them with
+# optional Graph Brain enrichment. If graph is unavailable or disabled,
+# the result is identical to map_signal_to_causal().
+
+def map_signal_to_causal_graph_aware(
+    signal: NormalizedSignal,
+    max_depth: int = 4,
+    graph_service: object | None = None,
+) -> tuple["CausalMapping", object | None]:
+    """Graph-aware causal mapping: runs Pack 2 mapping + graph enrichment.
+
+    Returns:
+        Tuple of (CausalMapping, CausalEntryEnrichment or None).
+        The CausalMapping is always the standard Pack 2 output.
+        The enrichment is supplementary metadata from Graph Brain.
+
+    If graph enrichment is disabled or fails, returns (mapping, None).
+    """
+    import logging
+    _logger = logging.getLogger(__name__)
+
+    # Step 1: Standard Pack 2 mapping (always runs)
+    mapping = map_signal_to_causal(signal, max_depth=max_depth)
+
+    # Step 2: Graph enrichment (optional, fail-safe)
+    enrichment = None
+    try:
+        from src.graph_brain.enrichment import (
+            enrich_causal_entry,
+            ensure_signal_ingested,
+            is_enrichment_active,
+        )
+
+        if not is_enrichment_active("causal_entry"):
+            return mapping, None
+
+        # Lazy import to avoid circular dependency at module load time
+        from src.graph_brain.service import get_graph_brain_service
+
+        service = graph_service or get_graph_brain_service()
+        store = service.store  # type: ignore[union-attr]
+
+        ensure_signal_ingested(signal, store)
+
+        existing_pairs = {
+            (ch.from_domain.value, ch.to_domain.value)
+            for ch in mapping.activated_channels
+        }
+        enrichment = enrich_causal_entry(
+            store, signal, mapping.entry_point, existing_pairs,
+        )
+
+    except Exception as e:
+        _logger.warning(
+            "Graph-aware causal mapping enrichment failed for signal %s: %s",
+            signal.signal_id, e,
+        )
+
+    return mapping, enrichment
