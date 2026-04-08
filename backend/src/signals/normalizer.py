@@ -10,8 +10,10 @@ Design rules:
   - Deterministic: same input → same output
   - Never raises: all hint resolution is best-effort
   - Pack 1 mapping is rules-based only (no ML, no LLM)
+  - Region/domain resolution delegates to region_engine and domain_engine for
+    richer coverage; private _resolve_* functions kept for backward compat
   - direction derived only when deterministic (explicit keyword matching)
-  - severity derived only from SourceConfidence (no content analysis)
+  - severity_score derived from the multi-factor severity_engine
   - source_uri set from event.url or event.source_ref
   - raw_payload from the SourceEvent is forwarded to MacroSignalInput.raw_payload
 """
@@ -32,6 +34,10 @@ from src.macro.macro_enums import (
 )
 from src.macro.macro_schemas import MacroSignalInput
 from src.signals.source_models import SourceConfidence, SourceEvent
+from src.signals.region_engine import resolve_regions as _engine_resolve_regions
+from src.signals.region_engine import to_gcc_regions as _engine_to_gcc_regions
+from src.signals.domain_engine import resolve_domains as _engine_resolve_domains
+from src.signals.severity_engine import compute_severity as _engine_compute_severity
 
 
 # ── GCC Region Hint Resolution ────────────────────────────────────────────────
@@ -458,36 +464,60 @@ def to_signal_input(event: SourceEvent) -> MacroSignalInput:
       source_ref   → source_uri
       category/sector hints → source (SignalSource)
       category/sector hints → signal_type (Optional[SignalType])
-      region/country hints  → regions (list[GCCRegion])
-      sector/category hints → impact_domains
+      region/country hints  → regions (via region_engine, fallback GCC_WIDE)
+      sector/category hints → impact_domains (via domain_engine)
       category hints        → direction (conservative default: NEGATIVE)
-      source_confidence     → confidence + severity_score baseline
+      source_confidence     → confidence
+      multi-factor engines  → severity_score
       external_id          → external_id
       published_at         → event_time
       raw_payload          → raw_payload (with source traceability added)
       sector/country hints → sector_scope / country_scope
     """
-    # ── Regions ───────────────────────────────────────────────────────────────
+    # ── Regions — delegate to region_engine for richer coverage ──────────────
     all_region_hints = list(event.region_hints) + list(event.country_hints)
-    regions = _resolve_regions(all_region_hints)
-    if not regions:
-        # No GCC region identified — default to GCC-wide (conservative routing)
-        regions = [GCCRegion.GCC_WIDE]
+    region_mapping = _engine_resolve_regions(all_region_hints)
+    regions = _engine_to_gcc_regions(region_mapping)
+    # to_gcc_regions already falls back to [GCC_WIDE] if empty
 
-    # ── Domains ───────────────────────────────────────────────────────────────
-    domains = _resolve_domains(event.sector_hints, event.category_hints)
-    # impact_domains is optional in MacroSignalInput — pass what we have
+    # ── Domains — delegate to domain_engine ───────────────────────────────────
+    domain_hints: list[str] = list(event.sector_hints) + list(event.category_hints)
+    domain_mapping = _engine_resolve_domains(domain_hints)
+    domains: list[ImpactDomain] = []
+    for dv in domain_mapping.matched_domains:
+        try:
+            domains.append(ImpactDomain(dv))
+        except ValueError:
+            pass
 
     # ── Source and type ───────────────────────────────────────────────────────
     signal_source = _resolve_signal_source(event.category_hints)
-    signal_type = _resolve_signal_type(event.category_hints)
+    signal_type   = _resolve_signal_type(event.category_hints)
 
     # ── Direction ─────────────────────────────────────────────────────────────
     direction = _resolve_direction(event.category_hints, event.sector_hints)
 
-    # ── Confidence + severity ─────────────────────────────────────────────────
+    # ── Confidence ────────────────────────────────────────────────────────────
     confidence = _map_confidence(event.source_confidence)
-    severity = _default_severity(event.source_confidence)
+
+    # ── Severity — multi-factor via severity_engine ───────────────────────────
+    urgency_hints: list[str] = []
+    if event.title:
+        urgency_hints.append(event.title)
+    if event.description:
+        urgency_hints.append(event.description)
+    urgency_hints.extend(event.category_hints)
+    urgency_hints.extend(event.sector_hints)
+
+    severity_estimate = _engine_compute_severity(
+        source_confidence=event.source_confidence,
+        domain_mapping=domain_mapping,
+        region_mapping=region_mapping,
+        text_hints=urgency_hints,
+    )
+    severity = severity_estimate.score
+    # Guard: never go below the baseline for the source confidence tier
+    severity = max(severity, _default_severity(event.source_confidence))
 
     # ── Title (safe truncation) ────────────────────────────────────────────────
     title = event.title[:300]
@@ -504,7 +534,7 @@ def to_signal_input(event: SourceEvent) -> MacroSignalInput:
         enriched_payload.update(event.raw_payload)
 
     # ── Country/sector scope ───────────────────────────────────────────────────
-    country_scope = list(event.country_hints)[:20]  # cap to field limit
+    country_scope = list(event.country_hints)[:20]
     sector_scope  = list(event.sector_hints)[:20]
 
     # ── Tags from category hints ───────────────────────────────────────────────
