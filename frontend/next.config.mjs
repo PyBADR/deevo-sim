@@ -9,15 +9,15 @@ const nextConfig = {
     return [
       {
         source: "/api/health",
-        destination: "${apiBase}/health",  // eslint-disable-line no-template-curly-in-string
+        destination: `${apiBase}/health`,
       },
       {
         source: "/api/:path*",
-        destination: "${apiBase}/api/:path*",
+        destination: `${apiBase}/api/:path*`,
       },
       {
         source: "/health",
-        destination: "${apiBase}/health",
+        destination: `${apiBase}/health`,
       },
     ];
   },
