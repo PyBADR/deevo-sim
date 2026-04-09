@@ -67,7 +67,17 @@ class Settings(BaseSettings):
         description="Comma-separated list of allowed CORS origins. Add your Vercel/production domain here.",
     )
 
+    # === Multi-Tenant ===
+    tenant_mode: str = Field(
+        "open",
+        description="Tenant enforcement mode: 'open' (dev — default tenant auto-assigned), 'strict' (JWT/API-key required)",
+    )
+    default_tenant_id: str = Field("default", description="Fallback tenant_id when running in 'open' mode")
+
     # === Cache ===
+    directive_cache_ttl: int = Field(600, description="Redis TTL (seconds) for cached decision authority directives")
+    action_summary_cache_ttl: int = Field(300, description="Redis TTL (seconds) for cached action tracking summaries")
+    run_lock_ttl: int = Field(30, description="Redis TTL (seconds) for run deduplication locks")
     cache_warmup_limit: int = Field(2000, description="Max records per store loaded on startup cache warmup (decisions/outcomes/values)")
 
     # === Simulation limits ===

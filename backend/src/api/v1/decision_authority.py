@@ -1,10 +1,14 @@
 """v1 Decision Authority API — executive decision directives.
 
-POST /api/v1/decision/authority/run  — execute simulation + narrative + decision authority
-GET  /api/v1/decision/authority/{run_id}  — retrieve directive for existing run
+POST  /api/v1/decision/authority/run                     — execute simulation + narrative + decision authority
+GET   /api/v1/decision/authority/{run_id}                — retrieve directive for existing run
+GET   /api/v1/decision/authority/actions/{run_id}        — list tracked actions
+PATCH /api/v1/decision/authority/actions/{action_id}     — update action tracking status
+POST  /api/v1/decision/authority/actions/{action_id}/acknowledge — shorthand acknowledgment
+GET   /api/v1/decision/authority/actions/{action_id}/history    — audit history
 
-This endpoint produces DECISIONS, not reports.
-Every response forces executive action.
+Persistence: PostgreSQL (source of truth) + Redis (cache/coordination) + in-memory fallback.
+Multi-tenant: all queries scoped by TenantContext.tenant_id.
 """
 from __future__ import annotations
 
@@ -12,22 +16,52 @@ import logging
 import time
 import uuid
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.narrative.engine import NarrativeEngine
 from src.narrative.decision_authority import DecisionAuthorityEngine
 from src.narrative.error_translator import translate_error
 from src.core.rbac import enforce_permission, get_role_from_request
+from src.db.postgres import get_session
+from src.middleware.tenant_context import TenantContext, get_current_tenant
+
+# PostgreSQL persistence
+from src.services.action_persistence import (
+    persist_authority_run,
+    get_authority_run,
+    seed_actions_pg,
+    list_actions_for_run_pg,
+    get_action_pg,
+    update_action_pg,
+    get_action_history_pg,
+    get_run_summary_pg,
+)
+
+# Redis cache (graceful degradation — all calls are fire-and-forget safe)
+from src.services.redis_cache import (
+    cache_directive,
+    get_cached_directive,
+    invalidate_directive,
+    cache_action_summary,
+    get_cached_action_summary,
+    invalidate_action_cache,
+    acquire_run_lock,
+    release_run_lock,
+    publish_action_update,
+)
+
+# In-memory fallback (used when PG is unavailable)
 from src.services.action_tracking_store import (
-    seed_actions,
-    list_actions_for_run,
-    get_action,
-    update_action,
-    acknowledge_action,
-    get_run_summary,
-    get_action_history,
+    seed_actions as seed_actions_mem,
+    list_actions_for_run as list_actions_for_run_mem,
+    get_action as get_action_mem,
+    update_action as update_action_mem,
+    acknowledge_action as acknowledge_action_mem,
+    get_run_summary as get_run_summary_mem,
+    get_action_history as get_action_history_mem,
 )
 
 logger = logging.getLogger(__name__)
@@ -37,8 +71,21 @@ router = APIRouter(prefix="/decision/authority", tags=["decision-authority"])
 _narrative_engine = NarrativeEngine()
 _authority_engine = DecisionAuthorityEngine()
 
-# In-memory directive cache
+# In-memory directive cache (hot fallback when Redis is down)
 _directive_cache: dict[str, dict] = {}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers — PG availability probe
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _pg_available() -> bool:
+    """Quick check: is the PG engine configured and importable?"""
+    try:
+        from src.db.postgres import engine as _pg_engine
+        return _pg_engine is not None
+    except Exception:
+        return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -115,19 +162,51 @@ def _translate_title(title: str) -> str:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/run", status_code=201, summary="Execute full decision authority pipeline")
-async def authority_run(body: AuthorityRunRequest, request: Request):
+async def authority_run(
+    body: AuthorityRunRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Execute the complete pipeline: Simulation → Narrative → Decision Authority.
 
     Returns a structured executive directive that forces a decision:
-    APPROVE | REJECT | ESCALATE | DELAY
+    EXECUTE | MONITOR | NO_ACTION | ESCALATE
 
     Pipeline: SimulationEngine → NarrativeEngine → DecisionAuthorityEngine → Directive
-
-    This is a Chief Risk Officer AI. Not a dashboard. Not a report.
+    Persistence: PostgreSQL (run + actions) → Redis (cache) → In-memory (hot fallback)
     """
     enforce_permission(get_role_from_request(request), "run:create")
     trace_id = str(uuid.uuid4())[:8]
     start = time.perf_counter()
+
+    # ── Dedup lock (Redis) — prevent identical concurrent runs ───────────
+    lock_acquired = await acquire_run_lock(body.scenario_id, body.severity, tenant.tenant_id)
+    if not lock_acquired:
+        return _executive_error(
+            status_code=429,
+            title="Execution Blocked",
+            message=f"Duplicate run in progress for scenario '{body.scenario_id}' at severity {body.severity}.",
+            action_required="Wait for the current run to complete, then retry.",
+            severity="LOW",
+            trace_id=trace_id,
+        )
+
+    try:
+        return await _execute_authority_pipeline(body, request, session, tenant, trace_id, start)
+    finally:
+        await release_run_lock(body.scenario_id, body.severity, tenant.tenant_id)
+
+
+async def _execute_authority_pipeline(
+    body: AuthorityRunRequest,
+    request: Request,
+    session: AsyncSession,
+    tenant: TenantContext,
+    trace_id: str,
+    start: float,
+) -> dict | JSONResponse:
+    """Inner pipeline — separated for clean lock release in finally block."""
 
     # ── Validate scenario ────────────────────────────────────────────────
     try:
@@ -204,11 +283,14 @@ async def authority_run(body: AuthorityRunRequest, request: Request):
 
     # ── Assemble response ────────────────────────────────────────────────
     duration_ms = round((time.perf_counter() - start) * 1000, 2)
+    run_id = simulation.get("run_id", trace_id)
 
     response = {
         **authority,
         "meta": {
             "trace_id": trace_id,
+            "run_id": run_id,
+            "tenant_id": tenant.tenant_id,
             "pipeline": "SimulationEngine → NarrativeEngine → DecisionAuthorityEngine",
             "model_version": simulation.get("model_version", "2.1.0"),
             "duration_ms": duration_ms,
@@ -218,13 +300,31 @@ async def authority_run(body: AuthorityRunRequest, request: Request):
         },
     }
 
-    # Seed actions into tracking store
-    run_id = simulation.get("run_id", trace_id)
+    # ── Persist to PostgreSQL ────────────────────────────────────────────
     da_actions = authority.get("decision_authority", {}).get("recommended_actions", [])
-    if da_actions:
-        seed_actions(run_id, da_actions)
+    try:
+        await persist_authority_run(
+            session,
+            run_id=run_id,
+            tenant_id=tenant.tenant_id,
+            scenario_id=body.scenario_id,
+            severity=body.severity,
+            horizon_hours=body.horizon_hours,
+            authority_result=authority,
+        )
+        if da_actions:
+            await seed_actions_pg(session, run_id=run_id, tenant_id=tenant.tenant_id, actions=da_actions)
+        await session.commit()
+        logger.info(f"[{trace_id}] Persisted run {run_id} + {len(da_actions)} actions to PG (tenant={tenant.tenant_id})")
+    except Exception as e:
+        logger.warning(f"[{trace_id}] PG persistence failed, falling back to memory: {e}")
+        await session.rollback()
+        # Fallback: seed into in-memory store
+        if da_actions:
+            seed_actions_mem(run_id, da_actions)
 
-    # Cache
+    # ── Cache in Redis + in-memory ───────────────────────────────────────
+    await cache_directive(run_id, tenant.tenant_id, response)
     _directive_cache[run_id] = response
 
     da = authority.get("decision_authority", {})
@@ -237,6 +337,7 @@ async def authority_run(body: AuthorityRunRequest, request: Request):
         f"pressure={da.get('decision_pressure_score', {}).get('score', 0)} "
         f"scenario={body.scenario_id} "
         f"severity={body.severity} "
+        f"tenant={tenant.tenant_id} "
         f"duration={duration_ms}ms"
     )
 
@@ -248,16 +349,41 @@ async def authority_run(body: AuthorityRunRequest, request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/{run_id}", summary="Retrieve decision authority directive for existing run")
-async def get_authority_directive(run_id: str, request: Request):
+async def get_authority_directive(
+    run_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Retrieve cached decision authority directive.
 
-    If the run exists but has no cached directive, generates on-the-fly.
+    Read path: Redis cache → in-memory → PostgreSQL → regenerate from run store.
     """
     enforce_permission(get_role_from_request(request), "run:read")
 
-    if run_id in _directive_cache:
-        return _directive_cache[run_id]
+    # L1: Redis cache
+    cached = await get_cached_directive(run_id, tenant.tenant_id)
+    if cached:
+        return cached
 
+    # L2: In-memory cache
+    if run_id in _directive_cache:
+        result = _directive_cache[run_id]
+        await cache_directive(run_id, tenant.tenant_id, result)  # re-warm Redis
+        return result
+
+    # L3: PostgreSQL
+    try:
+        pg_payload = await get_authority_run(session, run_id, tenant.tenant_id)
+        if pg_payload:
+            response = pg_payload
+            _directive_cache[run_id] = response
+            await cache_directive(run_id, tenant.tenant_id, response)
+            return response
+    except Exception as e:
+        logger.warning(f"PG retrieval failed for run {run_id}: {e}")
+
+    # L4: Regenerate from run store
     try:
         from src.services import run_store
         stored = run_store.get_run(run_id)
@@ -279,12 +405,15 @@ async def get_authority_directive(run_id: str, request: Request):
             **authority,
             "meta": {
                 "trace_id": run_id[:8],
+                "run_id": run_id,
+                "tenant_id": tenant.tenant_id,
                 "pipeline": "RunStore → NarrativeEngine → DecisionAuthorityEngine",
                 "model_version": result.get("model_version", "2.1.0"),
                 "generated_on_demand": True,
             },
         }
         _directive_cache[run_id] = response
+        await cache_directive(run_id, tenant.tenant_id, response)
         return response
 
     except Exception as e:
@@ -304,15 +433,33 @@ async def get_authority_directive(run_id: str, request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/actions/{run_id}", summary="List tracked actions for a decision authority run")
-async def get_run_actions(run_id: str, request: Request):
+async def get_run_actions(
+    run_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Return all tracked actions for a run with current status and progress.
 
-    Includes per-run summary: total, by_status, overall_progress, acknowledgment rate.
+    Read path: Redis cached summary → PostgreSQL → in-memory fallback.
     """
     enforce_permission(get_role_from_request(request), "run:read")
 
-    actions = list_actions_for_run(run_id)
-    summary = get_run_summary(run_id)
+    actions = None
+    summary = None
+
+    # Try PostgreSQL first
+    try:
+        actions = await list_actions_for_run_pg(session, run_id, tenant.tenant_id)
+        if actions:
+            summary = await get_run_summary_pg(session, run_id, tenant.tenant_id)
+    except Exception as e:
+        logger.warning(f"PG list_actions failed for run {run_id}: {e}")
+
+    # Fallback: in-memory
+    if not actions:
+        actions = list_actions_for_run_mem(run_id)
+        summary = get_run_summary_mem(run_id) if actions else None
 
     if not actions:
         return _executive_error(
@@ -324,8 +471,13 @@ async def get_run_actions(run_id: str, request: Request):
             trace_id=run_id[:8],
         )
 
+    # Cache summary in Redis
+    if summary:
+        await cache_action_summary(run_id, tenant.tenant_id, summary)
+
     return {
         "run_id": run_id,
+        "tenant_id": tenant.tenant_id,
         "actions": actions,
         "summary": summary,
     }
@@ -369,37 +521,81 @@ class ActionUpdateRequest(BaseModel):
 
 
 @router.patch("/actions/{action_id}", summary="Update action tracking status")
-async def patch_action(action_id: str, body: ActionUpdateRequest, request: Request):
+async def patch_action(
+    action_id: str,
+    body: ActionUpdateRequest,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Update an action's status, progress, acknowledgment, or add notes.
 
     State machine: PENDING → ACKNOWLEDGED → IN_PROGRESS → DONE | BLOCKED
-
-    Invalid transitions are rejected with executive-grade error messages.
-    All updates are timestamped and SHA-256 hashed for audit.
+    Write path: PostgreSQL → invalidate Redis → publish update → fallback to in-memory.
     """
     enforce_permission(get_role_from_request(request), "run:create")
 
-    existing = get_action(action_id)
-    if existing is None:
-        return _executive_error(
-            status_code=404,
-            title="Execution Blocked",
-            message=f"Action '{action_id}' not found in tracking system.",
-            action_required="Verify action_id from GET /api/v1/decision/authority/actions/{{run_id}}.",
-            severity="LOW",
-            trace_id=action_id[:8],
-        )
+    # Resolve actor: prefer explicit, then tenant user
+    actor = body.actor or tenant.user_email or "operator"
 
+    # ── Try PostgreSQL ───────────────────────────────────────────────────
     try:
-        updated = update_action(
+        updated = await update_action_pg(
+            session,
             action_id,
+            tenant.tenant_id,
             status=body.status,
             execution_progress=body.execution_progress,
             owner_acknowledged=body.owner_acknowledged,
             note=body.note,
-            actor=body.actor,
+            actor=actor,
         )
+        if updated is None:
+            # Not found in PG — try in-memory before returning 404
+            existing = get_action_mem(action_id)
+            if existing is None:
+                return _executive_error(
+                    status_code=404,
+                    title="Execution Blocked",
+                    message=f"Action '{action_id}' not found in tracking system.",
+                    action_required="Verify action_id from GET /api/v1/decision/authority/actions/{{run_id}}.",
+                    severity="LOW",
+                    trace_id=action_id[:8],
+                )
+            # Update in-memory
+            try:
+                updated = update_action_mem(
+                    action_id,
+                    status=body.status,
+                    execution_progress=body.execution_progress,
+                    owner_acknowledged=body.owner_acknowledged,
+                    note=body.note,
+                    actor=actor,
+                )
+            except ValueError as e:
+                return _executive_error(
+                    status_code=400,
+                    title="Action Update Blocked",
+                    message=str(e),
+                    action_required="Correct the status transition and resubmit.",
+                    severity="MODERATE",
+                    trace_id=action_id[:8],
+                )
+        else:
+            await session.commit()
+
+            # Invalidate Redis caches
+            run_id = updated.get("run_id", "")
+            await invalidate_action_cache(run_id, tenant.tenant_id)
+            await invalidate_directive(run_id, tenant.tenant_id)
+
+            # Pub/sub for real-time subscribers
+            await publish_action_update(
+                tenant.tenant_id, run_id, action_id, updated.get("status", ""),
+            )
+
     except ValueError as e:
+        await session.rollback()
         return _executive_error(
             status_code=400,
             title="Action Update Blocked",
@@ -408,6 +604,38 @@ async def patch_action(action_id: str, body: ActionUpdateRequest, request: Reque
             severity="MODERATE",
             trace_id=action_id[:8],
         )
+    except Exception as e:
+        await session.rollback()
+        logger.warning(f"PG update_action failed for {action_id}: {e}")
+        # Fallback: in-memory
+        existing = get_action_mem(action_id)
+        if existing is None:
+            return _executive_error(
+                status_code=404,
+                title="Execution Blocked",
+                message=f"Action '{action_id}' not found.",
+                action_required="Verify action_id exists.",
+                severity="LOW",
+                trace_id=action_id[:8],
+            )
+        try:
+            updated = update_action_mem(
+                action_id,
+                status=body.status,
+                execution_progress=body.execution_progress,
+                owner_acknowledged=body.owner_acknowledged,
+                note=body.note,
+                actor=actor,
+            )
+        except ValueError as e:
+            return _executive_error(
+                status_code=400,
+                title="Action Update Blocked",
+                message=str(e),
+                action_required="Correct the status transition and resubmit.",
+                severity="MODERATE",
+                trace_id=action_id[:8],
+            )
 
     if updated is None:
         return _executive_error(
@@ -423,7 +651,8 @@ async def patch_action(action_id: str, body: ActionUpdateRequest, request: Reque
         f"Action {action_id} updated: "
         f"status={updated.get('status')} "
         f"progress={updated.get('execution_progress')}% "
-        f"acknowledged={updated.get('owner_acknowledged')}"
+        f"acknowledged={updated.get('owner_acknowledged')} "
+        f"tenant={tenant.tenant_id} actor={actor}"
     )
 
     return {
@@ -431,6 +660,7 @@ async def patch_action(action_id: str, body: ActionUpdateRequest, request: Reque
         "meta": {
             "update_hash": updated.get("last_update_hash", ""),
             "updated_at": updated.get("updated_at", ""),
+            "tenant_id": tenant.tenant_id,
         },
     }
 
@@ -440,27 +670,60 @@ async def patch_action(action_id: str, body: ActionUpdateRequest, request: Reque
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.post("/actions/{action_id}/acknowledge", summary="Acknowledge an action (shorthand)")
-async def acknowledge_action_endpoint(action_id: str, request: Request):
+async def acknowledge_action_endpoint(
+    action_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Quick acknowledgment: moves action to ACKNOWLEDGED, sets owner_acknowledged=True.
 
     Convenience endpoint — equivalent to PATCH with status=ACKNOWLEDGED.
     """
     enforce_permission(get_role_from_request(request), "run:create")
+    actor = tenant.user_email or "operator"
 
-    existing = get_action(action_id)
-    if existing is None:
-        return _executive_error(
-            status_code=404,
-            title="Execution Blocked",
-            message=f"Action '{action_id}' not found.",
-            action_required="Verify action_id exists.",
-            severity="LOW",
-            trace_id=action_id[:8],
-        )
-
+    # ── Try PostgreSQL ───────────────────────────────────────────────────
     try:
-        updated = acknowledge_action(action_id)
+        updated = await update_action_pg(
+            session,
+            action_id,
+            tenant.tenant_id,
+            status="ACKNOWLEDGED",
+            owner_acknowledged=True,
+            actor=actor,
+        )
+        if updated:
+            await session.commit()
+            run_id = updated.get("run_id", "")
+            await invalidate_action_cache(run_id, tenant.tenant_id)
+            await publish_action_update(tenant.tenant_id, run_id, action_id, "ACKNOWLEDGED")
+        else:
+            # Not in PG — try in-memory
+            existing = get_action_mem(action_id)
+            if existing is None:
+                return _executive_error(
+                    status_code=404,
+                    title="Execution Blocked",
+                    message=f"Action '{action_id}' not found.",
+                    action_required="Verify action_id exists.",
+                    severity="LOW",
+                    trace_id=action_id[:8],
+                )
+            try:
+                updated = acknowledge_action_mem(action_id)
+            except ValueError as e:
+                return _executive_error(
+                    status_code=400,
+                    title="Execution Blocked",
+                    message=str(e),
+                    action_required="Action may already be acknowledged or completed.",
+                    severity="LOW",
+                    trace_id=action_id[:8],
+                )
+
     except ValueError as e:
+        await session.rollback()
         return _executive_error(
             status_code=400,
             title="Execution Blocked",
@@ -469,12 +732,27 @@ async def acknowledge_action_endpoint(action_id: str, request: Request):
             severity="LOW",
             trace_id=action_id[:8],
         )
+    except Exception as e:
+        await session.rollback()
+        logger.warning(f"PG acknowledge failed for {action_id}: {e}")
+        try:
+            updated = acknowledge_action_mem(action_id)
+        except (ValueError, KeyError):
+            return _executive_error(
+                status_code=404,
+                title="Execution Blocked",
+                message=f"Action '{action_id}' not found.",
+                action_required="Verify action_id exists.",
+                severity="LOW",
+                trace_id=action_id[:8],
+            )
 
     return {
         "action": updated,
         "meta": {
             "acknowledged": True,
             "updated_at": updated.get("updated_at", "") if updated else "",
+            "tenant_id": tenant.tenant_id,
         },
     }
 
@@ -484,14 +762,36 @@ async def acknowledge_action_endpoint(action_id: str, request: Request):
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/actions/{action_id}/history", summary="Get audit history for an action")
-async def get_action_history_endpoint(action_id: str, request: Request):
+async def get_action_history_endpoint(
+    action_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    tenant: TenantContext = Depends(get_current_tenant),
+):
     """Return the full audit history for a specific action.
 
     Each entry includes: timestamp, previous_status, new_status, actor, notes, audit_hash.
+    Read path: PostgreSQL → in-memory fallback.
     """
     enforce_permission(get_role_from_request(request), "run:read")
 
-    existing = get_action(action_id)
+    existing = None
+    history = None
+
+    # Try PostgreSQL
+    try:
+        existing = await get_action_pg(session, action_id, tenant.tenant_id)
+        if existing:
+            history = await get_action_history_pg(session, action_id, tenant.tenant_id)
+    except Exception as e:
+        logger.warning(f"PG get_action_history failed for {action_id}: {e}")
+
+    # Fallback: in-memory
+    if existing is None:
+        existing = get_action_mem(action_id)
+        if existing:
+            history = get_action_history_mem(action_id)
+
     if existing is None:
         return _executive_error(
             status_code=404,
@@ -502,14 +802,13 @@ async def get_action_history_endpoint(action_id: str, request: Request):
             trace_id=action_id[:8],
         )
 
-    history = get_action_history(action_id)
-
     return {
         "action_id": action_id,
+        "tenant_id": tenant.tenant_id,
         "action": existing.get("action", ""),
         "current_status": existing.get("status", "PENDING"),
-        "history": history,
-        "total_updates": len(history),
+        "history": history or [],
+        "total_updates": len(history) if history else 0,
     }
 
 

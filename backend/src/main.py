@@ -82,6 +82,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"⚠️  Redis skipped: {e}")
 
+    # PostgreSQL table auto-creation (action tracking + enterprise models)
+    try:
+        from src.db.postgres import engine as pg_engine, Base
+        # Import all ORM models so Base.metadata sees them
+        import src.models.action_tracking  # noqa: F401
+        import src.models.enterprise  # noqa: F401
+        import src.models.orm  # noqa: F401
+
+        async with pg_engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        print("✅ PostgreSQL tables verified/created (action_tracking, enterprise, orm)")
+    except Exception as e:
+        print(f"⚠️  PostgreSQL table creation skipped: {e}")
+
     print("🚀 Impact Observatory | مرصد الأثر — ready")
     yield
 
