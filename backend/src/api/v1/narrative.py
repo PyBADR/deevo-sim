@@ -185,6 +185,40 @@ async def narrative_run(body: NarrativeRunRequest, request: Request):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GET /api/v1/narrative/scenarios — list scenarios with narrative context
+# NOTE: Must be registered BEFORE /{run_id} to avoid path parameter capture.
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/scenarios", summary="List scenarios with narrative context metadata")
+async def list_narrative_scenarios():
+    """Return all scenarios with their narrative context (signal, root cause, strategic context).
+
+    Useful for UI dropdowns that want to show executives what each scenario means
+    before they run it.
+    """
+    from src.narrative.engine import NarrativeEngine
+
+    contexts = NarrativeEngine._SCENARIO_CONTEXT if hasattr(NarrativeEngine, '_SCENARIO_CONTEXT') else {}
+
+    scenarios = []
+    for sid, ctx in contexts.items():
+        scenarios.append({
+            "scenario_id": sid,
+            "signal": ctx.get("signal", ""),
+            "signal_ar": ctx.get("signal_ar", ""),
+            "root_cause": ctx.get("root_cause", ""),
+            "root_cause_ar": ctx.get("root_cause_ar", ""),
+            "strategic_context": ctx.get("strategic_context", ""),
+            "strategic_context_ar": ctx.get("strategic_context_ar", ""),
+        })
+
+    return {
+        "count": len(scenarios),
+        "scenarios": scenarios,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # GET /api/v1/narrative/{run_id}
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -241,36 +275,3 @@ async def get_narrative(run_id: str, request: Request):
             trace_id=run_id[:8],
         )
         return JSONResponse(status_code=500, content=error_brief)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# GET /api/v1/narrative/scenarios — list scenarios with narrative context
-# ─────────────────────────────────────────────────────────────────────────────
-
-@router.get("/scenarios", summary="List scenarios with narrative context metadata")
-async def list_narrative_scenarios():
-    """Return all scenarios with their narrative context (signal, root cause, strategic context).
-
-    Useful for UI dropdowns that want to show executives what each scenario means
-    before they run it.
-    """
-    from src.narrative.engine import NarrativeEngine
-
-    contexts = NarrativeEngine._SCENARIO_CONTEXT if hasattr(NarrativeEngine, '_SCENARIO_CONTEXT') else {}
-
-    scenarios = []
-    for sid, ctx in contexts.items():
-        scenarios.append({
-            "scenario_id": sid,
-            "signal": ctx.get("signal", ""),
-            "signal_ar": ctx.get("signal_ar", ""),
-            "root_cause": ctx.get("root_cause", ""),
-            "root_cause_ar": ctx.get("root_cause_ar", ""),
-            "strategic_context": ctx.get("strategic_context", ""),
-            "strategic_context_ar": ctx.get("strategic_context_ar", ""),
-        })
-
-    return {
-        "count": len(scenarios),
-        "scenarios": scenarios,
-    }
