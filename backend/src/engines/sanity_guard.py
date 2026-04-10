@@ -159,7 +159,9 @@ def sanitize_run_result(result: dict) -> dict:
     Tracks all mutations for audit trail — stored in result["sanity_mutations"].
     """
     # Reset mutation collector
+    global _deep_mutations_count
     _mutations.clear()
+    _deep_mutations_count = 0
     # ── Banking stress ───────────────────────────────────────────────────
     banking = result.get("banking_stress") or result.get("banking", {})
     if banking and isinstance(banking, dict):
@@ -247,4 +249,59 @@ def sanitize_run_result(result: dict) -> dict:
     else:
         result["sanity_mutations"] = []
 
+    # ── Deep sweep: catch any inf/NaN leaked from downstream engines ──
+    _deep_sanitize_inf_nan(result)
+
     return result
+
+
+# ── Deep recursive inf/NaN sweep ────────────────────────────────────────────
+# Defence-in-depth: the field-level sanitizers above cover known fields.
+# This recursive pass catches inf/NaN from ANY nested engine output —
+# transmission, counterfactual, impact_map, decision_intelligence, etc.
+# Runs at the serialization boundary, AFTER all field-level sanitization.
+
+_deep_mutations_count: int = 0
+
+
+def _deep_sanitize_inf_nan(obj: Any, _path: str = "") -> Any:
+    """Recursively replace inf/NaN with 0.0 in dicts, lists, and bare floats.
+
+    Mutates dicts and lists in place for performance (avoids rebuilding the
+    entire response tree).  Also handles numpy scalar types.
+    """
+    global _deep_mutations_count
+
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            obj[k] = _deep_sanitize_inf_nan(v, f"{_path}.{k}")
+        return obj
+
+    if isinstance(obj, list):
+        for i, v in enumerate(obj):
+            obj[i] = _deep_sanitize_inf_nan(v, f"{_path}[{i}]")
+        return obj
+
+    if isinstance(obj, float):
+        if math.isinf(obj) or math.isnan(obj):
+            _deep_mutations_count += 1
+            if _deep_mutations_count <= 20:  # cap log noise
+                logger.warning("Deep sanitize: %s was %s → 0.0", _path, obj)
+            return 0.0
+        return obj
+
+    # numpy scalars (np.float64, np.int64, etc.) — convert to Python builtins
+    try:
+        import numpy as np
+        if isinstance(obj, (np.floating, np.integer, np.bool_)):
+            py_val = obj.item()
+            if isinstance(py_val, float) and (math.isinf(py_val) or math.isnan(py_val)):
+                _deep_mutations_count += 1
+                if _deep_mutations_count <= 20:
+                    logger.warning("Deep sanitize: %s was %s → 0.0", _path, py_val)
+                return 0.0
+            return py_val
+    except ImportError:
+        pass
+
+    return obj
