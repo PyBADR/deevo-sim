@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /sessions/wonderful-inspiring-fermat/mnt/deevo-sim/backend/.venv_test
+set -gx VIRTUAL_ENV /sessions/sleepy-confident-noether/mnt/deevo-sim/backend/.venv_test
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

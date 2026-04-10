@@ -238,6 +238,13 @@ function CommandCenterInner() {
     governance,
     pilot,
 
+    // Decision Trust Layer (Sprint 1)
+    metricExplanations,
+    decisionTransparencyResult,
+
+    // Decision Reliability Layer (Sprint 2)
+    reliabilityPayload,
+
     // Actions
     executeAction,
     switchToMock,
@@ -352,6 +359,9 @@ function CommandCenterInner() {
           decisionActions={decisionActions}
           sectorRollups={sectorRollups}
           locale="en"
+          metricExplanations={metricExplanations}
+          decisionTransparency={decisionTransparencyResult ?? undefined}
+          reliability={reliabilityPayload ?? undefined}
           onSubmitForReview={handleSubmitForReview}
         />
       </div>

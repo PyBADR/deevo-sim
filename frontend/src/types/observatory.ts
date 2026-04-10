@@ -460,6 +460,165 @@ export interface DecisionActionV2 {
   confidence: number;
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Decision Trust Layer — Metric Explanation + Decision Transparency
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export interface ExplanationDriver {
+  label: string;
+  contribution_pct: number;
+  rationale: string;
+}
+
+export interface AssumptionItem {
+  label: string;
+  value: string | number | boolean | Record<string, string>;
+}
+
+// Sprint 1.5: Business Explainability Layer
+export interface BusinessDriver {
+  label: string;
+  impact: "HIGH" | "MEDIUM" | "LOW";
+  explanation: string;
+}
+
+export interface BusinessExplanation {
+  summary: string;
+  drivers: BusinessDriver[];
+}
+
+// Sprint 1.5: Data Context Layer
+export type SourceType = "SIMULATION" | "HISTORICAL_PROXY" | "HYBRID";
+export type FreshnessLabel = "LIVE" | "RECENT" | "SIMULATED" | "HISTORICAL";
+
+export interface DataContext {
+  source_summary: string;
+  source_type: SourceType;
+  reference_period: string;
+  generated_at: string;
+  freshness_label: FreshnessLabel;
+}
+
+// Sprint 1.5: Decision Risk Overlay
+export interface DecisionRisk {
+  label: string;
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  description: string;
+}
+
+export interface MetricExplanation {
+  metric_id: string;
+  label: string;
+  value: number | string;
+  drivers: ExplanationDriver[];
+  reasoning_chain: string[];
+  assumptions: AssumptionItem[];
+  // Sprint 1.5
+  business_explanation?: BusinessExplanation;
+  confidence?: number; // 0-100
+  confidence_reasons?: string[];
+  data_context?: DataContext;
+}
+
+export type ActionClassification =
+  | "HIGH_VALUE"
+  | "ACCEPTABLE"
+  | "LOW_EFFICIENCY"
+  | "LOSS_INDUCING";
+
+export interface DecisionTransparency {
+  action_id: string;
+  cost_usd: number;
+  cost_formatted: string;
+  benefit_usd: number;
+  benefit_formatted: string;
+  net_value_usd: number;
+  net_value_formatted: string;
+  is_net_positive: boolean;
+  cost_benefit_ratio: number;
+  classification: ActionClassification;
+  why_recommended: string[];
+  tradeoffs: string[];
+  // Sprint 1.5: Decision Risk Overlay
+  decision_risks?: DecisionRisk[];
+}
+
+export interface DecisionTransparencyResult {
+  action_transparencies: DecisionTransparency[];
+  has_loss_inducing: boolean;
+  loss_inducing_count: number;
+  loss_inducing_actions: string[];
+  warning_banner: string | null;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Sprint 2: Decision Reliability Layer
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// Phase 1: Range Engine
+export interface RangeEstimate {
+  metric_id: string;
+  low: number;
+  base: number;
+  high: number;
+  confidence: number;
+  method: "SENSITIVITY_SWEEP" | "SCENARIO_BAND" | "HYBRID";
+  notes?: string[];
+}
+
+// Phase 2: Sensitivity Engine
+export interface SensitivityPoint {
+  input_value: number;
+  output_value: number;
+}
+
+export interface SensitivityAnalysis {
+  metric_id: string;
+  baseline_value: number;
+  variable_tested: string;
+  points: SensitivityPoint[];
+  trend?: string;
+}
+
+// Phase 3: Outcome Tracking
+export interface OutcomeRecord {
+  action_id: string;
+  scenario_id: string;
+  predicted_value: number;
+  actual_value?: number | null;
+  deviation?: number | null;
+  deviation_pct?: number | null;
+  status: "PENDING" | "CONFIRMED" | "FAILED";
+  timestamp: string;
+}
+
+// Phase 4: Trust Memory
+export interface TrustMemory {
+  action_id: string;
+  total_runs: number;
+  success_count: number;
+  failure_count: number;
+  average_deviation: number;
+  trust_score: number;
+}
+
+// Phase 5: Confidence Adjustment
+export interface ConfidenceAdjustment {
+  metric_id: string;
+  original_confidence: number;
+  adjusted_confidence: number;
+  adjustment_reason: string;
+}
+
+// Sprint 2 aggregate payload
+export interface ReliabilityPayload {
+  ranges: RangeEstimate[];
+  sensitivities: SensitivityAnalysis[];
+  outcome_records: OutcomeRecord[];
+  trust_memories: TrustMemory[];
+  confidence_adjustments: ConfidenceAdjustment[];
+}
+
 /** Trust metadata from unified pipeline */
 export interface TrustMetadata {
   trace_id: string;

@@ -325,6 +325,13 @@ export function useCommandCenter(runId?: string | null) {
     // Phase 6 Pilot Readiness data
     pilot: store.pilot,
 
+    // Decision Trust Layer (Sprint 1)
+    metricExplanations: store.metricExplanations,
+    decisionTransparencyResult: store.decisionTransparencyResult,
+
+    // Decision Reliability Layer (Sprint 2)
+    reliabilityPayload: store.reliabilityPayload,
+
     // UI State
     selectedNodeId: store.selectedNodeId,
     panelFocus: store.panelFocus,

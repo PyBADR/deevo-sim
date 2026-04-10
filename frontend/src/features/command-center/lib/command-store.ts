@@ -27,6 +27,9 @@ import type {
   DecisionValuePayload,
   GovernancePayload,
   PilotPayload,
+  MetricExplanation,
+  DecisionTransparencyResult,
+  ReliabilityPayload,
 } from "@/types/observatory";
 import type { SafeImpact } from "@/lib/v2/api-types";
 import { mapImpacts } from "@/lib/v2/api-types";
@@ -140,6 +143,11 @@ interface CommandCenterState {
   // ---- Phase 6 Pilot Readiness ----
   pilot: PilotPayload | null;
 
+  // ---- Decision Trust Layer (Sprint 1) ----
+  metricExplanations: MetricExplanation[];
+  decisionTransparencyResult: DecisionTransparencyResult | null;
+  reliabilityPayload: ReliabilityPayload | null;
+
   // ---- UI State ----
   selectedNodeId: string | null;
   panelFocus: PanelFocus;
@@ -221,6 +229,9 @@ const INITIAL_STATE = {
   decisionValue: null as DecisionValuePayload | null,
   governance: null as GovernancePayload | null,
   pilot: null as PilotPayload | null,
+  metricExplanations: [] as MetricExplanation[],
+  decisionTransparencyResult: null as DecisionTransparencyResult | null,
+  reliabilityPayload: null as ReliabilityPayload | null,
   selectedNodeId: null as string | null,
   panelFocus: null as PanelFocus,
   executingActionIds: new Set<string>(),
@@ -578,6 +589,11 @@ export const useCommandCenterStore = create<CommandCenterState>((set) => ({
       decisionValue: valuePayload,
       governance: governancePayload,
       pilot: pilotPayload,
+
+      // Decision Trust Layer (Sprint 1) — metric explanations + decision transparency
+      metricExplanations: (rawAny.metric_explanations as MetricExplanation[]) ?? [],
+      decisionTransparencyResult: (rawAny.decision_transparency as DecisionTransparencyResult) ?? null,
+      reliabilityPayload: (rawAny.reliability as ReliabilityPayload) ?? null,
     });
   },
 

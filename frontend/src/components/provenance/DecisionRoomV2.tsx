@@ -32,7 +32,12 @@ import type {
   CausalStep,
   DecisionActionV2,
   SectorRollup,
+  MetricExplanation,
+  DecisionTransparencyResult,
+  ReliabilityPayload,
 } from "@/types/observatory";
+import { LossInducingBanner } from "@/components/trust/LossInducingBanner";
+import { ActionTransparencyOverlay } from "@/components/trust/ActionTransparencyOverlay";
 
 type DepthLevel = 1 | 2 | 3;
 type SectorId = "banking" | "insurance" | "fintech";
@@ -60,6 +65,13 @@ interface DecisionRoomV2Props {
   // ── UI ──
   locale: "en" | "ar";
 
+  // ── Decision Trust Layer (optional — renders when present) ──
+  metricExplanations?: MetricExplanation[];
+  decisionTransparency?: DecisionTransparencyResult;
+
+  // ── Decision Reliability Layer (Sprint 2 — optional) ──
+  reliability?: ReliabilityPayload;
+
   /** Callback when user submits a decision for review */
   onSubmitForReview?: (actionId: string) => void;
 }
@@ -77,6 +89,9 @@ export function DecisionRoomV2({
   decisionActions,
   sectorRollups,
   locale,
+  metricExplanations,
+  decisionTransparency,
+  reliability,
   onSubmitForReview,
 }: DecisionRoomV2Props) {
   const [depth, setDepth] = useState<DepthLevel>(1);
@@ -104,6 +119,17 @@ export function DecisionRoomV2({
         </h2>
         <DepthToggle level={depth} onChange={setDepth} locale={locale} />
       </div>
+
+      {/* ── Loss-Inducing Warning Banner (Phase 3) ── */}
+      {decisionTransparency && (
+        <LossInducingBanner
+          hasLossInducing={decisionTransparency.has_loss_inducing}
+          lossInducingCount={decisionTransparency.loss_inducing_count}
+          lossInducingActions={decisionTransparency.loss_inducing_actions}
+          warningBanner={decisionTransparency.warning_banner}
+          locale={locale}
+        />
+      )}
 
       {/* ── Level 1: Executive Snapshot (always visible) ── */}
       <ExecutiveBriefV2
@@ -134,21 +160,47 @@ export function DecisionRoomV2({
                   const reasoning = reasoningData?.reasonings?.find(
                     (r) => r.action_id === action.id,
                   );
+                  const actionTransparency = decisionTransparency?.action_transparencies?.find(
+                    (t) => t.action_id === action.id,
+                  );
+
+                  const outcomeRecord = reliability?.outcome_records?.find(
+                    (o) => o.action_id === action.id,
+                  );
+                  const trustMemory = reliability?.trust_memories?.find(
+                    (m) => m.action_id === action.id,
+                  );
+                  const confAdj = reliability?.confidence_adjustments?.find(
+                    (c) => c.metric_id === action.id,
+                  );
 
                   return (
-                    <DecisionReasonCard
-                      key={action.id}
-                      rank={idx + 1}
-                      actionTitle={action.action}
-                      actionTitleAr={action.action_ar}
-                      reasoning={reasoning ?? buildFallbackReasoning(action)}
-                      costUsd={action.cost_usd ?? 0}
-                      lossAvoidedUsd={action.loss_avoided_usd ?? 0}
-                      confidence={action.confidence ?? 0.5}
-                      status="PENDING_REVIEW"
-                      locale={locale}
-                      onSubmitForReview={onSubmitForReview}
-                    />
+                    <div key={action.id} className="space-y-0">
+                      <DecisionReasonCard
+                        rank={idx + 1}
+                        actionTitle={action.action}
+                        actionTitleAr={action.action_ar}
+                        reasoning={reasoning ?? buildFallbackReasoning(action)}
+                        costUsd={action.cost_usd ?? 0}
+                        lossAvoidedUsd={action.loss_avoided_usd ?? 0}
+                        confidence={action.confidence ?? 0.5}
+                        status="PENDING_REVIEW"
+                        locale={locale}
+                        onSubmitForReview={onSubmitForReview}
+                      />
+                      {/* Decision Transparency Overlay (Phase 2) */}
+                      {actionTransparency && (
+                        <div className="mx-5 mb-3 -mt-1 pt-3 border-t border-dashed border-slate-200">
+                          <ActionTransparencyOverlay
+                            transparency={actionTransparency}
+                            locale={locale}
+                            outcomeRecord={outcomeRecord}
+                            trustMemory={trustMemory}
+                            confidenceAdjustment={confAdj}
+                          />
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>

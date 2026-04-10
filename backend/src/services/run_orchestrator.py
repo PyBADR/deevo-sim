@@ -47,6 +47,15 @@ from src.engines.failure_engine import evaluate_failure_modes
 from src.engines.propagation_headline_engine import build_propagation_headline
 from src.engines.impact_map_engine import build_impact_map
 from src.engines.decision_overlay_engine import build_decision_overlays
+from src.engines.explanation_engine import generate_explanations
+from src.engines.decision_transparency_engine import compute_all_transparencies
+from src.engines.range_engine import generate_ranges
+from src.engines.sensitivity_engine import generate_sensitivities
+from src.engines.outcome_engine import (
+    build_outcome_records,
+    build_trust_memories_for_run,
+    build_confidence_adjustments,
+)
 from src.engines.impact_map_validator import validate_impact_map
 from src.regime.regime_engine import classify_regime_from_result, build_regime_inputs
 from src.regime.regime_graph_adapter import apply_regime_to_graph
@@ -501,6 +510,48 @@ def execute_run(params: ScenarioCreate) -> dict:
     stage_timings["failure_engine"] = round((time.monotonic() - t0) * 1000, 1)
     _log_stage("failure_engine", run_id, stage_timings["failure_engine"], 41)
 
+    # ── Stage 41a: Metric Explanation Engine (Decision Trust Layer) ────────
+    t0 = time.monotonic()
+    metric_explanations = generate_explanations(result)
+    stage_timings["explanation_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("explanation_engine", run_id, stage_timings["explanation_engine"], "41a")
+
+    # ── Stage 41b: Decision Transparency Engine (Decision Trust Layer) ─────
+    t0 = time.monotonic()
+    decision_transparency = compute_all_transparencies(result)
+    stage_timings["decision_transparency_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("decision_transparency_engine", run_id, stage_timings["decision_transparency_engine"], "41b")
+
+    # ── Stage 41c: Range Engine (Decision Reliability Layer) ──────────────
+    t0 = time.monotonic()
+    range_estimates = generate_ranges(result)
+    stage_timings["range_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("range_engine", run_id, stage_timings["range_engine"], "41c")
+
+    # ── Stage 41d: Sensitivity Engine (Decision Reliability Layer) ────────
+    t0 = time.monotonic()
+    sensitivity_analyses = generate_sensitivities(result)
+    stage_timings["sensitivity_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("sensitivity_engine", run_id, stage_timings["sensitivity_engine"], "41d")
+
+    # ── Stage 41e: Outcome Tracking (Decision Reliability Layer) ──────────
+    t0 = time.monotonic()
+    outcome_records = build_outcome_records(run_id, result)
+    stage_timings["outcome_engine"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("outcome_engine", run_id, stage_timings["outcome_engine"], "41e")
+
+    # ── Stage 41f: Trust Memory (Decision Reliability Layer) ──────────────
+    t0 = time.monotonic()
+    trust_memories = build_trust_memories_for_run(result)
+    stage_timings["trust_memory"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("trust_memory", run_id, stage_timings["trust_memory"], "41f")
+
+    # ── Stage 41g: Confidence Adjustment (Decision Reliability Layer) ─────
+    t0 = time.monotonic()
+    confidence_adjustments = build_confidence_adjustments(metric_explanations, trust_memories)
+    stage_timings["confidence_adjustment"] = round((time.monotonic() - t0) * 1000, 1)
+    _log_stage("confidence_adjustment", run_id, stage_timings["confidence_adjustment"], "41g")
+
     # ── Stage 42: Impact Intelligence Layer ────────────────────────────────
     t0 = time.monotonic()
     try:
@@ -869,6 +920,19 @@ def execute_run(params: ScenarioCreate) -> dict:
         "shadow_comparisons": shadow_comparisons,
         "pilot_report": pilot_report,
         "failure_modes": failure_modes,
+
+        # ── Decision Trust Layer (Stages 41a–41b) ────────────────────
+        "metric_explanations": metric_explanations,
+        "decision_transparency": decision_transparency,
+
+        # ── Decision Reliability Layer (Stages 41c–41g) ──────────────
+        "reliability": {
+            "ranges": range_estimates,
+            "sensitivities": sensitivity_analyses,
+            "outcome_records": outcome_records,
+            "trust_memories": trust_memories,
+            "confidence_adjustments": confidence_adjustments,
+        },
 
         # ── Impact Map payloads (graph + geo) ─────────────────────────
         "map_payload": map_payload,
