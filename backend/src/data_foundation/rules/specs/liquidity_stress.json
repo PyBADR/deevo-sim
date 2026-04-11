@@ -1,0 +1,61 @@
+{
+  "spec_version": "1.0.0",
+  "rule_id": "RULE-LIQUIDITY-001",
+  "rule_name": "Systemic Bank Liquidity Stress",
+  "rule_name_ar": "ضغط السيولة المصرفية النظامية",
+  "description": "Triggers when a D-SIB (Domestic Systemically Important Bank) reports LCR below the Basel III minimum of 100%, or when aggregate interbank rates spike indicating liquidity hoarding. Kuwait, Saudi, and UAE have 4 D-SIBs each — a breach at any triggers cross-border contagion risk.",
+  "version": 1,
+
+  "conditions": [
+    {
+      "field": "lcr_pct",
+      "operator": "lt",
+      "threshold": 100.0,
+      "unit": "percent",
+      "dataset": "banking_profiles",
+      "description": "LCR below 100% — Basel III regulatory minimum breached"
+    },
+    {
+      "field": "nsfr_pct",
+      "operator": "lt",
+      "threshold": 100.0,
+      "unit": "percent",
+      "dataset": "banking_profiles",
+      "description": "NSFR below 100% — structural funding mismatch"
+    },
+    {
+      "field": "loan_to_deposit_pct",
+      "operator": "gt",
+      "threshold": 95.0,
+      "unit": "percent",
+      "dataset": "banking_profiles",
+      "description": "Loan-to-deposit ratio above 95% — deposit base under strain"
+    }
+  ],
+  "condition_logic": "OR",
+
+  "action": "PAUSE",
+  "action_params": {
+    "pause_actions": ["REBALANCE", "DIVEST"],
+    "notify_roles": ["CRO", "treasury", "risk_committee"],
+    "escalation_if_multiple_banks": "ACTIVATE_CONTINGENCY"
+  },
+  "escalation_level": "SEVERE",
+
+  "applicable_countries": ["KW", "SA", "AE"],
+  "applicable_sectors": ["banking"],
+  "applicable_scenarios": [
+    "uae_banking_crisis",
+    "regional_liquidity_stress_event"
+  ],
+
+  "requires_human_approval": false,
+  "cooldown_minutes": 1440,
+  "is_active": true,
+  "expiry_date": null,
+
+  "author": "impact-observatory-core",
+  "approved_by": "system-bootstrap",
+  "source_dataset_ids": ["banking_profiles"],
+  "tags": ["liquidity", "lcr", "nsfr", "dsib", "contagion", "basel_iii"]
+}

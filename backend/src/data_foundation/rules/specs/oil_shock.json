@@ -1,0 +1,50 @@
+{
+  "spec_version": "1.0.0",
+  "rule_id": "RULE-OIL-SHOCK-001",
+  "rule_name": "GCC Oil Revenue Shock",
+  "rule_name_ar": "صدمة إيرادات النفط الخليجية",
+  "description": "Triggers when Brent crude drops below $55/bbl or falls more than 20% from recent levels, signaling fiscal stress across GCC oil-dependent economies. At $55/bbl, Kuwait and Bahrain breach fiscal breakeven prices.",
+  "version": 1,
+
+  "conditions": [
+    {
+      "field": "value",
+      "operator": "lt",
+      "threshold": 55.0,
+      "unit": "USD_per_bbl",
+      "indicator_code": "BRENT_SPOT",
+      "description": "Brent crude below $55 — below Kuwait fiscal breakeven ($54/bbl)"
+    },
+    {
+      "field": "change_pct",
+      "operator": "change_pct_lt",
+      "threshold": -20.0,
+      "unit": "percent",
+      "dataset": "oil_energy_signals",
+      "description": "Oil price decline exceeds 20% from prior observation"
+    }
+  ],
+  "condition_logic": "OR",
+
+  "action": "ALERT",
+  "action_params": {
+    "alert_type": "fiscal_stress",
+    "notify_roles": ["CRO", "treasury"],
+    "trigger_scenario": "saudi_oil_shock"
+  },
+  "escalation_level": "HIGH",
+
+  "applicable_countries": ["KW", "SA", "AE", "QA", "BH", "OM"],
+  "applicable_sectors": ["energy", "banking", "government"],
+  "applicable_scenarios": ["saudi_oil_shock", "energy_market_volatility_shock"],
+
+  "requires_human_approval": false,
+  "cooldown_minutes": 4320,
+  "is_active": true,
+  "expiry_date": null,
+
+  "author": "impact-observatory-core",
+  "approved_by": "system-bootstrap",
+  "source_dataset_ids": ["oil_energy_signals", "canonical_observations"],
+  "tags": ["oil", "fiscal", "gcc", "breakeven", "commodity"]
+}

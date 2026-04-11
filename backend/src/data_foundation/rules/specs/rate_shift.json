@@ -1,0 +1,50 @@
+{
+  "spec_version": "1.0.0",
+  "rule_id": "RULE-RATE-SHIFT-001",
+  "rule_name": "GCC Policy Rate Divergence",
+  "rule_name_ar": "تباين أسعار الفائدة الخليجية",
+  "description": "Monitors for significant policy rate changes across GCC central banks. A rate hike of 50bps or more in a single move signals tightening stress on banking sector margins, real estate, and consumer lending. GCC pegs to USD mean rate moves typically follow the Fed, but divergence from the Fed path is a stronger signal.",
+  "version": 1,
+
+  "conditions": [
+    {
+      "field": "change_bps",
+      "operator": "gte",
+      "threshold": 50,
+      "unit": "bps",
+      "dataset": "interest_rate_signals",
+      "description": "Rate change of 50 basis points or more in a single decision"
+    },
+    {
+      "field": "rate_value_pct",
+      "operator": "gt",
+      "threshold": 5.5,
+      "unit": "percent",
+      "dataset": "interest_rate_signals",
+      "description": "Absolute rate level exceeds 5.5% — historically restrictive for GCC"
+    }
+  ],
+  "condition_logic": "OR",
+
+  "action": "MONITOR",
+  "action_params": {
+    "monitoring_duration_hours": 720,
+    "watch_indicators": ["CBK_DISCOUNT_RATE_KW", "SAMA_REPO_RATE_SA", "CBUAE_BASE_RATE_AE"],
+    "escalation_if_sustained": "ESCALATE"
+  },
+  "escalation_level": "ELEVATED",
+
+  "applicable_countries": ["KW", "SA", "AE"],
+  "applicable_sectors": ["banking", "real_estate", "insurance"],
+  "applicable_scenarios": ["uae_banking_crisis", "regional_liquidity_stress_event"],
+
+  "requires_human_approval": true,
+  "cooldown_minutes": 10080,
+  "is_active": true,
+  "expiry_date": null,
+
+  "author": "impact-observatory-core",
+  "approved_by": "system-bootstrap",
+  "source_dataset_ids": ["interest_rate_signals", "canonical_observations"],
+  "tags": ["interest_rate", "monetary_policy", "banking", "tightening"]
+}

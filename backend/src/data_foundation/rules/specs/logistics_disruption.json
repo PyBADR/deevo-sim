@@ -1,0 +1,53 @@
+{
+  "spec_version": "1.0.0",
+  "rule_id": "RULE-LOGISTICS-001",
+  "rule_name": "Critical Port Throughput Collapse",
+  "rule_name_ar": "انهيار حركة الموانئ الحيوية",
+  "description": "Triggers when a GCC port's utilization drops below 35% or a chokepoint-dependent port goes non-operational. Shuwaikh (Kuwait), Jebel Ali (UAE), and Dammam (Saudi) handle 70%+ of GCC non-oil trade. Throughput collapse at any of these ports cascades into insurance claims, banking trade finance, and supply chain costs.",
+  "version": 1,
+
+  "conditions": [
+    {
+      "field": "utilization_pct",
+      "operator": "lt",
+      "threshold": 35.0,
+      "unit": "percent",
+      "dataset": "logistics_nodes",
+      "description": "Port utilization below 35% — severe disruption threshold"
+    },
+    {
+      "field": "operational_status",
+      "operator": "neq",
+      "threshold": "OPERATIONAL",
+      "dataset": "logistics_nodes",
+      "description": "Port status is not OPERATIONAL (DEGRADED, CLOSED, etc.)"
+    }
+  ],
+  "condition_logic": "OR",
+
+  "action": "REBALANCE",
+  "action_params": {
+    "rebalance_sectors": ["logistics", "insurance", "banking"],
+    "hedge_trade_finance": true,
+    "trigger_scenario": "critical_port_throughput_disruption"
+  },
+  "escalation_level": "HIGH",
+
+  "applicable_countries": ["KW", "AE", "SA", "QA", "OM"],
+  "applicable_sectors": ["logistics", "insurance", "banking", "energy"],
+  "applicable_scenarios": [
+    "oman_port_closure",
+    "critical_port_throughput_disruption",
+    "red_sea_trade_corridor_instability"
+  ],
+
+  "requires_human_approval": true,
+  "cooldown_minutes": 2880,
+  "is_active": true,
+  "expiry_date": null,
+
+  "author": "impact-observatory-core",
+  "approved_by": "system-bootstrap",
+  "source_dataset_ids": ["logistics_nodes"],
+  "tags": ["ports", "logistics", "trade", "chokepoint", "supply_chain"]
+}
