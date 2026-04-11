@@ -373,13 +373,13 @@ export function DecisionRoomV2({
       {/* ═══════════════════════════════════════════════════════════════
            SCENARIO + MACRO HEADER (with macro → decision links)
            ═══════════════════════════════════════════════════════════════ */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800/80 to-slate-900 rounded-xl border border-slate-700/50 overflow-hidden">
+      <div className="bg-gradient-to-r from-white via-io-surface to-white rounded-xl border border-io-border overflow-hidden">
         <div className="px-5 pt-4 pb-2 flex items-start justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-base font-bold text-white leading-tight truncate">
+            <h1 className="text-base font-bold text-io-primary leading-tight truncate">
               {isAr ? scenarioLabelAr || scenarioLabel : scenarioLabel}
             </h1>
-            <p className="text-[10px] text-slate-500 mt-0.5">
+            <p className="text-[10px] text-io-secondary mt-0.5">
               {isAr ? "أفق التأثير" : "Impact horizon"}: {peakDay} {isAr ? "يوم" : "days"}
               {" · "}
               {isAr ? "الشدة" : "Severity"}: {severity}
@@ -406,7 +406,7 @@ export function DecisionRoomV2({
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] ${
                   sig.impact === "high" ? "bg-red-500/10 text-red-400"
                     : sig.impact === "medium" ? "bg-amber-500/10 text-amber-400"
-                      : "bg-slate-700/50 text-slate-400"
+                      : "bg-slate-700/50 text-io-secondary"
                 }`}
               >
                 <span className="font-medium opacity-70">{isAr ? sig.name_ar : sig.name_en}</span>
@@ -421,22 +421,22 @@ export function DecisionRoomV2({
           <div className="px-5 pb-3 space-y-1">
             {macroDecisionLinks.map((link, i) => (
               <div key={i} className="flex items-center gap-1 text-[10px] flex-wrap">
-                <span className="text-slate-400 font-medium">{link.signal} {link.value}</span>
+                <span className="text-io-secondary font-medium">{link.signal} {link.value}</span>
                 {link.sectorImpact && (
                   <>
-                    <span className="text-slate-600">→</span>
+                    <span className="text-io-secondary">→</span>
                     <span className="text-amber-400">{isAr ? "يقود" : "Drives"} {link.sectorImpact}</span>
                   </>
                 )}
                 {link.entityImpact && (
                   <>
-                    <span className="text-slate-600">→</span>
+                    <span className="text-io-secondary">→</span>
                     <span className="text-orange-400">{link.entityImpact}</span>
                   </>
                 )}
                 {link.actionLabel && (
                   <>
-                    <span className="text-slate-600">→</span>
+                    <span className="text-io-secondary">→</span>
                     <span className="text-blue-400 font-medium">{link.actionLabel}</span>
                   </>
                 )}
@@ -469,13 +469,13 @@ export function DecisionRoomV2({
       {/* ═══════════════════════════════════════════════════════════════
            IMPACT METRIC + SCENARIO BANDS + RISK→DECISION LINK
            ═══════════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/60 rounded-xl border border-slate-700/40 p-5">
+      <div className="bg-io-surface rounded-xl border border-io-border p-5">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-1">
+            <p className="text-[10px] text-io-secondary uppercase tracking-wider font-medium mb-1">
               {isAr ? "إجمالي الخسائر المتوقعة" : "Projected Total Loss"}
             </p>
-            <p className="text-3xl font-bold text-white tabular-nums tracking-tight">
+            <p className="text-3xl font-bold text-io-primary tabular-nums tracking-tight">
               {formatUsdCompact(totalLossUsd)}
             </p>
 
@@ -490,7 +490,7 @@ export function DecisionRoomV2({
                   <span className="text-emerald-400 font-bold tabular-nums w-14 text-right">{formatUsdCompact(scenarioBands.best)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
-                  <span className="text-slate-400 w-16">{isAr ? "الأساس" : "Base"}</span>
+                  <span className="text-io-secondary w-16">{isAr ? "الأساس" : "Base"}</span>
                   <div className="flex-1 h-1.5 bg-slate-700/30 rounded-full overflow-hidden">
                     <div className="h-full bg-blue-500/40 rounded-full" style={{ width: `${(scenarioBands.base / scenarioBands.worst) * 100}%` }} />
                   </div>
@@ -503,7 +503,7 @@ export function DecisionRoomV2({
                   </div>
                   <span className="text-red-400 font-bold tabular-nums w-14 text-right">{formatUsdCompact(scenarioBands.worst)}</span>
                 </div>
-                <p className="text-[9px] text-slate-600 mt-1">
+                <p className="text-[9px] text-io-secondary mt-1">
                   {isAr ? "النطاق المتوقع" : "Expected range"}: {formatUsdCompact(scenarioBands.rangeLow)} – {formatUsdCompact(scenarioBands.rangeHigh)}
                   {lossRange && <span className="ml-1">({isAr ? "ثقة" : "conf"} {Math.round(lossRange.confidence * 100)}%)</span>}
                 </p>
@@ -515,14 +515,14 @@ export function DecisionRoomV2({
           <div className="space-y-3">
             <div className="flex items-center gap-4">
               <MiniKpi label={isAr ? "الإجهاد" : "Stress"} value={`${(averageStress * 100).toFixed(0)}%`} color={averageStress >= 0.65 ? "text-red-400" : averageStress >= 0.35 ? "text-amber-400" : "text-emerald-400"} />
-              <MiniKpi label={isAr ? "الانتشار" : "Depth"} value={String(propagationDepth)} color="text-slate-300" />
-              <MiniKpi label={isAr ? "ذروة" : "Peak"} value={`D${peakDay}`} color="text-slate-300" />
+              <MiniKpi label={isAr ? "الانتشار" : "Depth"} value={String(propagationDepth)} color="text-io-secondary" />
+              <MiniKpi label={isAr ? "ذروة" : "Peak"} value={`D${peakDay}`} color="text-io-secondary" />
             </div>
 
             {/* STEP 7: Risk → Decision link */}
             {riskReductionPct > 0 && (
-              <div className="bg-slate-800/50 rounded-lg px-3 py-2 border border-slate-700/30">
-                <p className="text-[9px] text-slate-500 uppercase tracking-wider font-medium mb-1">
+              <div className="bg-io-surface rounded-lg px-3 py-2 border border-io-border">
+                <p className="text-[9px] text-io-secondary uppercase tracking-wider font-medium mb-1">
                   {isAr ? "أثر القرار" : "Decision Impact"}
                 </p>
                 <div className="space-y-0.5 text-[10px]">
@@ -543,8 +543,8 @@ export function DecisionRoomV2({
 
         {/* Inline Drivers — ALWAYS visible */}
         {allDrivers.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-slate-700/30">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-medium mb-2">
+          <div className="mt-4 pt-3 border-t border-io-border">
+            <p className="text-[10px] text-io-secondary uppercase tracking-wider font-medium mb-2">
               {isAr ? "المحركات الرئيسية" : "Driven by"}
             </p>
             <div className="space-y-1.5">
@@ -552,10 +552,10 @@ export function DecisionRoomV2({
                 <div key={d.label} className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2 min-w-0">
                     <div className="h-1.5 rounded-full bg-blue-500/60" style={{ width: `${Math.max(d.pct, 8)}%`, maxWidth: "40%" }} />
-                    <span className="text-xs text-slate-300 truncate">{d.label}</span>
+                    <span className="text-xs text-io-secondary truncate">{d.label}</span>
                   </div>
-                  <span className="text-[10px] font-bold tabular-nums text-slate-400 flex-shrink-0">
-                    {d.pct}% <span className="text-slate-600 font-normal">({formatUsdCompact(totalLossUsd * d.pct / 100)})</span>
+                  <span className="text-[10px] font-bold tabular-nums text-io-secondary flex-shrink-0">
+                    {d.pct}% <span className="text-io-secondary font-normal">({formatUsdCompact(totalLossUsd * d.pct / 100)})</span>
                   </span>
                 </div>
               ))}
@@ -568,8 +568,8 @@ export function DecisionRoomV2({
            TRANSMISSION CHAIN — How shock propagates through GCC entities
            Oil Producers → Banking → Insurance → Logistics → Central Banks
            ═══════════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/40 rounded-xl border border-slate-700/30 p-4">
-        <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+      <div className="bg-io-surface rounded-xl border border-io-border p-4">
+        <h3 className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-3">
           {isAr ? "سلسلة الانتقال — من الصدمة إلى القرار" : "Transmission Chain — Shock to Decision"}
         </h3>
         <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide py-1">
@@ -586,12 +586,12 @@ export function DecisionRoomV2({
               )}
               {/* Arrow with label */}
               <div className="flex flex-col items-center mx-1">
-                <span className="text-[7px] text-slate-600 mb-0.5 max-w-[80px] text-center leading-tight whitespace-nowrap">
+                <span className="text-[7px] text-io-secondary mb-0.5 max-w-[80px] text-center leading-tight whitespace-nowrap">
                   {isAr ? link.labelAr.split("→")[0].trim() : link.label.split("→")[0].trim()}
                 </span>
                 <div className="flex items-center">
                   <div className="w-8 h-px bg-slate-600/50" />
-                  <svg width="6" height="8" viewBox="0 0 6 8" className="text-slate-500 flex-shrink-0">
+                  <svg width="6" height="8" viewBox="0 0 6 8" className="text-io-secondary flex-shrink-0">
                     <path d="M0 0 L6 4 L0 8" fill="currentColor" />
                   </svg>
                 </div>
@@ -619,7 +619,7 @@ export function DecisionRoomV2({
           {/* Final: Decision node */}
           <div className="flex items-center flex-shrink-0">
             <div className="flex flex-col items-center mx-1">
-              <span className="text-[7px] text-slate-600 mb-0.5 whitespace-nowrap">
+              <span className="text-[7px] text-io-secondary mb-0.5 whitespace-nowrap">
                 {isAr ? "القرار" : "Decision"}
               </span>
               <div className="flex items-center">
@@ -646,8 +646,8 @@ export function DecisionRoomV2({
            Answers "Compared to what?" immediately.
            ═══════════════════════════════════════════════════════════════ */}
       {comparisonData.length >= 2 && (
-        <div className="bg-slate-900/40 rounded-xl border border-slate-700/30 p-4">
-          <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+        <div className="bg-io-surface rounded-xl border border-io-border p-4">
+          <h3 className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-3">
             {isAr ? "مقارنة القرارات" : "Decision Comparison"}
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -662,11 +662,11 @@ export function DecisionRoomV2({
                       ? "border-emerald-500/40 bg-emerald-500/5"
                       : item.netValue < 0
                         ? "border-red-500/30 bg-red-500/5"
-                        : "border-slate-700/40 bg-slate-800/30"
+                        : "border-io-border bg-white/30"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase">
+                    <span className="text-[10px] font-bold text-io-secondary uppercase">
                       {isAr ? "الخيار" : "Option"} {String.fromCharCode(65 + idx)}
                     </span>
                     {isBest && (
@@ -675,13 +675,13 @@ export function DecisionRoomV2({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-semibold text-white leading-tight mb-1.5">
+                  <p className="text-xs font-semibold text-io-primary leading-tight mb-1.5">
                     {isAr ? item.action.action_ar : item.action.action}
                   </p>
                   <p className={`text-lg font-bold tabular-nums ${item.netValue >= 0 ? "text-emerald-400" : "text-red-400"}`}>
                     {item.netValue >= 0 ? "+" : ""}{formatUsdCompact(item.netValue)}
                   </p>
-                  <p className="text-[10px] text-slate-500">
+                  <p className="text-[10px] text-io-secondary">
                     {isAr ? "الثقة" : "Confidence"}: {Math.round(item.confidence * 100)}%
                   </p>
                   {!isBest && delta !== 0 && (
@@ -701,7 +701,7 @@ export function DecisionRoomV2({
            ═══════════════════════════════════════════════════════════════ */}
       {topDecisions.length > 0 && (
         <div>
-          <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          <h3 className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-3">
             {isAr ? "القرارات المطلوبة" : "Recommended Actions"}
           </h3>
           <div className="space-y-3">
@@ -734,16 +734,16 @@ export function DecisionRoomV2({
       {/* ═══════════════════════════════════════════════════════════════
            ADVANCED VIEW — Collapsed for analysts
            ═══════════════════════════════════════════════════════════════ */}
-      <div className="border-t border-slate-700/30 pt-3">
+      <div className="border-t border-io-border pt-3">
         <button
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex items-center gap-2 text-[10px] font-semibold text-slate-500 uppercase tracking-wider hover:text-slate-400 transition-colors"
+          className="flex items-center gap-2 text-[10px] font-semibold text-io-secondary uppercase tracking-wider hover:text-io-secondary transition-colors"
         >
           <svg className={`w-3 h-3 transition-transform ${showAdvanced ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
           {isAr ? "العرض المتقدم" : "Advanced View"}
-          <span className="text-slate-600 normal-case font-normal">
+          <span className="text-io-secondary normal-case font-normal">
             {isAr ? "— تفاصيل كاملة للمحللين" : "— full detail for analysts"}
           </span>
         </button>
@@ -803,12 +803,12 @@ function GccImpactMap({
   const hoveredData = hoveredCountry ? countryExposures[hoveredCountry] : null;
 
   return (
-    <div className="bg-slate-900/40 rounded-xl border border-slate-700/30 p-4">
+    <div className="bg-io-surface rounded-xl border border-io-border p-4">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+        <h3 className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider">
           {isAr ? "الاستخبارات الجغرافية — دول الخليج" : "Geographic Intelligence — GCC"}
         </h3>
-        <div className="flex items-center gap-3 text-[9px] text-slate-600">
+        <div className="flex items-center gap-3 text-[9px] text-io-secondary">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500/70" /> {isAr ? "مرتفع" : "High"}</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500/70" /> {isAr ? "متوسط" : "Medium"}</span>
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500/70" /> {isAr ? "منخفض" : "Low"}</span>
@@ -867,19 +867,19 @@ function GccImpactMap({
 
         {/* Entity-aware hover tooltip */}
         {hovered && hoveredData && (
-          <div className="absolute top-2 right-2 bg-slate-800/95 border border-slate-600/50 rounded-lg px-3 py-2 backdrop-blur-sm min-w-[140px]">
-            <p className="text-xs font-bold text-white">{isAr ? hovered.nameAr : hovered.name}</p>
-            <p className="text-[10px] text-slate-400 mt-0.5">
+          <div className="absolute top-2 right-2 bg-white/95 border border-io-border rounded-lg px-3 py-2 backdrop-blur-sm min-w-[140px]">
+            <p className="text-xs font-bold text-io-primary">{isAr ? hovered.nameAr : hovered.name}</p>
+            <p className="text-[10px] text-io-secondary mt-0.5">
               {isAr ? "التعرض" : "Exposure"}: <span className={`font-bold ${hoveredData.exposure >= 0.6 ? "text-red-400" : hoveredData.exposure >= 0.3 ? "text-amber-400" : "text-emerald-400"}`}>{Math.round(hoveredData.exposure * 100)}%</span>
             </p>
-            <p className="text-[10px] text-slate-500">
-              {isAr ? "القطاع" : "Sector"}: <span className="text-slate-300">{hoveredData.dominantSector}</span>
+            <p className="text-[10px] text-io-secondary">
+              {isAr ? "القطاع" : "Sector"}: <span className="text-io-secondary">{hoveredData.dominantSector}</span>
             </p>
-            <p className="text-[10px] text-slate-500">
-              {isAr ? "المحرك" : "Driver"}: <span className="text-slate-400">{hoveredData.driver}</span>
+            <p className="text-[10px] text-io-secondary">
+              {isAr ? "المحرك" : "Driver"}: <span className="text-io-secondary">{hoveredData.driver}</span>
             </p>
             {hoveredData.entities.length > 0 && (
-              <p className="text-[9px] text-slate-600 mt-0.5">
+              <p className="text-[9px] text-io-secondary mt-0.5">
                 {hoveredData.entities.slice(0, 2).join(" · ")}
               </p>
             )}
@@ -896,12 +896,12 @@ function GccImpactMap({
 
 function NarrativeCard({ icon, title, text, accent }: { icon: string; title: string; text: string; accent: string }) {
   return (
-    <div className={`bg-slate-900/40 rounded-lg border-l-2 ${accent} border border-slate-700/30 px-4 py-3`}>
+    <div className={`bg-io-surface rounded-lg border-l-2 ${accent} border border-io-border px-4 py-3`}>
       <div className="flex items-center gap-1.5 mb-1.5">
         <span className="text-xs">{icon}</span>
-        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">{title}</span>
+        <span className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider">{title}</span>
       </div>
-      <p className="text-xs text-slate-300 leading-relaxed">{text}</p>
+      <p className="text-xs text-io-secondary leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -909,7 +909,7 @@ function NarrativeCard({ icon, title, text, accent }: { icon: string; title: str
 function MiniKpi({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="text-center">
-      <p className="text-[9px] text-slate-500 uppercase tracking-wider">{label}</p>
+      <p className="text-[9px] text-io-secondary uppercase tracking-wider">{label}</p>
       <p className={`text-sm font-bold tabular-nums ${color}`}>{value}</p>
     </div>
   );
@@ -920,11 +920,11 @@ function TrustMeter({ label, value }: { label: string; value: number }) {
   const color = value >= 80 ? "bg-emerald-500/60" : value >= 60 ? "bg-amber-500/50" : "bg-red-500/50";
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[9px] text-slate-500 w-24 flex-shrink-0">{label}</span>
+      <span className="text-[9px] text-io-secondary w-24 flex-shrink-0">{label}</span>
       <div className="flex-1 h-1 bg-slate-700/40 rounded-full overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
-      <span className="text-[10px] font-bold tabular-nums text-slate-400 w-8 text-right">{value}%</span>
+      <span className="text-[10px] font-bold tabular-nums text-io-secondary w-8 text-right">{value}%</span>
     </div>
   );
 }
@@ -972,7 +972,7 @@ function DecisionCard({
     ? "border-emerald-500/40 bg-emerald-500/5"
     : transparency?.classification === "LOSS_INDUCING"
       ? "border-red-500/40 bg-red-500/5"
-      : "border-slate-700/40 bg-slate-900/40";
+      : "border-io-border bg-io-surface";
 
   // STEP 6: Build numeric, causal WHY reasons
   const whyReasons: string[] = [];
@@ -1021,37 +1021,37 @@ function DecisionCard({
       {/* Header */}
       <div className="px-4 py-3 flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0 flex-1">
-          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700/50 flex items-center justify-center text-[10px] font-bold text-slate-400">{rank}</span>
+          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700/50 flex items-center justify-center text-[10px] font-bold text-io-secondary">{rank}</span>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-white leading-tight">{isAr ? action.action_ar : action.action}</p>
-            <p className="text-[10px] text-slate-500 mt-0.5">{action.sector} · {action.owner}</p>
+            <p className="text-sm font-semibold text-io-primary leading-tight">{isAr ? action.action_ar : action.action}</p>
+            <p className="text-[10px] text-io-secondary mt-0.5">{action.sector} · {action.owner}</p>
           </div>
         </div>
         {transparency && (
           <span className={`flex-shrink-0 px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
             transparency.classification === "HIGH_VALUE" ? "bg-emerald-500/15 text-emerald-400"
               : transparency.classification === "LOSS_INDUCING" ? "bg-red-500/15 text-red-400"
-                : "bg-slate-700/50 text-slate-400"
+                : "bg-slate-700/50 text-io-secondary"
           }`}>{transparency.classification.replace("_", " ")}</span>
         )}
       </div>
 
       {/* Cost / Benefit / Net */}
       <div className="px-4 pb-2 flex items-center gap-4 text-[10px]">
-        <span className="text-slate-500">{isAr ? "التكلفة" : "Cost"}: <span className="text-slate-300 font-semibold tabular-nums">{formatUsdCompact(action.cost_usd ?? 0)}</span></span>
-        <span className="text-slate-500">{isAr ? "الفائدة" : "Benefit"}: <span className="text-slate-300 font-semibold tabular-nums">{formatUsdCompact(action.loss_avoided_usd ?? 0)}</span></span>
+        <span className="text-io-secondary">{isAr ? "التكلفة" : "Cost"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.cost_usd ?? 0)}</span></span>
+        <span className="text-io-secondary">{isAr ? "الفائدة" : "Benefit"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.loss_avoided_usd ?? 0)}</span></span>
         <span className={`font-bold tabular-nums ${isNetPositive ? "text-emerald-400" : "text-red-400"}`}>{isNetPositive ? "+" : ""}{formatUsdCompact(netValue)}</span>
       </div>
 
       {/* STEP 6: Numeric WHY */}
       {whyReasons.length > 0 && (
-        <div className="px-4 pb-2 pt-2 border-t border-slate-700/20">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+        <div className="px-4 pb-2 pt-2 border-t border-io-border/20">
+          <p className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-1.5">
             {isAr ? "لماذا هذا القرار؟" : "Why this decision?"}
           </p>
           <ul className="space-y-0.5">
             {whyReasons.slice(0, 4).map((reason, i) => (
-              <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-400 leading-relaxed">
+              <li key={i} className="flex items-start gap-1.5 text-[11px] text-io-secondary leading-relaxed">
                 <span className="text-emerald-500 flex-shrink-0">+</span>
                 <span>{reason}</span>
               </li>
@@ -1060,7 +1060,7 @@ function DecisionCard({
           {transparency?.tradeoffs && transparency.tradeoffs.length > 0 && (
             <div className="mt-1.5">
               {transparency.tradeoffs.slice(0, 2).map((t, i) => (
-                <p key={i} className="text-[10px] text-slate-500 leading-relaxed">
+                <p key={i} className="text-[10px] text-io-secondary leading-relaxed">
                   <span className="text-amber-500">⚠</span> {t}
                 </p>
               ))}
@@ -1071,8 +1071,8 @@ function DecisionCard({
 
       {/* STEP 2: Trust Breakdown — inline, always visible */}
       {trustBreakdown.overall > 0 && (
-        <div className="px-4 pb-3 pt-2 border-t border-slate-700/20">
-          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+        <div className="px-4 pb-3 pt-2 border-t border-io-border/20">
+          <p className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-1.5">
             {isAr ? "لماذا نثق؟" : "Why trust this?"}
           </p>
           <div className="space-y-1">
@@ -1081,7 +1081,7 @@ function DecisionCard({
             <TrustMeter label={isAr ? "تغطية السيناريو" : "Pipeline coverage"} value={trustBreakdown.pipelineCoverage} />
           </div>
           <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-[9px] text-slate-500">{isAr ? "الثقة الإجمالية" : "Overall confidence"}</span>
+            <span className="text-[9px] text-io-secondary">{isAr ? "الثقة الإجمالية" : "Overall confidence"}</span>
             <span className={`text-xs font-bold tabular-nums ${trustBreakdown.overall >= 75 ? "text-emerald-400" : trustBreakdown.overall >= 50 ? "text-amber-400" : "text-red-400"}`}>{trustBreakdown.overall}%</span>
           </div>
         </div>
@@ -1121,7 +1121,7 @@ function getRiskLevel(sri: number) {
   if (sri >= 0.5) return { label: "ELEVATED", labelAr: "مُرتفع", bg: "bg-orange-500/15", text: "text-orange-400" };
   if (sri >= 0.35) return { label: "GUARDED", labelAr: "حذر", bg: "bg-amber-500/15", text: "text-amber-400" };
   if (sri >= 0.2) return { label: "LOW", labelAr: "منخفض", bg: "bg-emerald-500/15", text: "text-emerald-400" };
-  return { label: "NOMINAL", labelAr: "اعتيادي", bg: "bg-slate-700/30", text: "text-slate-400" };
+  return { label: "NOMINAL", labelAr: "اعتيادي", bg: "bg-slate-700/30", text: "text-io-secondary" };
 }
 
 /**

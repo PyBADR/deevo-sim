@@ -19,11 +19,11 @@ import type { FintechStress, Classification, Language } from "@/types/observator
 // ── Helpers ──────────────────────────────────────────────────────────
 
 const classificationColors: Record<Classification, string> = {
-  CRITICAL: "bg-io-critical text-white",
-  ELEVATED: "bg-io-elevated text-white",
-  MODERATE: "bg-io-moderate text-white",
-  LOW: "bg-io-low text-white",
-  NOMINAL: "bg-io-nominal text-white",
+  CRITICAL: "bg-red-50 text-red-700",
+  ELEVATED: "bg-orange-50 text-orange-700",
+  MODERATE: "bg-amber-50 text-amber-700",
+  LOW: "bg-yellow-50 text-yellow-700",
+  NOMINAL: "bg-green-50 text-green-700",
 };
 
 function Badge({ level }: { level: Classification }) {
@@ -45,7 +45,7 @@ function MetricRing({ value, label, unit, color }: { value: number; label: strin
     <div className="flex flex-col items-center">
       <div className="relative w-24 h-24">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 80 80">
-          <circle cx="40" cy="40" r="36" fill="none" strokeWidth="5" className="stroke-io-border" />
+          <circle cx="40" cy="40" r="36" fill="none" strokeWidth="5" className="stroke-slate-200" />
           <circle
             cx="40" cy="40" r="36" fill="none" strokeWidth="5"
             className={color}
@@ -56,13 +56,13 @@ function MetricRing({ value, label, unit, color }: { value: number; label: strin
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold tabular-nums text-io-primary">
+          <span className="text-lg font-bold tabular-nums text-slate-900">
             {safeFixed(value, 1)}
           </span>
-          <span className="text-[10px] text-io-secondary">{unit}</span>
+          <span className="text-[10px] text-slate-600">{unit}</span>
         </div>
       </div>
-      <p className="text-xs font-medium text-io-secondary mt-2 text-center">{label}</p>
+      <p className="text-xs font-medium text-slate-600 mt-2 text-center">{label}</p>
     </div>
   );
 }
@@ -122,64 +122,64 @@ export default function FintechDetailPanel({
     <div className={`space-y-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-io-primary">{t.title}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{t.title}</h2>
         <Badge level={data.classification as Classification} />
       </div>
 
       {/* Top Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.aggregate}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{safePercent(data.aggregate_stress)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.tt_failure}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(data.time_to_payment_failure_hours)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.tt_failure}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{formatHours(data.time_to_payment_failure_hours)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.digital_banking}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.digital_banking_stress)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.digital_banking}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{safePercent(data.digital_banking_stress)}</p>
         </div>
       </div>
 
       {/* System Metrics Rings */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-6">{t.system_metrics}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-6">{t.system_metrics}</h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
           <MetricRing
             value={data.payment_volume_impact_pct}
             label={t.payment_drop}
             unit="%"
-            color="stroke-io-danger"
+            color="stroke-red-500"
           />
           <MetricRing
             value={data.settlement_delay_hours}
             label={t.settlement}
             unit="hrs"
-            color="stroke-io-warning"
+            color="stroke-amber-500"
           />
           <MetricRing
             value={data.api_availability_pct}
             label={t.api_uptime}
             unit="%"
-            color="stroke-io-accent"
+            color="stroke-blue-500"
           />
           <MetricRing
             value={data.cross_border_disruption * 100}
             label={t.cross_border}
             unit="%"
-            color="stroke-io-elevated"
+            color="stroke-orange-500"
           />
         </div>
       </div>
 
       {/* Platforms Table */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.platforms}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.platforms}</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-io-border text-io-secondary">
+              <tr className="border-b border-slate-200 text-slate-600 bg-slate-50">
                 <th className="text-left py-2 font-medium">{t.platform}</th>
                 <th className="text-left py-2 font-medium">{t.country}</th>
                 <th className="text-right py-2 font-medium">{t.volume_impact}</th>
@@ -190,7 +190,7 @@ export default function FintechDetailPanel({
             <tbody>
               {(data.affected_platforms ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-xs text-io-secondary">
+                  <td colSpan={5} className="py-6 text-center text-xs text-slate-600">
                     {lang === "ar"
                       ? "لا توجد بيانات منصات لهذا السيناريو"
                       : "No platform data available for this scenario"}
@@ -198,21 +198,21 @@ export default function FintechDetailPanel({
                 </tr>
               ) : (
                 (data.affected_platforms ?? []).map((platform) => (
-                <tr key={platform.id} className="border-b border-io-border/50">
-                  <td className="py-2.5 font-medium text-io-primary">
+                <tr key={platform.id} className="border-b border-slate-200">
+                  <td className="py-2.5 font-medium text-slate-900">
                     {lang === "ar" ? platform.name_ar : platform.name}
                   </td>
-                  <td className="py-2.5 text-io-secondary">{platform.country}</td>
+                  <td className="py-2.5 text-slate-600">{platform.country}</td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={platform.volume_impact_pct > 30 ? "text-io-danger font-semibold" : "text-io-primary"}>
+                    <span className={platform.volume_impact_pct > 30 ? "text-red-600 font-semibold" : "text-slate-900"}>
                       {safeFixed(platform.volume_impact_pct, 1)}%
                     </span>
                   </td>
-                  <td className="py-2.5 text-right tabular-nums">
+                  <td className="py-2.5 text-right tabular-nums text-slate-900">
                     {safePercent(platform.cross_border_stress)}
                   </td>
                   <td className="py-2.5 text-right tabular-nums">
-                    <span className={platform.stress > 0.6 ? "text-io-danger font-semibold" : platform.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                    <span className={platform.stress > 0.6 ? "text-red-600 font-semibold" : platform.stress > 0.4 ? "text-amber-600" : "text-slate-900"}>
                       {safePercent(platform.stress)}
                     </span>
                   </td>

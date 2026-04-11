@@ -19,11 +19,11 @@ import type { InsuranceStress, Classification, Language } from "@/types/observat
 // ── Helpers ──────────────────────────────────────────────────────────
 
 const classificationColors: Record<Classification, string> = {
-  CRITICAL: "bg-io-critical text-white",
-  ELEVATED: "bg-io-elevated text-white",
-  MODERATE: "bg-io-moderate text-white",
-  LOW: "bg-io-low text-white",
-  NOMINAL: "bg-io-nominal text-white",
+  CRITICAL: "bg-red-50 text-red-700",
+  ELEVATED: "bg-orange-50 text-orange-700",
+  MODERATE: "bg-amber-50 text-amber-700",
+  LOW: "bg-yellow-50 text-yellow-700",
+  NOMINAL: "bg-green-50 text-green-700",
 };
 
 function Badge({ level }: { level: Classification }) {
@@ -44,24 +44,24 @@ function RatioGauge({ value, label, threshold, thresholdLabel }: { value: number
   return (
     <div className="space-y-1.5">
       <div className="flex justify-between text-sm">
-        <span className="text-io-secondary font-medium">{label}</span>
-        <span className={`font-semibold ${isBreached ? "text-io-danger" : "text-io-primary"}`}>
+        <span className="text-slate-600 font-medium">{label}</span>
+        <span className={`font-semibold ${isBreached ? "text-red-600" : "text-slate-900"}`}>
           {safePercent(value)}
         </span>
       </div>
-      <div className="relative h-3 bg-io-bg rounded-full overflow-visible">
+      <div className="relative h-3 bg-slate-100 rounded-full overflow-visible">
         <div
-          className={`h-full rounded-full transition-all duration-500 ${isBreached ? "bg-io-danger" : "bg-io-accent"}`}
+          className={`h-full rounded-full transition-all duration-500 ${isBreached ? "bg-red-500" : "bg-blue-500"}`}
           style={{ width: `${Math.min((pct / 150) * 100, 100)}%` }}
         />
         {/* Threshold marker */}
         <div
-          className="absolute top-0 h-full w-0.5 bg-io-primary/40"
+          className="absolute top-0 h-full w-0.5 bg-slate-400"
           style={{ left: `${(thresholdPct / 150) * 100}%` }}
           title={thresholdLabel}
         />
       </div>
-      <p className="text-xs text-io-secondary">{thresholdLabel}: {safePercent(threshold, 0)}</p>
+      <p className="text-xs text-slate-600">{thresholdLabel}: {safePercent(threshold, 0)}</p>
     </div>
   );
 }
@@ -133,33 +133,33 @@ export default function InsuranceDetailPanel({
     <div className={`space-y-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-io-primary">{t.title}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{t.title}</h2>
         <Badge level={data.classification as Classification} />
       </div>
 
       {/* Top Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.aggregate}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{safePercent(data.aggregate_stress)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.claims_surge}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{safeFixed(data.claims_surge_multiplier, 2)}x</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.claims_surge}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{safeFixed(data.claims_surge_multiplier, 2)}x</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.portfolio}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD(data.portfolio_exposure_usd)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.portfolio}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{formatUSD(data.portfolio_exposure_usd)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.time_insolvency}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(data.time_to_insolvency_hours)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.time_insolvency}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{formatHours(data.time_to_insolvency_hours)}</p>
         </div>
       </div>
 
       {/* Key Ratios with Gauges */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.key_ratios}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.key_ratios}</h3>
         <div className="space-y-4">
           <RatioGauge value={data.combined_ratio} label={t.combined_ratio} threshold={1.0} thresholdLabel={t.threshold_combined} />
           <RatioGauge value={data.loss_ratio} label={t.loss_ratio} threshold={0.75} thresholdLabel={t.threshold_loss} />
@@ -167,28 +167,28 @@ export default function InsuranceDetailPanel({
       </div>
 
       {/* Regulatory Indicators */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.regulatory}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.regulatory}</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.uw_status}</span>
-            <span className={`font-semibold ${data.underwriting_status === "SUSPENDED" ? "text-io-danger" : data.underwriting_status === "RESTRICTED" ? "text-io-warning" : "text-io-primary"}`}>
+          <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.uw_status}</span>
+            <span className={`font-semibold ${data.underwriting_status === "SUSPENDED" ? "text-red-600" : data.underwriting_status === "RESTRICTED" ? "text-amber-600" : "text-slate-900"}`}>
               {data.underwriting_status}
             </span>
           </div>
-          <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.reinsurance}</span>
-            <span className={`font-semibold ${data.reinsurance_trigger ? "text-io-danger" : "text-io-success"}`}>
+          <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.reinsurance}</span>
+            <span className={`font-semibold ${data.reinsurance_trigger ? "text-red-600" : "text-green-600"}`}>
               {data.reinsurance_trigger ? t.triggered : t.normal}
             </span>
           </div>
-          <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.ifrs17}</span>
-            <span className="font-semibold text-io-primary">{safeFixed(data.ifrs17_risk_adjustment_pct, 2)}%</span>
+          <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.ifrs17}</span>
+            <span className="font-semibold text-slate-900">{safeFixed(data.ifrs17_risk_adjustment_pct, 2)}%</span>
           </div>
-          <div className="flex justify-between items-center text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.claims_surge}</span>
-            <span className={`font-semibold ${data.claims_surge_multiplier > 2 ? "text-io-danger" : data.claims_surge_multiplier > 1.5 ? "text-io-warning" : "text-io-primary"}`}>
+          <div className="flex justify-between items-center text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.claims_surge}</span>
+            <span className={`font-semibold ${data.claims_surge_multiplier > 2 ? "text-red-600" : data.claims_surge_multiplier > 1.5 ? "text-amber-600" : "text-slate-900"}`}>
               {safeFixed(data.claims_surge_multiplier, 2)}x
             </span>
           </div>
@@ -196,12 +196,12 @@ export default function InsuranceDetailPanel({
       </div>
 
       {/* Affected Lines Table */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.affected_lines}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.affected_lines}</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-io-border text-io-secondary">
+              <tr className="border-b border-slate-200 text-slate-600 bg-slate-50">
                 <th className="text-left py-2 font-medium">{t.line}</th>
                 <th className="text-right py-2 font-medium">{t.exposure}</th>
                 <th className="text-right py-2 font-medium">{t.surge}</th>
@@ -211,7 +211,7 @@ export default function InsuranceDetailPanel({
             <tbody>
               {(data.affected_lines ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="py-6 text-center text-xs text-io-secondary">
+                  <td colSpan={4} className="py-6 text-center text-xs text-slate-600">
                     {lang === "ar"
                       ? "لا توجد بيانات خطوط التأمين لهذا السيناريو"
                       : "No insurance line data available for this scenario"}
@@ -219,18 +219,18 @@ export default function InsuranceDetailPanel({
                 </tr>
               ) : (
                 (data.affected_lines ?? []).map((line) => (
-                  <tr key={line.id} className="border-b border-io-border/50">
-                    <td className="py-2.5 font-medium text-io-primary">
+                  <tr key={line.id} className="border-b border-slate-200">
+                    <td className="py-2.5 font-medium text-slate-900">
                       {lang === "ar" ? line.name_ar : line.name}
                     </td>
                     <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(line.exposure_usd)}</td>
                     <td className="py-2.5 text-right tabular-nums">
-                      <span className={line.claims_surge > 2 ? "text-io-danger font-semibold" : line.claims_surge > 1.5 ? "text-io-warning" : "text-io-primary"}>
+                      <span className={line.claims_surge > 2 ? "text-red-600 font-semibold" : line.claims_surge > 1.5 ? "text-amber-600" : "text-slate-900"}>
                         {safeFixed(line.claims_surge, 2)}x
                       </span>
                     </td>
                     <td className="py-2.5 text-right tabular-nums">
-                      <span className={line.stress > 0.6 ? "text-io-danger font-semibold" : line.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                      <span className={line.stress > 0.6 ? "text-red-600 font-semibold" : line.stress > 0.4 ? "text-amber-600" : "text-slate-900"}>
                         {safePercent(line.stress)}
                       </span>
                     </td>

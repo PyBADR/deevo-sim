@@ -8,7 +8,7 @@
  * Displays scenarios in a responsive grid with domain badges,
  * descriptions, impact sectors, and run buttons.
  *
- * Design: dark theme cards with domain color accents,
+ * Design: white enterprise institutional theme with light colors,
  * bilingual English/Arabic support throughout.
  */
 
@@ -164,43 +164,127 @@ const FALLBACK_CATALOG: ScenarioCard[] = [
     impactedSectors: ["Energy", "Defense", "Finance"],
     base_loss_usd: 220000000000,
   },
+  {
+    id: "gcc_cyber_attack",
+    label_en: "GCC Cyber Attack",
+    label_ar: "هجوم سيبراني على دول الخليج",
+    domain: "CYBER",
+    severity: "HIGH",
+    description_en:
+      "Coordinated cyber attack on critical infrastructure across GCC states. Power grids and communications disrupted, financial markets impacted.",
+    description_ar:
+      "هجوم سيبراني منسق على البنية التحتية الحيوية عبر دول الخليج. شبكات الكهرباء والاتصالات معطلة، الأسواق المالية متأثرة.",
+    sectors_affected: ["cyber", "energy", "finance"],
+    impactedSectors: ["Energy", "Finance", "Technology"],
+    base_loss_usd: 75000000000,
+  },
+  {
+    id: "qatar_lng_disruption",
+    label_en: "Qatar LNG Export Disruption",
+    label_ar: "تعطل صادرات الغاز القطري",
+    domain: "ENERGY",
+    severity: "HIGH",
+    description_en:
+      "Major disruption to Qatar LNG facilities reduces global liquefied natural gas supply. Energy prices spike, alternative suppliers strained.",
+    description_ar:
+      "تعطل كبير في منشآت الغاز الطبيعي المسال القطري يقلل من الإمدادات العالمية. ارتفاع أسعار الطاقة، الموردون البدليون مرهقون.",
+    sectors_affected: ["energy", "shipping", "utilities"],
+    impactedSectors: ["Energy", "Utilities", "Shipping"],
+    base_loss_usd: 85000000000,
+  },
+  {
+    id: "uae_banking_crisis",
+    label_en: "UAE Banking Sector Crisis",
+    label_ar: "أزمة القطاع المصرفي الإماراتي",
+    domain: "LIQUIDITY",
+    severity: "CRITICAL",
+    description_en:
+      "Systemic banking sector stress in UAE triggers credit freeze and deposit runs. Regional financial contagion spreads across GCC.",
+    description_ar:
+      "ضغط القطاع المصرفي النظامي في الإمارات يؤدي إلى تجميد الائتمان وهروب الودائع. العدوى المالية الإقليمية تنتشر عبر الخليج.",
+    sectors_affected: ["banking", "finance", "currency"],
+    impactedSectors: ["Finance", "Banking", "Currency"],
+    base_loss_usd: 120000000000,
+  },
+  {
+    id: "bahrain_sovereign_stress",
+    label_en: "Bahrain Sovereign Fiscal Stress",
+    label_ar: "ضغط مالي سيادي بحريني",
+    domain: "LIQUIDITY",
+    severity: "ELEVATED",
+    description_en:
+      "Fiscal consolidation pressures and debt servicing challenges stress Bahrain's sovereign creditworthiness. Regional confidence in small economies shaken.",
+    description_ar:
+      "ضغوط تقليص الإنفاق المالي والتحديات في خدمة الديون تضغط على جدارة بحرين الائتمانية. الثقة الإقليمية في الاقتصادات الصغيرة تتزعزع.",
+    sectors_affected: ["finance", "currency", "banking"],
+    impactedSectors: ["Finance", "Banking", "Currency"],
+    base_loss_usd: 18000000000,
+  },
+  {
+    id: "kuwait_fiscal_shock",
+    label_en: "Kuwait Oil Revenue Shock",
+    label_ar: "صدمة إيرادات النفط الكويتية",
+    domain: "ENERGY",
+    severity: "HIGH",
+    description_en:
+      "Unexpected production decline or demand collapse reduces Kuwait's oil revenue by 40%. Fiscal reserves depleted, budget deficits widen.",
+    description_ar:
+      "انخفاض الإنتاج غير المتوقع أو انهيار الطلب يقلل إيرادات النفط الكويتي بنسبة 40%. احتياطيات الموازنة نضبت، العجوزات تتسع.",
+    sectors_affected: ["energy", "finance", "currency"],
+    impactedSectors: ["Energy", "Finance", "Currency"],
+    base_loss_usd: 42000000000,
+  },
+  {
+    id: "oman_port_closure",
+    label_en: "Oman Port Closure",
+    label_ar: "إغلاق موانئ عمان",
+    domain: "MARITIME",
+    severity: "ELEVATED",
+    description_en:
+      "Closure of Salalah and Sohar ports disrupts logistics hub for Indian Ocean trade. Regional shipping routes redirected, costs increase.",
+    description_ar:
+      "إغلاق موانئ صلالة وصحار يعطل مركز الخدمات اللوجستية لتجارة المحيط الهندي. إعادة توجيه طرق الشحن الإقليمية، زيادة التكاليف.",
+    sectors_affected: ["shipping", "logistics", "trade"],
+    impactedSectors: ["Shipping", "Logistics", "Trade"],
+    base_loss_usd: 22000000000,
+  },
 ];
 
-// Domain color mapping
+// Domain color mapping (light enterprise theme)
 const DOMAIN_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   MARITIME: {
-    bg: "bg-cyan-900/30",
-    text: "text-cyan-300",
-    border: "border-cyan-600/30",
+    bg: "bg-cyan-50",
+    text: "text-cyan-700",
+    border: "border-cyan-200",
   },
   ENERGY: {
-    bg: "bg-amber-900/30",
-    text: "text-amber-300",
-    border: "border-amber-600/30",
+    bg: "bg-amber-50",
+    text: "text-amber-700",
+    border: "border-amber-200",
   },
   CYBER: {
-    bg: "bg-red-900/30",
-    text: "text-red-300",
-    border: "border-red-600/30",
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
   },
   LIQUIDITY: {
-    bg: "bg-blue-900/30",
-    text: "text-blue-300",
-    border: "border-blue-600/30",
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
   },
   REGULATORY: {
-    bg: "bg-purple-900/30",
-    text: "text-purple-300",
-    border: "border-purple-600/30",
+    bg: "bg-purple-50",
+    text: "text-purple-700",
+    border: "border-purple-200",
   },
 };
 
-// Severity level styling
+// Severity level styling (light enterprise theme)
 const SEVERITY_COLORS: Record<string, string> = {
-  CRITICAL: "bg-red-600/40 text-red-200 border-red-500/40",
-  HIGH: "bg-orange-600/40 text-orange-200 border-orange-500/40",
-  ELEVATED: "bg-yellow-600/40 text-yellow-200 border-yellow-500/40",
-  GUARDED: "bg-blue-600/40 text-blue-200 border-blue-500/40",
+  CRITICAL: "bg-red-50 text-red-700 border-red-200",
+  HIGH: "bg-orange-50 text-orange-700 border-orange-200",
+  ELEVATED: "bg-amber-50 text-amber-700 border-amber-200",
+  GUARDED: "bg-blue-50 text-blue-700 border-blue-200",
 };
 
 // Bilingual labels for all sectors
@@ -218,13 +302,16 @@ const SECTOR_LABELS: Record<string, { en: string; ar: string }> = {
   logistics: { en: "Logistics", ar: "الخدمات اللوجستية" },
   retail: { en: "Retail", ar: "البيع بالتجزئة" },
   defense: { en: "Defense", ar: "الدفاع" },
+  cyber: { en: "Technology", ar: "التكنولوجيا" },
 };
 
-export function ScenarioLibrary({
+export function ScenarioLibrary(
+  {
   onSelectScenario,
   isLoading = false,
   locale = "en",
-}: ScenarioLibraryProps) {
+}: ScenarioLibraryProps
+) {
   const [scenarios, setScenarios] = useState<ScenarioCard[]>([]);
   const [fetchError, setFetchError] = useState(false);
   const isAr = locale === "ar";
@@ -291,8 +378,8 @@ export function ScenarioLibrary({
 
   if (scenarios.length === 0 && !fetchError) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-slate-400">
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <div className="text-slate-600">
           {isAr ? "جاري التحميل..." : "Loading..."}
         </div>
       </div>
@@ -301,15 +388,15 @@ export function ScenarioLibrary({
 
   return (
     <div
-      className="min-h-screen bg-slate-950 px-6 py-10 lg:px-8"
+      className="min-h-screen bg-slate-50 px-6 py-10 lg:px-8"
       dir={isAr ? "rtl" : "ltr"}
     >
       {/* Header */}
       <div className="mb-12">
-        <h1 className="text-3xl lg:text-4xl font-bold text-white mb-3">
+        <h1 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-3">
           {isAr ? "مكتبة السيناريوهات" : "Scenario Library"}
         </h1>
-        <p className="text-slate-400 text-lg max-w-2xl">
+        <p className="text-slate-600 text-lg max-w-2xl">
           {isAr
             ? "استكشف جميع السيناريوهات المتاحة وآثارها المالية والعملياتية على منطقة مجلس التعاون الخليجي."
             : "Explore all available scenarios and their financial and operational impact on the GCC region."}
@@ -329,12 +416,12 @@ export function ScenarioLibrary({
           return (
             <div
               key={scenario.id}
-              className="bg-slate-800/40 border border-slate-700/40 rounded-lg p-5 hover:bg-slate-800/60 hover:border-slate-600/50 transition-all flex flex-col gap-4"
+              className="bg-white border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow flex flex-col gap-4 shadow-sm"
             >
               {/* Header with domain badge and severity */}
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <h2 className="text-lg font-bold text-white mb-2 leading-snug">
+                  <h2 className="text-lg font-bold text-slate-900 mb-2 leading-snug">
                     {label}
                   </h2>
                   <div
@@ -352,33 +439,33 @@ export function ScenarioLibrary({
               </div>
 
               {/* Description */}
-              <p className="text-slate-300 text-sm leading-relaxed">
+              <p className="text-slate-600 text-sm leading-relaxed">
                 {description}
               </p>
 
               {/* Impacted Sectors Pills */}
               <div className="flex flex-wrap gap-2">
                 {scenario.impactedSectors.map((sector) => {
-                  const label = isAr
+                  const sectorLabel = isAr
                     ? SECTOR_LABELS[sector.toLowerCase()]?.ar || sector
                     : SECTOR_LABELS[sector.toLowerCase()]?.en || sector;
                   return (
                     <span
                       key={sector}
-                      className="px-2.5 py-1 bg-slate-700/40 text-slate-300 border border-slate-600/30 rounded text-xs font-medium"
+                      className="px-2.5 py-1 bg-slate-100 text-slate-600 border border-slate-200 rounded text-xs font-medium"
                     >
-                      {label}
+                      {sectorLabel}
                     </span>
                   );
                 })}
               </div>
 
               {/* Estimated Loss */}
-              <div className="pt-2 border-t border-slate-700/30">
-                <div className="text-xs text-slate-400 mb-1">
+              <div className="pt-2 border-t border-slate-200">
+                <div className="text-xs text-slate-600 mb-1">
                   {isAr ? "الخسارة المقدرة" : "Estimated Loss"}
                 </div>
-                <div className="text-lg font-bold text-red-300">
+                <div className="text-lg font-bold text-red-600">
                   {formatCurrency(scenario.base_loss_usd)}
                 </div>
               </div>
@@ -387,7 +474,7 @@ export function ScenarioLibrary({
               <button
                 onClick={() => onSelectScenario(scenario.id)}
                 disabled={isLoading}
-                className="mt-auto px-4 py-2.5 bg-blue-600/80 hover:bg-blue-600 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="mt-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {isLoading
                   ? isAr
@@ -404,7 +491,7 @@ export function ScenarioLibrary({
 
       {/* Empty state */}
       {displayScenarios.length === 0 && (
-        <div className="flex items-center justify-center h-96 text-slate-400">
+        <div className="flex items-center justify-center h-96 text-slate-600">
           {isAr ? "لم يتم العثور على سيناريوهات" : "No scenarios found"}
         </div>
       )}

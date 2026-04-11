@@ -119,26 +119,26 @@ export function GCCImpactMap({
   const textDir = isArabic ? "rtl" : "ltr";
 
   return (
-    <div className="w-full bg-gradient-to-b from-gray-900 to-gray-950 rounded-lg p-6 text-white">
+    <div className="w-full bg-white rounded-lg border border-slate-200 shadow-sm p-6">
       {/* Header */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold mb-2">{title}</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">{title}</h2>
         {scenarioLabel && (
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-slate-600">
             {locale === "ar" ? "السيناريو: " : "Scenario: "}
-            <span className="text-amber-300 font-semibold">{scenarioLabel}</span>
+            <span className="text-blue-700 font-semibold">{scenarioLabel}</span>
           </p>
         )}
       </div>
 
       {/* SVG Map Container */}
-      <div className="bg-gray-800 rounded-lg p-4 mb-6 overflow-x-auto" dir={textDir}>
+      <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6 overflow-x-auto" dir={textDir}>
         <svg viewBox="0 0 450 320" className="w-full min-w-[600px] h-auto" xmlns="http://www.w3.org/2000/svg">
           {/* Water/background */}
-          <rect width="450" height="320" fill="#1a202c" />
+          <rect width="450" height="320" fill="#F1F5F9" />
 
           {/* Grid reference lines (subtle) */}
-          <g stroke="#374151" strokeWidth="0.5" opacity="0.3">
+          <g stroke="#CBD5E1" strokeWidth="0.5" opacity="0.3">
             <line x1="0" y1="160" x2="450" y2="160" />
             <line x1="225" y1="0" x2="225" y2="320" />
           </g>
@@ -160,10 +160,10 @@ export function GCCImpactMap({
                   height={pos.height}
                   rx="6"
                   fill={country.color}
-                  opacity="0.15"
+                  opacity="0.2"
                   stroke={country.color}
                   strokeWidth="2"
-                  className="cursor-pointer hover:opacity-25 transition-opacity"
+                  className="cursor-pointer hover:opacity-3 transition-opacity"
                   onClick={() => onCountryClick?.(country.code)}
                 />
 
@@ -190,7 +190,7 @@ export function GCCImpactMap({
                   textAnchor="middle"
                   fontSize="11"
                   fontWeight="600"
-                  fill="white"
+                  fill="#0F172A"
                   className="pointer-events-none"
                 >
                   {country.name}
@@ -215,7 +215,7 @@ export function GCCImpactMap({
                   y={pos.y + pos.height / 2 + 8}
                   textAnchor="middle"
                   fontSize="9"
-                  fill="#e5e7eb"
+                  fill="#475569"
                   className="pointer-events-none"
                 >
                   {country.sector}
@@ -242,17 +242,17 @@ export function GCCImpactMap({
           {/* Shock origin indicator (if scenario label provided) */}
           {scenarioLabel && (
             <g>
-              <circle cx="225" cy="160" r="40" fill="none" stroke="#fbbf24" strokeWidth="1.5" opacity="0.4" />
-              <circle cx="225" cy="160" r="30" fill="none" stroke="#fbbf24" strokeWidth="1" opacity="0.3" />
-              <circle cx="225" cy="160" r="3" fill="#fbbf24" />
+              <circle cx="225" cy="160" r="40" fill="none" stroke="#2563eb" strokeWidth="1.5" opacity="0.4" />
+              <circle cx="225" cy="160" r="30" fill="none" stroke="#2563eb" strokeWidth="1" opacity="0.3" />
+              <circle cx="225" cy="160" r="3" fill="#2563eb" />
             </g>
           )}
         </svg>
       </div>
 
       {/* Legend */}
-      <div className="bg-gray-800 rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-gray-300 mb-3">
+      <div className="bg-slate-50 rounded-lg border border-slate-200 p-4">
+        <h3 className="text-sm font-semibold text-slate-900 mb-3">
           {locale === "ar" ? "مستوى الإجهاد" : "Stress Level"}
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
@@ -269,7 +269,7 @@ export function GCCImpactMap({
                 className="w-3 h-3 rounded"
                 style={{ backgroundColor: level.color }}
               />
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-slate-700">
                 {locale === "ar" ? level.ar : level.label}
               </span>
             </div>
@@ -278,7 +278,7 @@ export function GCCImpactMap({
       </div>
 
       {/* Info footer */}
-      <p className="text-xs text-gray-500 mt-4 text-center">
+      <p className="text-xs text-slate-600 mt-4 text-center">
         {locale === "ar"
           ? "انقر على البلد لعرض التفاصيل • الألوان تمثل مستويات الإجهاد النسبية"
           : "Click a country for details • Colors represent relative stress levels"}

@@ -16,19 +16,24 @@ interface ObservatoryShellProps {
 
 const TABS = [
   { id: "dashboard", labelEn: "Dashboard", labelAr: "لوحة المعلومات" },
+  { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
+  { id: "macro", labelEn: "Macro Intelligence", labelAr: "الذكاء الكلي" },
   { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
-  { id: "map", labelEn: "Impact Map", labelAr: "خريطة الأثر" },
-  { id: "sectors", labelEn: "Sector Intel", labelAr: "القطاعات" },
+  { id: "map", labelEn: "GCC Map", labelAr: "خريطة الخليج" },
+  { id: "sectors", labelEn: "Sectors", labelAr: "القطاعات" },
   { id: "decisions", labelEn: "Decision Room", labelAr: "غرفة القرار" },
-  { id: "regulatory", labelEn: "Regulatory", labelAr: "الرقابة والتدقيق" },
+  { id: "audit", labelEn: "Audit & Trust", labelAr: "التدقيق والثقة" },
 ];
 
 const FLOW_STAGES = [
-  "Macro Shock",
-  "Transmission",
-  "Sector Impact",
-  "Entity Exposure",
+  "Signal",
+  "Graph",
+  "Physics",
+  "Math",
+  "Sector",
+  "Entity",
   "Decision",
+  "Value",
   "Audit",
 ];
 
@@ -52,9 +57,9 @@ export function ObservatoryShell({
   const flowStageDisplay = useMemo(() => {
     return FLOW_STAGES.map((stage, idx) => (
       <React.Fragment key={stage}>
-        <span className="text-xs font-medium text-slate-300">{stage}</span>
+        <span className="text-xs font-medium text-io-secondary">{stage}</span>
         {idx < FLOW_STAGES.length - 1 && (
-          <ChevronRight className="w-3 h-3 text-slate-600" />
+          <ChevronRight className="w-3 h-3 text-border-io-border" />
         )}
       </React.Fragment>
     ));
@@ -79,23 +84,23 @@ export function ObservatoryShell({
 
   return (
     <div
-      className={`min-h-screen bg-[#060910] text-slate-300 flex flex-col ${isArabic ? "rtl" : "ltr"}`}
+      className={`min-h-screen bg-io-bg text-io-primary flex flex-col ${isArabic ? "rtl" : "ltr"}`}
       dir={isArabic ? "rtl" : "ltr"}
     >
       {/* Identity Header */}
-      <header className="bg-gradient-to-b from-[#0f1419] to-[#060910] border-b border-slate-800 px-6 py-5">
+      <header className="bg-io-surface border-b border-io-border px-6 py-5 shadow-sm">
         <div className="max-w-7xl mx-auto">
           {/* Top Row: Logo + Title + Language Toggle */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-500/10 rounded-lg">
-                <Globe className="w-5 h-5 text-blue-400" />
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <Globe className="w-5 h-5 text-io-accent" />
               </div>
               <div className={`flex flex-col gap-0.5 ${isArabic ? "text-right" : "text-left"}`}>
-                <h1 className="text-lg font-semibold text-white">
+                <h1 className="text-lg font-semibold text-io-primary">
                   {isArabic ? "الذكاء المالي الكلي" : "Macro Financial Intelligence"}
                 </h1>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-io-secondary">
                   {isArabic ? "دول مجلس التعاون الخليجي" : "GCC"}
                 </p>
               </div>
@@ -104,7 +109,7 @@ export function ObservatoryShell({
             {/* Language Toggle Button */}
             <button
               onClick={handleLanguageToggle}
-              className="px-3 py-2 text-sm font-medium rounded-lg border border-slate-700 bg-slate-900/50 hover:bg-slate-800 transition-colors text-slate-300 hover:text-white"
+              className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
               aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
             >
               {isArabic ? "EN" : "عربي"}
@@ -112,14 +117,14 @@ export function ObservatoryShell({
           </div>
 
           {/* Subtitle */}
-          <p className="text-xs text-slate-400 mb-3">
+          <p className="text-xs text-io-secondary mb-3">
             {isArabic
               ? "نظام القرار لأسواق دول مجلس التعاون المالية"
               : "Decision System for GCC Financial Markets"}
           </p>
 
           {/* Flow Stages */}
-          <div className="flex items-center gap-2 text-slate-500 overflow-x-auto pb-1">
+          <div className="flex items-center gap-2 text-io-secondary overflow-x-auto pb-1">
             {flowStageDisplay}
           </div>
         </div>
@@ -127,14 +132,14 @@ export function ObservatoryShell({
 
       {/* Scenario Context Bar */}
       {scenarioDisplayLabel && (
-        <div className="bg-[#0f1419] border-b border-slate-800 px-6 py-3">
+        <div className="bg-io-surface border-b border-io-border px-6 py-3">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
             <div className={`flex items-center gap-3 ${isArabic ? "flex-row-reverse" : ""}`}>
-              <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-              <span className="text-sm text-slate-400">
+              <div className="w-2 h-2 rounded-full bg-io-accent animate-pulse" />
+              <span className="text-sm text-io-secondary">
                 {isArabic ? "السيناريو النشط:" : "Active Scenario:"}
               </span>
-              <span className="text-sm font-medium text-blue-400">{scenarioDisplayLabel}</span>
+              <span className="text-sm font-medium text-io-accent">{scenarioDisplayLabel}</span>
             </div>
 
             {/* Live/Demo Indicator */}
@@ -144,7 +149,7 @@ export function ObservatoryShell({
                   dataSource === "live" ? "bg-green-500" : "bg-yellow-500"
                 } animate-pulse`}
               />
-              <span className="text-xs text-slate-500">
+              <span className="text-xs text-io-secondary">
                 {dataSource === "live"
                   ? isArabic
                     ? "بث مباشر"
@@ -159,8 +164,8 @@ export function ObservatoryShell({
       )}
 
       {/* Tab Navigation */}
-      <nav className="bg-[#060910] border-b border-slate-800 px-6">
-        <div className="max-w-7xl mx-auto flex gap-8">
+      <nav className="bg-io-surface border-b border-io-border px-6">
+        <div className="max-w-7xl mx-auto flex gap-8 overflow-x-auto">
           {TABS.map((tab) => {
             const isActive = currentTabId === tab.id;
             const tabLabel = isArabic ? tab.labelAr : tab.labelEn;
@@ -171,8 +176,8 @@ export function ObservatoryShell({
                 onClick={() => handleTabClick(tab.id)}
                 className={`py-4 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
                   isActive
-                    ? "text-blue-400 border-blue-400"
-                    : "text-slate-400 border-transparent hover:text-slate-300"
+                    ? "text-io-accent border-io-accent"
+                    : "text-io-secondary border-transparent hover:text-io-primary"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >

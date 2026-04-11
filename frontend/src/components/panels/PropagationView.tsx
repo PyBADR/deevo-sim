@@ -65,12 +65,12 @@ const getStressBorderColor = (stress: number, maxStress: number): string => {
 
 const getSeverityColor = (severity?: number): string => {
   if (!severity) return "text-gray-400";
-  if (severity < 0.2) return "text-green-400";
-  if (severity < 0.35) return "text-yellow-400";
-  if (severity < 0.5) return "text-amber-400";
-  if (severity < 0.65) return "text-orange-400";
-  if (severity < 0.8) return "text-red-400";
-  return "text-red-500";
+  if (severity < 0.2) return "text-green-600";
+  if (severity < 0.35) return "text-yellow-600";
+  if (severity < 0.5) return "text-amber-600";
+  if (severity < 0.65) return "text-orange-600";
+  if (severity < 0.8) return "text-red-600";
+  return "text-red-700";
 };
 
 const getSeverityLabel = (severity?: number, locale: "en" | "ar" = "en"): string => {
@@ -103,18 +103,18 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
 
   return (
     <div
-      className="w-full h-full flex flex-col bg-[#060910] rounded-lg border border-slate-700/50 overflow-hidden"
+      className="w-full h-full flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
       dir={locale === "ar" ? "rtl" : "ltr"}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-700/50 bg-slate-900/30">
+      <div className="px-6 py-4 border-b border-slate-200 bg-white">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <h2 className="text-lg font-bold text-white mb-1">
+            <h2 className="text-lg font-bold text-slate-900 mb-1">
               {locale === "en" ? "Propagation Chain" : "سلسلة الانتشار"}
             </h2>
             {scenarioLabel && (
-              <p className="text-sm text-slate-300">
+              <p className="text-sm text-slate-600">
                 {locale === "en" ? scenarioLabel : scenarioLabelAr || scenarioLabel}
               </p>
             )}
@@ -124,7 +124,7 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
               <div className={`text-2xl font-bold ${getSeverityColor(severity)}`}>
                 {(severity * 100).toFixed(0)}%
               </div>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-600">
                 {getSeverityLabel(severity, locale)}
               </div>
             </div>
@@ -137,8 +137,8 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
         {!hasData ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center">
-              <AlertTriangle className="w-12 h-12 text-slate-500 mx-auto mb-3 opacity-50" />
-              <p className="text-slate-400 text-sm">
+              <AlertTriangle className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-50" />
+              <p className="text-slate-500 text-sm">
                 {locale === "en"
                   ? "No propagation data available"
                   : "لا توجد بيانات انتشار متاحة"}
@@ -158,7 +158,7 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
                 <div key={`step-${step.step}`} className="relative">
                   {/* Vertical connecting line */}
                   {!isLast && (
-                    <div className="absolute left-[24px] top-[60px] w-0.5 h-[40px] bg-gradient-to-b from-slate-600 to-transparent" />
+                    <div className="absolute left-[24px] top-[60px] w-0.5 h-[40px] bg-gradient-to-b from-slate-300 to-transparent" />
                   )}
 
                   {/* Step Card */}
@@ -175,49 +175,49 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
                     {/* Step Content */}
                     <div className="flex-1 pt-1">
                       <div
-                        className={`rounded-lg border-2 ${getStressBorderColor(cumulativeStress, maxStress * causalChain.length)} bg-gradient-to-br ${getStressColor(cumulativeStress, maxStress * causalChain.length)} p-4 hover:border-opacity-70 transition-all`}
+                        className={`rounded-lg border-2 ${getStressBorderColor(cumulativeStress, maxStress * causalChain.length)} bg-white border border-slate-200 p-4 hover:border-opacity-70 transition-all`}
                       >
                         {/* Entity Header */}
                         <div className="flex items-start justify-between gap-3 mb-2">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-white text-sm leading-tight">
+                            <h3 className="font-semibold text-slate-900 text-sm leading-tight">
                               {locale === "en" ? step.entity_label : step.entity_label_ar || step.entity_label}
                             </h3>
                             {locale === "ar" && step.entity_label_ar && (
-                              <p className="text-xs text-slate-300 mt-0.5">{step.entity_label}</p>
+                              <p className="text-xs text-slate-600 mt-0.5">{step.entity_label}</p>
                             )}
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <div className="text-sm font-bold text-white">
+                            <div className="text-sm font-bold text-slate-900">
                               {formatUsd(step.impact_usd)}
                             </div>
-                            <div className="text-xs text-slate-300">
+                            <div className="text-xs text-slate-600">
                               {locale === "en" ? "Impact" : "التأثير"}
                             </div>
                           </div>
                         </div>
 
                         {/* Event Description */}
-                        <p className="text-xs text-slate-200 mb-3 leading-snug">
+                        <p className="text-xs text-slate-700 mb-3 leading-snug">
                           {locale === "en" ? step.event : step.event_ar || step.event}
                         </p>
 
                         {/* Metrics Row */}
                         <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-slate-800/40 rounded px-2.5 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5">
+                          <div className="bg-slate-50 rounded px-2.5 py-2">
+                            <div className="text-xs text-slate-600 mb-0.5">
                               {locale === "en" ? "Stress Δ" : "تغير الضغط"}
                             </div>
-                            <div className="text-sm font-bold text-white">
+                            <div className="text-sm font-bold text-slate-900">
                               {step.stress_delta > 0 ? "+" : ""}
                               {(step.stress_delta * 100).toFixed(1)}%
                             </div>
                           </div>
-                          <div className="bg-slate-800/40 rounded px-2.5 py-2">
-                            <div className="text-xs text-slate-400 mb-0.5">
+                          <div className="bg-slate-50 rounded px-2.5 py-2">
+                            <div className="text-xs text-slate-600 mb-0.5">
                               {locale === "en" ? "Mechanism" : "الآلية"}
                             </div>
-                            <div className="text-xs font-semibold text-slate-100 truncate">
+                            <div className="text-xs font-semibold text-slate-800 truncate">
                               {step.mechanism}
                             </div>
                           </div>
@@ -234,32 +234,32 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
 
       {/* Summary Footer */}
       {hasData && (
-        <div className="border-t border-slate-700/50 bg-slate-900/30 px-6 py-4">
+        <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
           <div className="grid grid-cols-3 gap-4">
             {/* Total Steps */}
             <div>
-              <div className="text-xs text-slate-400 mb-1">
+              <div className="text-xs text-slate-600 mb-1">
                 {locale === "en" ? "Total Steps" : "إجمالي الخطوات"}
               </div>
-              <div className="text-xl font-bold text-white">{causalChain.length}</div>
+              <div className="text-xl font-bold text-slate-900">{causalChain.length}</div>
             </div>
 
             {/* Total Propagation Loss */}
             <div>
-              <div className="text-xs text-slate-400 mb-1">
+              <div className="text-xs text-slate-600 mb-1">
                 {locale === "en" ? "Total Loss" : "إجمالي الخسارة"}
               </div>
-              <div className="text-xl font-bold text-red-400">
+              <div className="text-xl font-bold text-red-600">
                 {formatUsd(totalLossUsd || causalChain.reduce((sum, s) => sum + s.impact_usd, 0))}
               </div>
             </div>
 
             {/* Peak Stress Entity */}
             <div>
-              <div className="text-xs text-slate-400 mb-1">
+              <div className="text-xs text-slate-600 mb-1">
                 {locale === "en" ? "Peak Stress" : "ذروة الضغط"}
               </div>
-              <div className="text-sm font-semibold text-orange-400 truncate">
+              <div className="text-sm font-semibold text-orange-600 truncate">
                 {peakStressStep
                   ? locale === "en"
                     ? peakStressStep.entity_label

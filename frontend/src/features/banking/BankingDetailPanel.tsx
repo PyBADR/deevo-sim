@@ -17,11 +17,11 @@ import type { BankingStress, Classification, Language } from "@/types/observator
 // ── Helpers ──────────────────────────────────────────────────────────
 
 const classificationColors: Record<Classification, string> = {
-  CRITICAL: "bg-io-critical text-white",
-  ELEVATED: "bg-io-elevated text-white",
-  MODERATE: "bg-io-moderate text-white",
-  LOW: "bg-io-low text-white",
-  NOMINAL: "bg-io-nominal text-white",
+  CRITICAL: "bg-red-50 text-red-700",
+  ELEVATED: "bg-orange-50 text-orange-700",
+  MODERATE: "bg-amber-50 text-amber-700",
+  LOW: "bg-yellow-50 text-yellow-700",
+  NOMINAL: "bg-green-50 text-green-700",
 };
 
 function Badge({ level }: { level: Classification }) {
@@ -39,10 +39,10 @@ function StressBar({ value, label, color }: { value: number; label: string; colo
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
-        <span className="text-io-secondary font-medium">{label}</span>
-        <span className="font-semibold text-io-primary">{safeFixed(pct, 1)}%</span>
+        <span className="text-slate-600 font-medium">{label}</span>
+        <span className="font-semibold text-slate-900">{safeFixed(pct, 1)}%</span>
       </div>
-      <div className="h-2 bg-io-bg rounded-full overflow-hidden">
+      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -116,62 +116,62 @@ export default function BankingDetailPanel({
     <div className={`space-y-6 ${isRTL ? "font-ar" : "font-sans"}`} dir={isRTL ? "rtl" : "ltr"}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-io-primary">{t.title}</h2>
+        <h2 className="text-xl font-bold text-slate-900">{t.title}</h2>
         <Badge level={data.classification as Classification} />
       </div>
 
       {/* Top Metrics Row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.aggregate}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{safePercent(data.aggregate_stress)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.aggregate}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{safePercent(data.aggregate_stress)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.total_exposure}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatUSD(data.total_exposure_usd)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.total_exposure}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{formatUSD(data.total_exposure_usd)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.ttl_breach}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-primary">{formatHours(data.time_to_liquidity_breach_hours)}</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.ttl_breach}</p>
+          <p className="text-2xl font-bold tabular-nums text-slate-900">{formatHours(data.time_to_liquidity_breach_hours)}</p>
         </div>
-        <div className="bg-io-surface border border-io-border rounded-xl p-4 shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-wider text-io-secondary mb-1">{t.car_impact}</p>
-          <p className="text-2xl font-bold tabular-nums text-io-danger">-{safeFixed(data.capital_adequacy_impact_pct, 2)}%</p>
+        <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm">
+          <p className="text-xs font-medium uppercase tracking-wider text-slate-600 mb-1">{t.car_impact}</p>
+          <p className="text-2xl font-bold tabular-nums text-red-600">-{safeFixed(data.capital_adequacy_impact_pct, 2)}%</p>
         </div>
       </div>
 
       {/* Stress Decomposition */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.stress_decomposition}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.stress_decomposition}</h3>
         <div className="space-y-3">
-          <StressBar value={data.liquidity_stress} label={t.liquidity} color="bg-io-accent" />
-          <StressBar value={data.credit_stress} label={t.credit} color="bg-io-warning" />
-          <StressBar value={data.fx_stress} label={t.fx} color="bg-io-elevated" />
-          <StressBar value={data.interbank_contagion} label={t.contagion} color="bg-io-critical" />
+          <StressBar value={data.liquidity_stress} label={t.liquidity} color="bg-blue-500" />
+          <StressBar value={data.credit_stress} label={t.credit} color="bg-amber-500" />
+          <StressBar value={data.fx_stress} label={t.fx} color="bg-orange-500" />
+          <StressBar value={data.interbank_contagion} label={t.contagion} color="bg-red-500" />
         </div>
       </div>
 
       {/* Basel III Reference */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.basel_metrics}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.basel_metrics}</h3>
         <div className="grid grid-cols-2 gap-4">
-          <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.min_car}</span>
-            <span className="font-semibold text-io-primary">{t.min_car_value}</span>
+          <div className="flex justify-between text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.min_car}</span>
+            <span className="font-semibold text-slate-900">{t.min_car_value}</span>
           </div>
-          <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.lcr_label}</span>
-            <span className="font-semibold text-io-primary">{t.lcr_value}</span>
+          <div className="flex justify-between text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.lcr_label}</span>
+            <span className="font-semibold text-slate-900">{t.lcr_value}</span>
           </div>
-          <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.car_impact}</span>
-            <span className={`font-semibold ${data.capital_adequacy_impact_pct > 2 ? "text-io-danger" : "text-io-warning"}`}>
+          <div className="flex justify-between text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.car_impact}</span>
+            <span className={`font-semibold ${data.capital_adequacy_impact_pct > 2 ? "text-red-600" : "text-amber-600"}`}>
               -{safeFixed(data.capital_adequacy_impact_pct, 2)}%
             </span>
           </div>
-          <div className="flex justify-between text-sm border-b border-io-border/50 pb-2">
-            <span className="text-io-secondary">{t.contagion}</span>
-            <span className={`font-semibold ${data.interbank_contagion > 0.5 ? "text-io-danger" : "text-io-primary"}`}>
+          <div className="flex justify-between text-sm border-b border-slate-200 pb-2">
+            <span className="text-slate-600">{t.contagion}</span>
+            <span className={`font-semibold ${data.interbank_contagion > 0.5 ? "text-red-600" : "text-slate-900"}`}>
               {safePercent(data.interbank_contagion)}
             </span>
           </div>
@@ -179,12 +179,12 @@ export default function BankingDetailPanel({
       </div>
 
       {/* Institution Table */}
-      <div className="bg-io-surface border border-io-border rounded-xl p-5 shadow-sm">
-        <h3 className="text-sm font-semibold text-io-primary uppercase tracking-wider mb-4">{t.institutions}</h3>
+      <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider mb-4">{t.institutions}</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-io-border text-io-secondary">
+              <tr className="border-b border-slate-200 text-slate-600 bg-slate-50">
                 <th className="text-left py-2 font-medium">{t.institution}</th>
                 <th className="text-left py-2 font-medium">{t.country}</th>
                 <th className="text-right py-2 font-medium">{t.exposure}</th>
@@ -195,7 +195,7 @@ export default function BankingDetailPanel({
             <tbody>
               {(data.affected_institutions ?? []).length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-6 text-center text-xs text-io-secondary">
+                  <td colSpan={5} className="py-6 text-center text-xs text-slate-600">
                     {lang === "ar"
                       ? "لا توجد بيانات مؤسسية لهذا السيناريو"
                       : "No institution-level data available for this scenario"}
@@ -203,19 +203,19 @@ export default function BankingDetailPanel({
                 </tr>
               ) : (
                 (data.affected_institutions ?? []).map((inst) => (
-                  <tr key={inst.id} className="border-b border-io-border/50">
-                    <td className="py-2.5 font-medium text-io-primary">
+                  <tr key={inst.id} className="border-b border-slate-200">
+                    <td className="py-2.5 font-medium text-slate-900">
                       {lang === "ar" ? inst.name_ar : inst.name}
                     </td>
-                    <td className="py-2.5 text-io-secondary">{inst.country}</td>
+                    <td className="py-2.5 text-slate-600">{inst.country}</td>
                     <td className="py-2.5 text-right tabular-nums font-medium">{formatUSD(inst.exposure_usd)}</td>
                     <td className="py-2.5 text-right tabular-nums">
-                      <span className={inst.stress > 0.6 ? "text-io-danger font-semibold" : inst.stress > 0.4 ? "text-io-warning" : "text-io-primary"}>
+                      <span className={inst.stress > 0.6 ? "text-red-600 font-semibold" : inst.stress > 0.4 ? "text-amber-600" : "text-slate-900"}>
                         {safePercent(inst.stress)}
                       </span>
                     </td>
                     <td className="py-2.5 text-right tabular-nums">
-                      <span className={inst.projected_car_pct < 10 ? "text-io-danger font-semibold" : "text-io-primary"}>
+                      <span className={inst.projected_car_pct < 10 ? "text-red-600 font-semibold" : "text-slate-900"}>
                         {safeFixed(inst.projected_car_pct, 1)}%
                       </span>
                     </td>
