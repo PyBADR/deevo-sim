@@ -1452,3 +1452,17 @@ export interface PilotPayload {
   pilot_report: PilotReport;
   failure_modes: FailureMode[];
 }
+
+export interface MacroSignal {
+  name: string;
+  value: string;
+  impact: "low" | "medium" | "high";
+  status: string;
+}
+
+export interface MacroContext {
+  macro_signals: MacroSignal[];
+  system_risk_index: number;
+  narrative_en?: string;
+  narrative_ar?: string;
+}
