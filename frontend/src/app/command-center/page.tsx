@@ -523,7 +523,7 @@ function CommandCenterInner() {
         const res = await fetch(`${API_BASE}/api/v1/runs`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ template_id: templateId }),
+          body: JSON.stringify({ template_id: templateId, severity: 0.75 }),
         });
         const json = await res.json();
         const newRunId = json?.data?.run_id ?? json?.run_id;
