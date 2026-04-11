@@ -410,6 +410,7 @@ function CommandCenterInner() {
           narrativeEn={narrativeEn}
           narrativeAr={narrativeAr ?? ""}
           macroContext={macroContext ?? undefined}
+          trustInfo={trust ?? undefined}
           onSubmitForReview={handleSubmitForReview}
         />
       </div>
