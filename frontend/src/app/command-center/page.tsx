@@ -351,29 +351,47 @@ function CommandCenterInner() {
         </div>
       )}
 
-      {/* ── Top Bar: data source indicator + presentation toggle ── */}
-      <div className="flex-shrink-0 flex items-center justify-between px-6 pt-3 pb-1">
-        <div className="flex items-center gap-2">
-          <div
-            className={`w-1.5 h-1.5 rounded-full ${
-              dataSource === "live" ? "bg-emerald-500" : "bg-amber-500"
-            }`}
-          />
-          <span className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">
-            {dataSource === "live" ? "Live Intelligence" : "Demo Mode"}
-          </span>
+      {/* ═══════════════════════════════════════════════════════════════
+           SYSTEM IDENTITY — Macro Financial Intelligence for GCC
+           Visible immediately. CEO knows what system this is in 2 seconds.
+           ═══════════════════════════════════════════════════════════════ */}
+      <div className="flex-shrink-0 px-6 pt-4 pb-2">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <div className="w-6 h-6 rounded-lg bg-blue-600/15 border border-blue-500/20 flex items-center justify-center">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-blue-400">
+                  <circle cx="12" cy="12" r="10" /><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" />
+                </svg>
+              </div>
+              <h1 className="text-sm font-bold text-white tracking-tight">
+                Macro Financial Intelligence
+                <span className="text-blue-400 ml-1.5">GCC</span>
+              </h1>
+            </div>
+            <p className="text-[10px] text-slate-500 leading-relaxed max-w-lg">
+              Decision system for GCC financial markets — from macro shock to executive action.
+              Explainable. Auditable. Decision intelligence.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${dataSource === "live" ? "bg-emerald-500" : "bg-amber-500"}`} />
+              <span className="text-[9px] font-medium text-slate-600 uppercase tracking-wider">
+                {dataSource === "live" ? "Live" : "Demo"}
+              </span>
+            </div>
+            <button
+              onClick={() => setPresentationMode(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-semibold rounded-md bg-slate-800/50 border border-slate-700/50 text-slate-500 hover:text-slate-400 transition-all"
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+              Present
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setPresentationMode(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-semibold rounded-md bg-slate-800/50 border border-slate-700/50 text-slate-400 hover:text-slate-300 hover:border-slate-600/50 transition-all"
-        >
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="2" y="3" width="20" height="14" rx="2" />
-            <line x1="8" y1="21" x2="16" y2="21" />
-            <line x1="12" y1="17" x2="12" y2="21" />
-          </svg>
-          Present
-        </button>
       </div>
 
       {/* ── STEP 6: Scenario Selector — switch scenarios without page reload ── */}

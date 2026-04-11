@@ -43,6 +43,58 @@ import type {
   MacroContext,
 } from "@/types/observatory";
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// GCC Entity System — World Model
+// Countries, sectors, entities, and their relationships.
+// This is the system's understanding of the GCC financial ecosystem.
+// NOT an engine — a static, deterministic knowledge graph for UI rendering.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+interface GccEntity {
+  id: string;
+  nameEn: string;
+  nameAr: string;
+  type: "central_bank" | "oil_producer" | "port" | "insurer" | "financial_institution" | "sovereign_fund";
+  sector: string;
+  country: string;
+}
+
+interface TransmissionLink {
+  from: string;   // entity type or sector
+  to: string;
+  label: string;
+  labelAr: string;
+}
+
+const GCC_SECTORS = {
+  banking:   { en: "Banking",   ar: "البنوك" },
+  insurance: { en: "Insurance", ar: "التأمين" },
+  energy:    { en: "Energy",    ar: "الطاقة" },
+  logistics: { en: "Logistics", ar: "اللوجستيات" },
+  fintech:   { en: "Fintech",   ar: "التقنية المالية" },
+} as const;
+
+const GCC_COUNTRY_PROFILES: Record<string, {
+  nameEn: string; nameAr: string;
+  dominantSector: keyof typeof GCC_SECTORS;
+  entities: string[];
+}> = {
+  SA: { nameEn: "Saudi Arabia", nameAr: "السعودية",   dominantSector: "energy",    entities: ["Saudi Aramco", "SAMA", "Tadawul"] },
+  AE: { nameEn: "UAE",          nameAr: "الإمارات",    dominantSector: "banking",   entities: ["CBUAE", "DP World", "ADNOC"] },
+  QA: { nameEn: "Qatar",        nameAr: "قطر",         dominantSector: "energy",    entities: ["QatarEnergy", "QCB", "Hamad Port"] },
+  KW: { nameEn: "Kuwait",       nameAr: "الكويت",      dominantSector: "energy",    entities: ["KPC", "CBK", "KIA"] },
+  BH: { nameEn: "Bahrain",      nameAr: "البحرين",     dominantSector: "banking",   entities: ["CBB", "Bahrain Bourse", "BAPCO"] },
+  OM: { nameEn: "Oman",         nameAr: "عُمان",       dominantSector: "logistics", entities: ["Port of Salalah", "CBO", "PDO"] },
+};
+
+/** Default transmission chain for GCC financial shocks */
+const TRANSMISSION_CHAIN: TransmissionLink[] = [
+  { from: "Oil Producers",          to: "Banking",   label: "Revenue disruption → liquidity stress",      labelAr: "اضطراب الإيرادات → ضغط السيولة" },
+  { from: "Banking",                to: "Insurance",  label: "Liquidity stress → claims exposure",         labelAr: "ضغط السيولة → التعرض للمطالبات" },
+  { from: "Insurance",              to: "Logistics",  label: "Claims surge → supply chain disruption",     labelAr: "زيادة المطالبات → اضطراب سلسلة التوريد" },
+  { from: "Logistics",              to: "Central Banks", label: "Trade disruption → monetary intervention", labelAr: "اضطراب التجارة → التدخل النقدي" },
+];
+
 // ── Types ────────────────────────────────────────────────────────────
 
 interface TrustInfo {
@@ -184,27 +236,57 @@ export function DecisionRoomV2({
     ? Math.round((totalLossAvoided / lossWithoutAction) * 100)
     : 0;
 
-  // Macro → Decision links
+  // Macro → Sector → Entity → Decision causal chains
   const macroDecisionLinks = useMemo(() => {
-    if (!topMacroSignals.length || !allDrivers.length || !topDecisions.length) return [];
+    if (!topMacroSignals.length || !topDecisions.length) return [];
     return topMacroSignals.slice(0, 3).map((sig) => {
+      const sigName = (sig.name_en ?? "").toLowerCase();
       const matchedDriver = allDrivers.find(
-        (d) => d.label.toLowerCase().includes(sig.name_en?.toLowerCase().split(" ")[0] ?? ""),
+        (d) => d.label.toLowerCase().includes(sigName.split(" ")[0]),
       );
       const linkedAction = topDecisions[0];
+
+      // Derive sector + entity impact from signal type
+      let sectorImpact: string | null = null;
+      let entityImpact: string | null = null;
+
+      if (sigName.includes("oil") || sigName.includes("energy")) {
+        sectorImpact = isAr
+          ? `إجهاد الطاقة +${matchedDriver?.pct ?? 30}%`
+          : `Energy stress +${matchedDriver?.pct ?? 30}%`;
+        entityImpact = isAr ? "التعرض التأميني +22%" : "Insurance exposure +22%";
+      } else if (sigName.includes("liquidity") || sigName.includes("banking")) {
+        sectorImpact = isAr
+          ? `ضغط السيولة المصرفية +${matchedDriver?.pct ?? 25}%`
+          : `Banking liquidity stress +${matchedDriver?.pct ?? 25}%`;
+        entityImpact = isAr ? "زيادة المطالبات" : "Claims surge";
+      } else if (sigName.includes("trade") || sigName.includes("port") || sigName.includes("shipping")) {
+        sectorImpact = isAr
+          ? `اضطراب اللوجستيات +${matchedDriver?.pct ?? 20}%`
+          : `Logistics disruption +${matchedDriver?.pct ?? 20}%`;
+        entityImpact = isAr ? "تأخر الموانئ" : "Port congestion";
+      } else if (sigName.includes("fx") || sigName.includes("currency")) {
+        sectorImpact = isAr
+          ? `ضغط العملات +${matchedDriver?.pct ?? 15}%`
+          : `FX pressure +${matchedDriver?.pct ?? 15}%`;
+        entityImpact = isAr ? "تدخل البنوك المركزية" : "Central bank intervention";
+      } else if (matchedDriver) {
+        sectorImpact = isAr
+          ? `+${matchedDriver.pct}% من الخسائر`
+          : `+${matchedDriver.pct}% of loss`;
+      }
+
       return {
         signal: isAr ? sig.name_ar : sig.name_en,
         value: sig.value,
-        driverPct: matchedDriver?.pct ?? null,
+        sectorImpact,
+        entityImpact,
         actionLabel: linkedAction
           ? isAr ? linkedAction.action_ar : linkedAction.action
           : null,
-        lossContribution: matchedDriver
-          ? totalLossUsd * (matchedDriver.pct / 100)
-          : null,
       };
-    }).filter((l) => l.driverPct !== null || l.actionLabel !== null);
-  }, [topMacroSignals, allDrivers, topDecisions, totalLossUsd, isAr]);
+    }).filter((l) => l.sectorImpact !== null || l.actionLabel !== null);
+  }, [topMacroSignals, allDrivers, topDecisions, isAr]);
 
   // Decision comparison data
   const comparisonData = useMemo(() => {
@@ -315,7 +397,7 @@ export function DecisionRoomV2({
           </div>
         </div>
 
-        {/* Macro Signals with → decision links (STEP 5) */}
+        {/* Macro Signals — inline badges */}
         {topMacroSignals.length > 0 && (
           <div className="px-5 pb-2 flex items-center gap-3 flex-wrap">
             {topMacroSignals.map((sig) => (
@@ -334,22 +416,31 @@ export function DecisionRoomV2({
           </div>
         )}
 
-        {/* STEP 5: Macro → Decision links */}
+        {/* STEP 4+5: Macro → Sector → Entity → Decision (full causal chains) */}
         {macroDecisionLinks.length > 0 && (
-          <div className="px-5 pb-3 space-y-0.5">
+          <div className="px-5 pb-3 space-y-1">
             {macroDecisionLinks.map((link, i) => (
-              <p key={i} className="text-[10px] text-slate-500 leading-relaxed">
+              <div key={i} className="flex items-center gap-1 text-[10px] flex-wrap">
                 <span className="text-slate-400 font-medium">{link.signal} {link.value}</span>
-                {link.driverPct != null && (
-                  <span> → {isAr ? "يقود" : "drives"} {link.driverPct}% {isAr ? "من الخسائر" : "of loss"}</span>
+                {link.sectorImpact && (
+                  <>
+                    <span className="text-slate-600">→</span>
+                    <span className="text-amber-400">{isAr ? "يقود" : "Drives"} {link.sectorImpact}</span>
+                  </>
                 )}
-                {link.lossContribution != null && (
-                  <span className="text-slate-400"> ({formatUsdCompact(link.lossContribution)})</span>
+                {link.entityImpact && (
+                  <>
+                    <span className="text-slate-600">→</span>
+                    <span className="text-orange-400">{link.entityImpact}</span>
+                  </>
                 )}
                 {link.actionLabel && (
-                  <span> → <span className="text-blue-400">{link.actionLabel}</span></span>
+                  <>
+                    <span className="text-slate-600">→</span>
+                    <span className="text-blue-400 font-medium">{link.actionLabel}</span>
+                  </>
                 )}
-              </p>
+              </div>
             ))}
           </div>
         )}
@@ -471,6 +562,83 @@ export function DecisionRoomV2({
             </div>
           </div>
         )}
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+           TRANSMISSION CHAIN — How shock propagates through GCC entities
+           Oil Producers → Banking → Insurance → Logistics → Central Banks
+           ═══════════════════════════════════════════════════════════════ */}
+      <div className="bg-slate-900/40 rounded-xl border border-slate-700/30 p-4">
+        <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          {isAr ? "سلسلة الانتقال — من الصدمة إلى القرار" : "Transmission Chain — Shock to Decision"}
+        </h3>
+        <div className="flex items-center gap-0 overflow-x-auto scrollbar-hide py-1">
+          {TRANSMISSION_CHAIN.map((link, i) => (
+            <div key={i} className="flex items-center flex-shrink-0">
+              {/* FROM node */}
+              {i === 0 && (
+                <div className="flex flex-col items-center px-2">
+                  <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                    <span className="text-[10px]">⚡</span>
+                  </div>
+                  <span className="text-[8px] text-red-400 mt-1 font-semibold whitespace-nowrap">{isAr ? "منتجو النفط" : link.from}</span>
+                </div>
+              )}
+              {/* Arrow with label */}
+              <div className="flex flex-col items-center mx-1">
+                <span className="text-[7px] text-slate-600 mb-0.5 max-w-[80px] text-center leading-tight whitespace-nowrap">
+                  {isAr ? link.labelAr.split("→")[0].trim() : link.label.split("→")[0].trim()}
+                </span>
+                <div className="flex items-center">
+                  <div className="w-8 h-px bg-slate-600/50" />
+                  <svg width="6" height="8" viewBox="0 0 6 8" className="text-slate-500 flex-shrink-0">
+                    <path d="M0 0 L6 4 L0 8" fill="currentColor" />
+                  </svg>
+                </div>
+              </div>
+              {/* TO node */}
+              <div className="flex flex-col items-center px-2">
+                <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
+                  i === TRANSMISSION_CHAIN.length - 1
+                    ? "bg-blue-500/10 border-blue-500/20"
+                    : "bg-amber-500/10 border-amber-500/20"
+                }`}>
+                  <span className="text-[10px]">{
+                    link.to === "Banking" ? "🏦" :
+                    link.to === "Insurance" ? "🛡️" :
+                    link.to === "Logistics" ? "🚢" :
+                    link.to === "Central Banks" ? "🏛️" : "📊"
+                  }</span>
+                </div>
+                <span className={`text-[8px] mt-1 font-semibold whitespace-nowrap ${
+                  i === TRANSMISSION_CHAIN.length - 1 ? "text-blue-400" : "text-amber-400"
+                }`}>{isAr ? link.labelAr.split("→")[1]?.trim() ?? link.to : link.to}</span>
+              </div>
+            </div>
+          ))}
+          {/* Final: Decision node */}
+          <div className="flex items-center flex-shrink-0">
+            <div className="flex flex-col items-center mx-1">
+              <span className="text-[7px] text-slate-600 mb-0.5 whitespace-nowrap">
+                {isAr ? "القرار" : "Decision"}
+              </span>
+              <div className="flex items-center">
+                <div className="w-8 h-px bg-slate-600/50" />
+                <svg width="6" height="8" viewBox="0 0 6 8" className="text-blue-400 flex-shrink-0">
+                  <path d="M0 0 L6 4 L0 8" fill="currentColor" />
+                </svg>
+              </div>
+            </div>
+            <div className="flex flex-col items-center px-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <span className="text-[10px]">✅</span>
+              </div>
+              <span className="text-[8px] text-emerald-400 mt-1 font-semibold whitespace-nowrap">
+                {isAr ? "تفعيل الاحتياطي" : "Activate Reserve"}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
@@ -625,7 +793,7 @@ function GccImpactMap({
   onHover,
   locale,
 }: {
-  countryExposures: Record<string, { exposure: number; driver: string }>;
+  countryExposures: Record<string, { exposure: number; driver: string; dominantSector: string; entities: string[] }>;
   hoveredCountry: string | null;
   onHover: (id: string | null) => void;
   locale: "en" | "ar";
@@ -638,7 +806,7 @@ function GccImpactMap({
     <div className="bg-slate-900/40 rounded-xl border border-slate-700/30 p-4">
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-          {isAr ? "خريطة التأثير الجغرافي" : "GCC Impact Geography"}
+          {isAr ? "الاستخبارات الجغرافية — دول الخليج" : "Geographic Intelligence — GCC"}
         </h3>
         <div className="flex items-center gap-3 text-[9px] text-slate-600">
           <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500/70" /> {isAr ? "مرتفع" : "High"}</span>
@@ -649,58 +817,47 @@ function GccImpactMap({
 
       <div className="relative">
         <svg viewBox="0 0 320 170" className="w-full h-auto" style={{ maxHeight: 180 }}>
-          {/* Gulf water body */}
           <ellipse cx="230" cy="70" rx="40" ry="25" fill="rgba(59,130,246,0.05)" stroke="rgba(59,130,246,0.1)" strokeWidth="0.5" />
           <text x="230" y="73" textAnchor="middle" className="fill-blue-500/20 text-[5px]">Gulf</text>
 
-          {/* Countries */}
           {GCC_COUNTRIES.map((country) => {
             const data = countryExposures[country.id];
             const exposure = data?.exposure ?? 0;
             const fillColor = exposure >= 0.6
-              ? "rgba(239,68,68,0.25)"
-              : exposure >= 0.3
-                ? "rgba(245,158,11,0.2)"
-                : "rgba(16,185,129,0.15)";
+              ? "rgba(239,68,68,0.25)" : exposure >= 0.3
+                ? "rgba(245,158,11,0.2)" : "rgba(16,185,129,0.15)";
             const strokeColor = exposure >= 0.6
-              ? "rgba(239,68,68,0.5)"
-              : exposure >= 0.3
-                ? "rgba(245,158,11,0.4)"
-                : "rgba(16,185,129,0.3)";
-            const isHovered = hoveredCountry === country.id;
+              ? "rgba(239,68,68,0.5)" : exposure >= 0.3
+                ? "rgba(245,158,11,0.4)" : "rgba(16,185,129,0.3)";
+            const isHov = hoveredCountry === country.id;
+            const profile = GCC_COUNTRY_PROFILES[country.id];
+            const sectorLabel = profile
+              ? (isAr ? GCC_SECTORS[profile.dominantSector].ar : GCC_SECTORS[profile.dominantSector].en)
+              : "";
 
             return (
               <g key={country.id}>
-                <ellipse
-                  cx={country.cx}
-                  cy={country.cy}
-                  rx={country.rx}
-                  ry={country.ry}
-                  fill={fillColor}
-                  stroke={isHovered ? "rgba(255,255,255,0.6)" : strokeColor}
-                  strokeWidth={isHovered ? 1.5 : 0.8}
+                <ellipse cx={country.cx} cy={country.cy} rx={country.rx} ry={country.ry}
+                  fill={fillColor} stroke={isHov ? "rgba(255,255,255,0.6)" : strokeColor}
+                  strokeWidth={isHov ? 1.5 : 0.8}
                   className="cursor-pointer transition-all duration-200"
-                  onMouseEnter={() => onHover(country.id)}
-                  onMouseLeave={() => onHover(null)}
+                  onMouseEnter={() => onHover(country.id)} onMouseLeave={() => onHover(null)}
                 />
-                <text
-                  x={country.cx}
-                  y={country.cy + 1}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className={`pointer-events-none select-none ${isHovered ? "fill-white text-[7px] font-bold" : "fill-slate-400 text-[6px]"}`}
-                >
+                <text x={country.cx} y={country.cy - 2} textAnchor="middle" dominantBaseline="middle"
+                  className={`pointer-events-none select-none ${isHov ? "fill-white text-[7px] font-bold" : "fill-slate-400 text-[6px]"}`}>
                   {isAr ? country.nameAr : country.name}
                 </text>
-                {/* Exposure % below name */}
-                <text
-                  x={country.cx}
-                  y={country.cy + (country.ry > 20 ? 12 : 9)}
-                  textAnchor="middle"
+                {/* Dominant sector label */}
+                {country.rx >= 15 && sectorLabel && (
+                  <text x={country.cx} y={country.cy + 6} textAnchor="middle"
+                    className="pointer-events-none select-none fill-slate-600 text-[4px]">
+                    {sectorLabel}
+                  </text>
+                )}
+                <text x={country.cx} y={country.cy + (country.ry > 20 ? 14 : 10)} textAnchor="middle"
                   className={`pointer-events-none select-none text-[5px] ${
                     exposure >= 0.6 ? "fill-red-400" : exposure >= 0.3 ? "fill-amber-400" : "fill-emerald-400"
-                  }`}
-                >
+                  }`}>
                   {Math.round(exposure * 100)}%
                 </text>
               </g>
@@ -708,16 +865,24 @@ function GccImpactMap({
           })}
         </svg>
 
-        {/* Hover tooltip */}
+        {/* Entity-aware hover tooltip */}
         {hovered && hoveredData && (
-          <div className="absolute top-2 right-2 bg-slate-800/95 border border-slate-600/50 rounded-lg px-3 py-2 backdrop-blur-sm">
+          <div className="absolute top-2 right-2 bg-slate-800/95 border border-slate-600/50 rounded-lg px-3 py-2 backdrop-blur-sm min-w-[140px]">
             <p className="text-xs font-bold text-white">{isAr ? hovered.nameAr : hovered.name}</p>
-            <p className="text-[10px] text-slate-400">
+            <p className="text-[10px] text-slate-400 mt-0.5">
               {isAr ? "التعرض" : "Exposure"}: <span className={`font-bold ${hoveredData.exposure >= 0.6 ? "text-red-400" : hoveredData.exposure >= 0.3 ? "text-amber-400" : "text-emerald-400"}`}>{Math.round(hoveredData.exposure * 100)}%</span>
             </p>
             <p className="text-[10px] text-slate-500">
-              {isAr ? "المحرك" : "Key driver"}: {hoveredData.driver}
+              {isAr ? "القطاع" : "Sector"}: <span className="text-slate-300">{hoveredData.dominantSector}</span>
             </p>
+            <p className="text-[10px] text-slate-500">
+              {isAr ? "المحرك" : "Driver"}: <span className="text-slate-400">{hoveredData.driver}</span>
+            </p>
+            {hoveredData.entities.length > 0 && (
+              <p className="text-[9px] text-slate-600 mt-0.5">
+                {hoveredData.entities.slice(0, 2).join(" · ")}
+              </p>
+            )}
           </div>
         )}
       </div>
@@ -967,7 +1132,7 @@ function deriveCountryExposures(
   sectorRollups: Record<string, SectorRollup>,
   averageStress: number,
   scenarioLabel: string,
-): Record<string, { exposure: number; driver: string }> {
+): Record<string, { exposure: number; driver: string; dominantSector: string; entities: string[] }> {
   const banking = sectorRollups.banking?.aggregate_stress ?? 0;
   const insurance = sectorRollups.insurance?.aggregate_stress ?? 0;
   const fintech = sectorRollups.fintech?.aggregate_stress ?? 0;
@@ -988,31 +1153,42 @@ function deriveCountryExposures(
 
   const clamp01 = (v: number) => Math.max(0, Math.min(1, v));
 
+  // Helper: enrich with entity system data
+  const enrich = (code: string, exposure: number, driver: string) => {
+    const profile = GCC_COUNTRY_PROFILES[code];
+    return {
+      exposure,
+      driver,
+      dominantSector: profile ? GCC_SECTORS[profile.dominantSector].en : "Unknown",
+      entities: profile?.entities ?? [],
+    };
+  };
+
   return {
-    SA: {
-      exposure: clamp01(isOil ? avg * 1.4 : isHormuz ? avg * 1.1 : avg * 0.9 + banking * 0.1),
-      driver: isOil ? "Oil production" : isHormuz ? "Energy export route" : "Banking sector",
-    },
-    AE: {
-      exposure: clamp01(isBanking ? banking * 1.3 : isHormuz ? avg * 1.2 : avg * 0.85 + fintech * 0.15),
-      driver: isBanking ? "Banking concentration" : isHormuz ? "Trade disruption" : "Financial services",
-    },
-    QA: {
-      exposure: clamp01(isQatar ? avg * 1.5 : isHormuz ? avg * 1.1 : avg * 0.6),
-      driver: isQatar ? "LNG export disruption" : isHormuz ? "Shipping routes" : "Energy sector",
-    },
-    KW: {
-      exposure: clamp01(isKuwait ? avg * 1.4 : isOil ? avg * 1.1 : avg * 0.7),
-      driver: isKuwait ? "Fiscal revenue shock" : isOil ? "Oil dependence" : "Sovereign exposure",
-    },
-    BH: {
-      exposure: clamp01(isBahrain ? avg * 1.5 : isBanking ? banking * 1.2 : avg * 0.75 + banking * 0.2),
-      driver: isBahrain ? "Sovereign stress" : isBanking ? "Banking exposure" : "Financial services",
-    },
-    OM: {
-      exposure: clamp01(isOman ? avg * 1.4 : isRedSea ? avg * 1.2 : avg * 0.6),
-      driver: isOman ? "Port throughput" : isRedSea ? "Trade corridor" : "Port logistics",
-    },
+    SA: enrich("SA",
+      clamp01(isOil ? avg * 1.4 : isHormuz ? avg * 1.1 : avg * 0.9 + banking * 0.1),
+      isOil ? "Oil production" : isHormuz ? "Energy export route" : "Banking sector",
+    ),
+    AE: enrich("AE",
+      clamp01(isBanking ? banking * 1.3 : isHormuz ? avg * 1.2 : avg * 0.85 + fintech * 0.15),
+      isBanking ? "Banking concentration" : isHormuz ? "Trade disruption" : "Financial services",
+    ),
+    QA: enrich("QA",
+      clamp01(isQatar ? avg * 1.5 : isHormuz ? avg * 1.1 : avg * 0.6),
+      isQatar ? "LNG export disruption" : isHormuz ? "Shipping routes" : "Energy sector",
+    ),
+    KW: enrich("KW",
+      clamp01(isKuwait ? avg * 1.4 : isOil ? avg * 1.1 : avg * 0.7),
+      isKuwait ? "Fiscal revenue shock" : isOil ? "Oil dependence" : "Sovereign exposure",
+    ),
+    BH: enrich("BH",
+      clamp01(isBahrain ? avg * 1.5 : isBanking ? banking * 1.2 : avg * 0.75 + banking * 0.2),
+      isBahrain ? "Sovereign stress" : isBanking ? "Banking exposure" : "Financial services",
+    ),
+    OM: enrich("OM",
+      clamp01(isOman ? avg * 1.4 : isRedSea ? avg * 1.2 : avg * 0.6),
+      isOman ? "Port throughput" : isRedSea ? "Trade corridor" : "Port logistics",
+    ),
   };
 }
 
