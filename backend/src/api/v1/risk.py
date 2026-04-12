@@ -151,7 +151,7 @@ async def assess_by_type(
         raise HTTPException(status_code=500, detail=f"Type assessment error: {exc}")
 
 
-@router.get("/heatmap", response_model=dict)
+@router.get("/heatmap")
 async def risk_heatmap() -> dict[str, Any]:
     """Generate risk heatmap data across all entity types."""
     try:

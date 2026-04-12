@@ -16,7 +16,7 @@ from src.data_foundation.schemas.entity_registry import EntityRegistryEntry
 router = APIRouter(prefix="/foundation/entities", tags=["Data Foundation — Entities"])
 
 
-@router.get("", response_model=list[dict])
+@router.get("")
 async def list_entities(
     country: Optional[str] = Query(None, description="Filter by GCC country code"),
     entity_type: Optional[str] = Query(None, description="Filter by entity type"),

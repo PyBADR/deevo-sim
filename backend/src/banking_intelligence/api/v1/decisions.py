@@ -46,7 +46,7 @@ def set_graph_writer(writer):
 # Decision Contract CRUD
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/contracts", response_model=dict)
+@router.post("/contracts")
 async def create_decision_contract(data: dict[str, Any]):
     """Create a new decision contract."""
     try:
@@ -141,7 +141,7 @@ async def get_decision_chain(decision_id: str):
 # Counterfactual Analysis
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/counterfactuals", response_model=dict)
+@router.post("/counterfactuals")
 async def create_counterfactual(data: dict[str, Any]):
     """Create a counterfactual analysis."""
     try:
@@ -180,7 +180,7 @@ async def get_counterfactual(cf_id: str):
 # Propagation Contracts
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/propagations", response_model=dict)
+@router.post("/propagations")
 async def create_propagation(data: dict[str, Any]):
     """Create a propagation intervention contract."""
     try:
@@ -229,7 +229,7 @@ async def get_propagation(prop_id: str):
 # Outcome Reviews
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/outcome-reviews", response_model=dict)
+@router.post("/outcome-reviews")
 async def create_outcome_review(data: dict[str, Any]):
     """Create an outcome review."""
     try:
@@ -266,7 +266,7 @@ async def get_outcome_review(review_id: str):
 # Value Audits
 # ═══════════════════════════════════════════════════════════════════════════
 
-@router.post("/value-audits", response_model=dict)
+@router.post("/value-audits")
 async def create_value_audit(data: dict[str, Any]):
     """Create a decision value audit."""
     try:

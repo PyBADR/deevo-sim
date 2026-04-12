@@ -15,7 +15,7 @@ from src.data_foundation.schemas.decision_logs import DecisionLogEntry
 router = APIRouter(prefix="/foundation/decision-logs", tags=["Data Foundation — Decision Logs"])
 
 
-@router.get("", response_model=list[dict])
+@router.get("")
 async def list_logs(
     rule_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None),

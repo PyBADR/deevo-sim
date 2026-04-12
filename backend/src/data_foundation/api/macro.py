@@ -15,7 +15,7 @@ from src.data_foundation.schemas.macro_indicators import MacroIndicatorRecord
 router = APIRouter(prefix="/foundation/macro", tags=["Data Foundation — Macro Indicators"])
 
 
-@router.get("", response_model=list[dict])
+@router.get("")
 async def list_macro(
     country: Optional[str] = Query(None),
     indicator_code: Optional[str] = Query(None),

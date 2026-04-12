@@ -52,7 +52,7 @@ router = APIRouter(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/policies", response_model=list[dict])
+@router.get("/policies")
 async def list_policies(
     policy_type: Optional[str] = Query(None, description="Filter by policy type"),
     is_active: Optional[bool] = Query(None),
@@ -97,7 +97,7 @@ async def create_policy(body: GovernancePolicy, session: AsyncSession = Depends(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/lifecycle-events", response_model=list[dict])
+@router.get("/lifecycle-events")
 async def list_lifecycle_events(
     spec_id: Optional[str] = Query(None, description="Filter by rule spec ID"),
     limit: int = Query(100, ge=1, le=500),
@@ -125,7 +125,7 @@ async def get_lifecycle_event(event_id: str, session: AsyncSession = Depends(get
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/truth-policies", response_model=list[dict])
+@router.get("/truth-policies")
 async def list_truth_policies(
     target_dataset: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
@@ -166,7 +166,7 @@ async def create_truth_policy(body: TruthValidationPolicy, session: AsyncSession
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/truth-results", response_model=list[dict])
+@router.get("/truth-results")
 async def list_truth_results(
     policy_id: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -185,7 +185,7 @@ async def list_truth_results(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/calibration-triggers", response_model=list[dict])
+@router.get("/calibration-triggers")
 async def list_calibration_triggers(
     trigger_type: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
@@ -225,7 +225,7 @@ async def create_calibration_trigger(body: CalibrationTrigger, session: AsyncSes
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/calibration-events", response_model=list[dict])
+@router.get("/calibration-events")
 async def list_calibration_events(
     rule_id: Optional[str] = Query(None),
     status: Optional[str] = Query(None, description="Filter by status (TRIGGERED, RESOLVED, etc.)"),
@@ -247,7 +247,7 @@ async def list_calibration_events(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/audit", response_model=list[dict])
+@router.get("/audit")
 async def list_audit_entries(
     subject_type: Optional[str] = Query(None),
     subject_id: Optional[str] = Query(None),
@@ -277,7 +277,7 @@ async def get_audit_entry(entry_id: str, session: AsyncSession = Depends(get_ses
     return audit_entry_from_orm(row).model_dump(mode="json")
 
 
-@router.get("/audit/chain/{start_entry_id}", response_model=list[dict])
+@router.get("/audit/chain/{start_entry_id}")
 async def get_audit_chain(
     start_entry_id: str,
     limit: int = Query(100, ge=1, le=500),

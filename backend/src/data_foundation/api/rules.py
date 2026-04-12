@@ -15,7 +15,7 @@ from src.data_foundation.schemas.decision_rules import DecisionRule
 router = APIRouter(prefix="/foundation/rules", tags=["Data Foundation — Decision Rules"])
 
 
-@router.get("", response_model=list[dict])
+@router.get("")
 async def list_rules(
     active_only: bool = Query(False),
     action: Optional[str] = Query(None),

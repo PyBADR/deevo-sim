@@ -16,7 +16,7 @@ from src.data_foundation.schemas.event_signals import EventSignal
 router = APIRouter(prefix="/foundation/events", tags=["Data Foundation — Events"])
 
 
-@router.get("", response_model=list[dict])
+@router.get("")
 async def list_events(
     category: Optional[str] = Query(None),
     min_severity: Optional[float] = Query(None, ge=0.0, le=1.0),

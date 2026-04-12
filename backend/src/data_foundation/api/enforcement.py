@@ -99,7 +99,7 @@ class ResolveApprovalRequest(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/policies", response_model=list[dict])
+@router.get("/policies")
 async def list_enforcement_policies(
     enforcement_action: Optional[str] = Query(None),
     is_active: Optional[bool] = Query(None),
@@ -156,7 +156,7 @@ async def create_enforcement_policy(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/decisions", response_model=list[dict])
+@router.get("/decisions")
 async def list_enforcement_decisions(
     decision_log_id: Optional[str] = Query(None),
     enforcement_action: Optional[str] = Query(None),
@@ -192,7 +192,7 @@ async def get_enforcement_decision(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/gates", response_model=list[dict])
+@router.get("/gates")
 async def list_gates(
     gate_outcome: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -222,7 +222,7 @@ async def get_gate(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/approvals", response_model=list[dict])
+@router.get("/approvals")
 async def list_approval_requests(
     status: Optional[str] = Query(None),
     required_approver_role: Optional[str] = Query(None),

@@ -44,7 +44,7 @@ router = APIRouter(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/expected-outcomes", response_model=list[dict])
+@router.get("/expected-outcomes")
 async def list_expected_outcomes(
     rule_id: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -72,7 +72,7 @@ async def get_expected_outcome(outcome_id: str, session: AsyncSession = Depends(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/actual-outcomes", response_model=list[dict])
+@router.get("/actual-outcomes")
 async def list_actual_outcomes(
     expected_outcome_id: Optional[str] = Query(None),
     limit: int = Query(100, ge=1, le=500),
@@ -91,7 +91,7 @@ async def list_actual_outcomes(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/evaluations", response_model=list[dict])
+@router.get("/evaluations")
 async def list_evaluations(
     rule_id: Optional[str] = Query(None),
     verdict: Optional[str] = Query(None, description="Filter by analyst_verdict"),
@@ -122,7 +122,7 @@ async def get_evaluation(evaluation_id: str, session: AsyncSession = Depends(get
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/feedback", response_model=list[dict])
+@router.get("/feedback")
 async def list_feedback(
     evaluation_id: Optional[str] = Query(None),
     analyst_id: Optional[str] = Query(None),
@@ -144,7 +144,7 @@ async def list_feedback(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/replays", response_model=list[dict])
+@router.get("/replays")
 async def list_replay_runs(
     status: Optional[str] = Query(None, description="Filter by status (COMPLETED, RUNNING, etc.)"),
     limit: int = Query(50, ge=1, le=500),
@@ -167,7 +167,7 @@ async def get_replay_run(replay_run_id: str, session: AsyncSession = Depends(get
     return replay_run_from_orm(row).model_dump(mode="json")
 
 
-@router.get("/replays/{replay_run_id}/results", response_model=list[dict])
+@router.get("/replays/{replay_run_id}/results")
 async def get_replay_results(
     replay_run_id: str,
     triggered_only: bool = Query(False),
@@ -186,7 +186,7 @@ async def get_replay_results(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
-@router.get("/rule-performance", response_model=list[dict])
+@router.get("/rule-performance")
 async def list_rule_performance(
     limit: int = Query(100, ge=1, le=500),
     session: AsyncSession = Depends(get_session),
@@ -206,7 +206,7 @@ async def get_rule_performance(rule_id: str, session: AsyncSession = Depends(get
     return performance_from_orm(row).model_dump(mode="json")
 
 
-@router.get("/rule-performance/{rule_id}/history", response_model=list[dict])
+@router.get("/rule-performance/{rule_id}/history")
 async def get_rule_performance_history(
     rule_id: str,
     limit: int = Query(12, ge=1, le=100),
