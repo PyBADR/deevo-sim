@@ -25,8 +25,14 @@ import {
 } from "lucide-react";
 import { demoScenario } from "../data/demo-scenario";
 
+const SENSITIVITY_COLORS: Record<string, { dot: string; text: string; bg: string }> = {
+  HIGH:   { dot: "bg-red-400",    text: "text-red-600",    bg: "bg-red-50" },
+  MEDIUM: { dot: "bg-amber-400",  text: "text-amber-600",  bg: "bg-amber-50" },
+  LOW:    { dot: "bg-emerald-400", text: "text-emerald-600", bg: "bg-emerald-50" },
+};
+
 export function TrustStep() {
-  const { trust, confidence } = demoScenario;
+  const { trust, confidence, structuredAssumptions } = demoScenario;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-8 py-12">
@@ -76,7 +82,7 @@ export function TrustStep() {
             label="Confidence"
             value={`${Math.round(confidence * 100)}%`}
             valueColor="text-blue-600"
-            detail={trust.modelVersion}
+            detail={trust.assessmentVersion}
           />
           <TrustKPI
             icon={<Clock size={17} className="text-emerald-500" />}
@@ -127,19 +133,41 @@ export function TrustStep() {
             transition={{ delay: 0.52, duration: 0.4 }}
             className="bg-white border border-slate-200 rounded-xl p-4 shadow-ds"
           >
-            <div className="flex items-center gap-2 mb-3">
-              <FileText size={12} className="text-slate-300" />
-              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">
-                Key Assumptions
-              </p>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText size={12} className="text-slate-300" />
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.15em]">
+                  Key Assumptions
+                </p>
+              </div>
+              {/* Sensitivity legend */}
+              <div className="flex items-center gap-2">
+                {(["HIGH", "MEDIUM", "LOW"] as const).map((s) => (
+                  <div key={s} className="flex items-center gap-1">
+                    <span className={`w-1.5 h-1.5 rounded-full ${SENSITIVITY_COLORS[s].dot}`} />
+                    <span className="text-[8px] text-slate-400">{s}</span>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="space-y-1.5">
-              {trust.assumptions.map((a, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <div className="w-1 h-1 rounded-full bg-amber-400 flex-shrink-0 mt-1.5" />
-                  <p className="text-[11px] text-slate-500 leading-relaxed">{a}</p>
-                </div>
-              ))}
+            <div className="space-y-2">
+              {structuredAssumptions.map((a, i) => {
+                const sc = SENSITIVITY_COLORS[a.sensitivity] ?? SENSITIVITY_COLORS.LOW;
+                return (
+                  <div key={i} className="flex items-start gap-2">
+                    <span className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${sc.dot}`} />
+                    <div className="flex-1">
+                      <p className="text-[11px] text-slate-500 leading-relaxed">{a.assumption}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[9px] text-slate-400">{a.source}</span>
+                        <span className={`text-[8px] font-bold ${sc.text} ${sc.bg} px-1.5 py-0.5 rounded`}>
+                          {a.sensitivity}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </motion.div>
         </div>
@@ -179,7 +207,7 @@ export function TrustStep() {
             </div>
 
             <p className="text-[10px] text-slate-500 mt-5">
-              Calibration: {trust.lastCalibration} &middot; {trust.modelVersion} &middot; SHA-256 audit trail
+              Calibration: {trust.lastCalibration} &middot; {trust.assessmentVersion} &middot; SHA-256 audit trail
             </p>
           </div>
         </motion.div>

@@ -1,69 +1,89 @@
 "use client";
 
 /**
- * DemoStepRenderer — Routes current step index to the correct screen component.
- * Wraps each step in AnimatePresence for smooth transitions.
+ * DemoStepRenderer — V4.0 (Macro Financial Intelligence)
+ *
+ * Routes step index to the correct layer component.
+ * 9 layers: Signal → Transmission → Exposure → Banking → Insurance →
+ *           Sector Stress → Decision Engine → Outcome → Trust
  */
 
 import React from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { DemoRole, ScenarioId } from "./data/demo-scenario";
+import type { SimSnapshot } from "./engine/demo-sim";
 
-import { IntroStep } from "./steps/IntroStep";
-import { ScenarioStep } from "./steps/ScenarioStep";
-import { ShockStep } from "./steps/ShockStep";
-import { TransmissionStep } from "./steps/TransmissionStep";
-import { GCCImpactStep } from "./steps/GCCImpactStep";
-import { SectorImpactStep } from "./steps/SectorImpactStep";
-import { DecisionStep } from "./steps/DecisionStep";
-import { OutcomeStep } from "./steps/OutcomeStep";
-import { TrustStep } from "./steps/TrustStep";
+import { MacroRegimeStep } from "./steps/MacroRegimeStep";
+import { PropagationStep } from "./steps/PropagationStep";
+import { GCCExposureStep } from "./steps/GCCExposureStep";
+import { BankingLayerStep } from "./steps/BankingLayerStep";
+import { InsuranceLayerStep } from "./steps/InsuranceLayerStep";
+import { SectorStressStep } from "./steps/SectorStressStep";
+import { DecisionEngineStep } from "./steps/DecisionEngineStep";
+import { OutcomeStepV3 } from "./steps/OutcomeStepV3";
+import { TrustStepV3 } from "./steps/TrustStepV3";
 
 export interface DemoStepProps {
   onPause?: () => void;
+  activeRole?: DemoRole;
+  sim?: SimSnapshot;
+  onToggleDecision?: (index: number) => void;
+  scenarioId: ScenarioId;
 }
 
 const STEPS: React.ComponentType<DemoStepProps>[] = [
-  IntroStep,
-  ScenarioStep,
-  ShockStep,
-  TransmissionStep,
-  GCCImpactStep,
-  SectorImpactStep,
-  DecisionStep,
-  OutcomeStep,
-  TrustStep,
+  MacroRegimeStep,    // 0 — Macro State
+  PropagationStep,    // 1 — Transmission (stress path)
+  GCCExposureStep,    // 2 — Country Exposure
+  BankingLayerStep,   // 3 — Banking Layer
+  InsuranceLayerStep, // 4 — Insurance Layer
+  SectorStressStep,   // 5 — Sector Impact
+  DecisionEngineStep, // 6 — Decision Room
+  OutcomeStepV3,      // 7 — Outcome
+  TrustStepV3,        // 8 — Trust
 ];
 
 export const TOTAL_STEPS = STEPS.length;
 
-// Duration each step stays visible during autoplay (ms)
-// Tuned for ~52s total — executive-grade pacing, no step feels rushed
+/** Duration each layer stays visible during autoplay (ms) */
 export const STEP_DURATIONS = [
-  3200,  // 0 Intro — brief, sets context
-  4500,  // 1 Scenario — absorb 4 metrics + WHY
-  4000,  // 2 Shock — 3 KPIs, fast read
-  8000,  // 3 Transmission — 5-node cascade + micro-pause after
-  5500,  // 4 GCC Impact — 6 country cards, scan + absorb
-  7000,  // 5 Sector Impact — 6 sectors, needs reading time
-  5500,  // 6 Decision — 5 actions (may pause on interaction)
-  5800,  // 7 Outcome — the money shot + count-up + micro-pause after
-  4000,  // 8 Trust — closing authority, footer
+  4000,  // 0 Macro State
+  8000,  // 1 Propagation (primary — needs time for cascade)
+  5500,  // 2 Country Exposure
+  5000,  // 3 Banking Layer
+  5000,  // 4 Insurance Layer
+  6000,  // 5 Sector Impact
+  7500,  // 6 Decision Room (interactive — longer)
+  5800,  // 7 Outcome
+  4000,  // 8 Trust
 ];
 
 interface DemoStepRendererProps {
   currentStep: number;
-  direction: number; // 1 = forward, -1 = backward
+  direction: number;
   onPause?: () => void;
+  activeRole?: DemoRole;
+  sim?: SimSnapshot;
+  onToggleDecision?: (index: number) => void;
+  scenarioId: ScenarioId;
 }
 
-export function DemoStepRenderer({ currentStep, direction, onPause }: DemoStepRendererProps) {
+export function DemoStepRenderer({
+  currentStep,
+  direction,
+  onPause,
+  activeRole,
+  sim,
+  onToggleDecision,
+  scenarioId,
+}: DemoStepRendererProps) {
   const StepComponent = STEPS[currentStep];
   if (!StepComponent) return null;
 
   return (
     <AnimatePresence mode="wait" custom={direction}>
       <motion.div
-        key={currentStep}
+        key={`${scenarioId}-${currentStep}`}
         custom={direction}
         initial={{ opacity: 0, x: direction > 0 ? 60 : -60 }}
         animate={{ opacity: 1, x: 0 }}
@@ -71,7 +91,13 @@ export function DemoStepRenderer({ currentStep, direction, onPause }: DemoStepRe
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
         className="w-full h-full will-change-transform"
       >
-        <StepComponent onPause={onPause} />
+        <StepComponent
+          onPause={onPause}
+          activeRole={activeRole}
+          sim={sim}
+          onToggleDecision={onToggleDecision}
+          scenarioId={scenarioId}
+        />
       </motion.div>
     </AnimatePresence>
   );

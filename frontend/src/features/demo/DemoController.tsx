@@ -1,14 +1,10 @@
 "use client";
 
 /**
- * DemoController — Right-side vertical control panel (Phase 2 polish)
+ * DemoController — V4.0 (Macro Financial Intelligence)
  *
- * Premium, presentation-ready panel with:
- * - IO branding header
- * - Clean step progress with visual states
- * - Refined play/pause/nav controls
- * - Keyboard hints
- * - Subtle gradient footer
+ * Right-side vertical control panel with scenario selector.
+ * Enterprise neutral palette — calm, clean, no heavy accents.
  */
 
 import React from "react";
@@ -21,25 +17,26 @@ import {
   X,
   RotateCcw,
 } from "lucide-react";
+import { SCENARIOS, type ScenarioId } from "./data/demo-scenario";
 
 const STEP_LABELS = [
-  "Introduction",
-  "Scenario",
-  "Initial Shock",
+  "Macro State",
   "Transmission",
-  "GCC Impact",
-  "Sector Analysis",
-  "Decisions",
+  "Country Exposure",
+  "Banking",
+  "Insurance",
+  "Sector Impact",
+  "Decision Room",
   "Outcome",
   "Trust Layer",
 ];
 
 const STEP_ICONS = [
-  "\u25C9", // ◉ intro
-  "\u26A0", // ⚠ scenario
-  "\u26A1", // ⚡ shock
-  "\u21C9", // ⇉ transmission
-  "\u25CB", // ○ GCC
+  "\u25C9", // ◉ macro
+  "\u21C9", // ⇉ propagation
+  "\u25CB", // ○ exposure
+  "\u2302", // ⌂ banking
+  "\u2637", // ☷ insurance
   "\u25A3", // ▣ sectors
   "\u2691", // ⚑ decisions
   "\u2713", // ✓ outcome
@@ -56,6 +53,8 @@ interface DemoControllerProps {
   onBack: () => void;
   onExit: () => void;
   onRestart: () => void;
+  scenarioId: ScenarioId;
+  onSwitchScenario: (id: ScenarioId) => void;
 }
 
 export function DemoController({
@@ -68,6 +67,8 @@ export function DemoController({
   onBack,
   onExit,
   onRestart,
+  scenarioId,
+  onSwitchScenario,
 }: DemoControllerProps) {
   const progress = ((currentStep + 1) / totalSteps) * 100;
 
@@ -78,10 +79,10 @@ export function DemoController({
       transition={{ delay: 0.3, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
       className="fixed right-0 top-0 h-full w-[260px] bg-white border-l border-slate-200/80 z-[60] flex flex-col will-change-transform"
     >
-      {/* ─── Brand header ─── */}
-      <div className="px-5 pt-6 pb-4 border-b border-slate-100">
+      {/* Brand header */}
+      <div className="px-5 pt-5 pb-3 border-b border-slate-100">
         <div className="flex items-center gap-2.5 mb-3">
-          <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center">
+          <div className="w-7 h-7 rounded-lg bg-slate-900 flex items-center justify-center">
             <span className="text-white font-bold text-[10px]">IO</span>
           </div>
           <div>
@@ -89,30 +90,47 @@ export function DemoController({
               Impact Observatory
             </p>
             <p className="text-[9px] text-slate-400 font-medium">
-              Executive Demo
+              Macro Financial Intelligence
             </p>
           </div>
+        </div>
+
+        {/* Scenario selector */}
+        <div className="flex gap-1 mb-3">
+          {(Object.keys(SCENARIOS) as ScenarioId[]).map((id) => (
+            <button
+              key={id}
+              onClick={() => onSwitchScenario(id)}
+              className={`flex-1 px-2 py-1.5 rounded text-[9px] font-semibold transition-all duration-200 ${
+                scenarioId === id
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-50 text-slate-400 hover:text-slate-600 hover:bg-slate-100 border border-slate-100"
+              }`}
+            >
+              {id === "hormuz" ? "Energy & Trade" : "Financial Flow"}
+            </button>
+          ))}
         </div>
 
         {/* Progress */}
         <div className="flex items-center justify-between mb-2">
           <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-            Step {currentStep + 1}/{totalSteps}
+            Layer {currentStep + 1}/{totalSteps}
           </span>
-          <span className="text-[10px] font-bold text-blue-600 tabular-nums">
+          <span className="text-[10px] font-bold text-slate-700 tabular-nums">
             {Math.round(progress)}%
           </span>
         </div>
         <div className="h-[3px] bg-slate-100 rounded-full overflow-hidden">
           <motion.div
-            className="h-full rounded-full bg-gradient-to-r from-blue-500 to-blue-600"
+            className="h-full rounded-full bg-slate-700"
             animate={{ width: `${progress}%` }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           />
         </div>
       </div>
 
-      {/* ─── Step list ─── */}
+      {/* Step list */}
       <div className="flex-1 overflow-y-auto px-3 py-3">
         <div className="space-y-px">
           {STEP_LABELS.map((label, i) => {
@@ -124,18 +142,17 @@ export function DemoController({
               <motion.div
                 key={i}
                 animate={{
-                  backgroundColor: isActive ? "rgba(59,130,246,0.06)" : "transparent",
+                  backgroundColor: isActive ? "rgba(15,23,42,0.04)" : "transparent",
                 }}
                 transition={{ duration: 0.25 }}
                 className={`flex items-center gap-2.5 px-2.5 py-[7px] rounded-lg transition-opacity ${
                   isFuture ? "opacity-35" : ""
                 }`}
               >
-                {/* Step indicator */}
                 <div
                   className={`w-[22px] h-[22px] rounded-full flex items-center justify-center flex-shrink-0 text-[9px] font-bold transition-all duration-300 ${
                     isActive
-                      ? "bg-blue-600 text-white shadow-sm shadow-blue-200"
+                      ? "bg-slate-900 text-white"
                       : isCompleted
                       ? "bg-emerald-100 text-emerald-600"
                       : "bg-slate-50 text-slate-300 border border-slate-100"
@@ -146,7 +163,7 @@ export function DemoController({
                 <span
                   className={`text-[11px] leading-tight ${
                     isActive
-                      ? "font-bold text-blue-700"
+                      ? "font-bold text-slate-900"
                       : isCompleted
                       ? "font-medium text-slate-500"
                       : "font-medium text-slate-400"
@@ -155,11 +172,10 @@ export function DemoController({
                   {label}
                 </span>
 
-                {/* Active dot */}
                 {isActive && (
                   <motion.div
                     layoutId="activeDot"
-                    className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500"
+                    className="ml-auto w-1.5 h-1.5 rounded-full bg-slate-700"
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                   />
                 )}
@@ -169,35 +185,33 @@ export function DemoController({
         </div>
       </div>
 
-      {/* ─── Controls ─── */}
+      {/* Controls */}
       <div className="px-5 py-4 border-t border-slate-100">
-        {/* Autoplay indicator */}
         {isPlaying && (
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-blue-50 mb-3">
+          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-50 mb-3">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-slate-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-slate-600" />
             </span>
-            <span className="text-[10px] font-semibold text-blue-600">
+            <span className="text-[10px] font-semibold text-slate-600">
               Auto-playing
             </span>
           </div>
         )}
 
-        {/* Main controls */}
         <div className="flex items-center justify-center gap-1.5">
           <button
             onClick={onBack}
             disabled={currentStep === 0}
             className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
-            aria-label="Previous step"
+            aria-label="Previous layer"
           >
             <ChevronLeft size={16} />
           </button>
 
           <button
             onClick={isPlaying ? onPause : onPlay}
-            className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all shadow-sm shadow-blue-200"
+            className="w-11 h-11 rounded-xl bg-slate-900 text-white flex items-center justify-center hover:bg-slate-800 active:scale-95 transition-all"
             aria-label={isPlaying ? "Pause" : "Play"}
           >
             {isPlaying ? (
@@ -211,13 +225,12 @@ export function DemoController({
             onClick={onNext}
             disabled={currentStep >= totalSteps - 1}
             className="w-9 h-9 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-25 disabled:cursor-not-allowed transition-all"
-            aria-label="Next step"
+            aria-label="Next layer"
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
-        {/* Secondary */}
         <div className="flex items-center justify-center gap-3 mt-2.5">
           <button
             onClick={onRestart}
@@ -235,7 +248,6 @@ export function DemoController({
           </button>
         </div>
 
-        {/* Keyboard hints */}
         <div className="flex items-center justify-center gap-2 mt-3 pt-3 border-t border-slate-50">
           <kbd className="px-1.5 py-0.5 rounded bg-slate-50 text-[8px] font-mono text-slate-400 border border-slate-100">
             Space

@@ -49,17 +49,17 @@ export function TransmissionStep() {
     const NODE_DELAY = 700;
     const EDGE_DELAY = 400;
 
-    transmission.nodes.forEach((_, i) => {
+    transmission.points.forEach((_, i) => {
       const nodeTime = BASE + i * (NODE_DELAY + EDGE_DELAY);
       const edgeTime = nodeTime + EDGE_DELAY;
 
       timers.push(setTimeout(() => setActiveNode(i), nodeTime));
-      if (i < transmission.nodes.length - 1) {
+      if (i < transmission.points.length - 1) {
         timers.push(setTimeout(() => setActiveEdge(i), edgeTime));
       }
     });
     return () => timers.forEach(clearTimeout);
-  }, [transmission.nodes]);
+  }, [transmission.points]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-8">
@@ -103,7 +103,7 @@ export function TransmissionStep() {
       <div className="w-full max-w-5xl">
         {/* Nodes + Edges row */}
         <div className="flex items-center justify-center gap-0">
-          {transmission.nodes.map((node, i) => {
+          {transmission.points.map((node, i) => {
             const Icon = NODE_ICONS[i];
             const theme = NODE_THEME[i];
             const isActive = i <= activeNode;
@@ -177,7 +177,7 @@ export function TransmissionStep() {
                 </motion.div>
 
                 {/* ── EDGE CONNECTOR ── */}
-                {i < transmission.nodes.length - 1 && (
+                {i < transmission.points.length - 1 && (
                   <div className="flex flex-col items-center mx-1 md:mx-2 flex-shrink-0 w-[60px] md:w-[72px]">
                     {/* Edge label */}
                     <AnimatePresence>
@@ -189,7 +189,7 @@ export function TransmissionStep() {
                           transition={{ duration: 0.3 }}
                           className="text-[9px] font-semibold text-slate-500 mb-1.5 text-center whitespace-nowrap"
                         >
-                          {transmission.edges[i]?.label}
+                          {transmission.links[i]?.label}
                         </motion.p>
                       )}
                     </AnimatePresence>
@@ -263,7 +263,7 @@ export function TransmissionStep() {
                     className="text-[10px] font-bold uppercase tracking-[0.12em] mb-0.5"
                     style={{ color: NODE_THEME[activeNode].text }}
                   >
-                    Stage {activeNode + 1}: {transmission.nodes[activeNode].label}
+                    Stage {activeNode + 1}: {transmission.points[activeNode].label}
                   </p>
                   <p className="text-xs text-slate-600 leading-relaxed">
                     {transmission.cascadeLabels[activeNode]}
@@ -277,7 +277,7 @@ export function TransmissionStep() {
         {/* ════════ STAGE PROGRESS ════════ */}
         <div className="mt-8 flex justify-center">
           <div className="flex items-center gap-1.5">
-            {transmission.nodes.map((_, i) => (
+            {transmission.points.map((_, i) => (
               <motion.div
                 key={i}
                 animate={{

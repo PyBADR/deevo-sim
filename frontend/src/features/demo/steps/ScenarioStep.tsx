@@ -10,7 +10,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { AlertTriangle, Activity, Network, Target } from "lucide-react";
+import { AlertTriangle, Activity, Network, Target, FileText } from "lucide-react";
 import { demoScenario } from "../data/demo-scenario";
 
 export function ScenarioStep() {
@@ -50,7 +50,7 @@ export function ScenarioStep() {
     {
       icon: Network,
       label: "Nodes Impacted",
-      value: String(s.nodesImpacted),
+      value: String(s.exposurePoints),
       sublabel: `of 43 total`,
       why: "Propagation engine traces shock across energy, shipping, banking, insurance, and government nodes with > 5% exposure.",
       color: "text-slate-700",
@@ -145,6 +145,44 @@ export function ScenarioStep() {
         <p className="text-xs text-slate-400 text-center">
           Time horizon: <span className="font-semibold text-slate-600">{s.timeHorizon}</span>
         </p>
+      </motion.div>
+
+      {/* ═══ V2.1: Compact Assumptions Panel ═══ */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.3, duration: 0.4 }}
+        className="mt-8 w-full max-w-4xl"
+      >
+        <div className="bg-white border border-slate-200 rounded-xl px-5 py-4 shadow-ds">
+          <div className="flex items-center gap-2 mb-3">
+            <FileText size={12} className="text-slate-300" />
+            <p className="text-[9px] font-bold text-slate-300 uppercase tracking-[0.15em]">
+              Key Assumptions
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2">
+            {demoScenario.structuredAssumptions.slice(0, 3).map((a, i) => (
+              <div key={i} className="flex items-start gap-2">
+                <span
+                  className={`mt-1 w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                    a.sensitivity === "HIGH"
+                      ? "bg-red-400"
+                      : a.sensitivity === "MEDIUM"
+                      ? "bg-amber-400"
+                      : "bg-emerald-400"
+                  }`}
+                />
+                <div>
+                  <p className="text-[10px] text-slate-600 leading-snug">{a.assumption}</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">
+                    {a.source} · <span className="font-semibold">{a.sensitivity}</span> sensitivity
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </motion.div>
     </div>
   );

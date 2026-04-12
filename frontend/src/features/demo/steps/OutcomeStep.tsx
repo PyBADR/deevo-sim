@@ -1,14 +1,15 @@
 "use client";
 
 /**
- * Step 8 — Outcome (THE MONEY SHOT)
+ * Step 8 — Outcome (V2.2: Reactive Simulation)
  *
  * Three hero numbers with count-up animation:
- *   WITHOUT ACTION: $4.9B (red)
- *   WITH ACTION:    $4.3B (emerald)
- *   SAVED:          $600M (blue gradient, emphasized)
+ *   WITHOUT ACTION: $4.9B (red)  — always baseline
+ *   WITH ACTION:    $X.XB (emerald) — computed from sim when decisions activated
+ *   SAVED:          $XXXM (blue gradient) — computed delta
  *
- * Count-up runs on mount, $600M gets extra glow + scale pulse.
+ * Count-up targets are reactive: when sim provides computed values,
+ * the hook re-animates to the new target smoothly.
  */
 
 import React, { useState, useEffect, useRef } from "react";
@@ -20,10 +21,12 @@ import {
   AlertTriangle,
   ArrowDown,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { demoScenario } from "../data/demo-scenario";
+import type { DemoStepProps } from "../DemoStepRenderer";
 
-/* ─── Count-up hook ─── */
+/* ─── Count-up hook (reactive to target changes) ─── */
 function useCountUp(
   target: number,
   duration: number = 1400,
@@ -36,13 +39,14 @@ function useCountUp(
   useEffect(() => {
     let start: number | null = null;
     let delayTimer: ReturnType<typeof setTimeout> | null = null;
+    const from = value; // animate from current displayed value
 
     const animate = (ts: number) => {
       if (start === null) start = ts;
       const progress = Math.min((ts - start) / duration, 1);
       // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
-      setValue(eased * target);
+      setValue(from + (target - from) * eased);
       if (progress < 1) {
         frameRef.current = requestAnimationFrame(animate);
       }
@@ -56,19 +60,25 @@ function useCountUp(
       if (delayTimer) clearTimeout(delayTimer);
       if (frameRef.current) cancelAnimationFrame(frameRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [target, duration, delay]);
 
   if (decimals === 0) return Math.round(value).toString();
   return value.toFixed(decimals);
 }
 
-export function OutcomeStep() {
-  const { outcome } = demoScenario;
+export function OutcomeStep({ sim }: DemoStepProps) {
+  const { outcome, financialRanges } = demoScenario;
+  const hasSimData = sim && sim.decisionsActivated > 0;
 
-  // Count-up values (display-only)
+  // Reactive targets: use sim-computed values when decisions activated, else defaults
+  const withActionTarget = hasSimData ? sim.withActionLossB : 4.3;
+  const savedTarget = hasSimData ? sim.savedM : 600;
+
+  // Count-up values — re-animate when targets change
   const withoutVal = useCountUp(4.9, 1400, 400, 1);
-  const withVal = useCountUp(4.3, 1400, 550, 1);
-  const savedVal = useCountUp(600, 1600, 750, 0);
+  const withVal = useCountUp(withActionTarget, 1400, hasSimData ? 0 : 550, 1);
+  const savedVal = useCountUp(savedTarget, 1600, hasSimData ? 0 : 750, 0);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-8">
@@ -100,10 +110,29 @@ export function OutcomeStep() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2, duration: 0.5 }}
-        className="text-sm text-slate-500 text-center max-w-lg mb-10"
+        className="text-sm text-slate-500 text-center max-w-lg mb-4"
       >
-        Projected outcomes comparing coordinated response against no intervention
+        {hasSimData
+          ? "Outcomes updated based on your activated decisions"
+          : "Projected outcomes comparing coordinated response against no intervention"}
       </motion.p>
+
+      {/* V2.2: Sim-aware status */}
+      {hasSimData && sim && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-4xl mb-6"
+        >
+          <div className="flex items-center justify-center gap-3 px-4 py-2.5 bg-blue-50 border border-blue-200 rounded-xl">
+            <Zap size={13} className="text-blue-600" />
+            <span className="text-[11px] font-semibold text-blue-800">
+              {sim.decisionsActivated} decision{sim.decisionsActivated !== 1 ? "s" : ""} activated — outcomes recalculated
+            </span>
+          </div>
+        </motion.div>
+      )}
 
       {/* ═══════ THREE HERO NUMBERS ═══════ */}
       <div className="flex flex-col md:flex-row items-stretch gap-5 w-full max-w-4xl mb-8">
@@ -136,6 +165,14 @@ export function OutcomeStep() {
             <p className="text-xs text-slate-500 mt-2">
               Recovery: {outcome.withoutAction.recoveryTimeline}
             </p>
+            {/* V2.1: Range band */}
+            <div className="mt-3 pt-3 border-t border-red-100">
+              <p className="text-[9px] font-bold text-red-300 uppercase tracking-[0.12em] mb-1">Range</p>
+              <p className="text-[11px] text-red-600 font-semibold tabular-nums">
+                {financialRanges.withoutAction.low} – {financialRanges.withoutAction.high}
+              </p>
+              <p className="text-[9px] text-red-400/70 mt-0.5">{financialRanges.withoutAction.sensitivity}</p>
+            </div>
           </div>
         </motion.div>
 
@@ -168,6 +205,14 @@ export function OutcomeStep() {
             <p className="text-xs text-slate-500 mt-2">
               Recovery: {outcome.withAction.recoveryTimeline}
             </p>
+            {/* V2.1: Range band */}
+            <div className="mt-3 pt-3 border-t border-emerald-100">
+              <p className="text-[9px] font-bold text-emerald-300 uppercase tracking-[0.12em] mb-1">Range</p>
+              <p className="text-[11px] text-emerald-600 font-semibold tabular-nums">
+                {financialRanges.withAction.low} – {financialRanges.withAction.high}
+              </p>
+              <p className="text-[9px] text-emerald-400/70 mt-0.5">{financialRanges.withAction.sensitivity}</p>
+            </div>
           </div>
         </motion.div>
 
@@ -219,6 +264,14 @@ export function OutcomeStep() {
                   Within 24–72h window
                 </span>
               </motion.div>
+              {/* V2.1: Range band */}
+              <div className="mt-3 pt-3 border-t border-blue-500/20">
+                <p className="text-[9px] font-bold text-blue-300/60 uppercase tracking-[0.12em] mb-1">Range</p>
+                <p className="text-[11px] text-blue-100 font-semibold tabular-nums">
+                  {financialRanges.saved.low} – {financialRanges.saved.high}
+                </p>
+                <p className="text-[9px] text-blue-200/60 mt-0.5">{financialRanges.saved.sensitivity}</p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -234,7 +287,7 @@ export function OutcomeStep() {
         {/* Without action — why */}
         <div className="px-5 py-4 rounded-xl bg-red-50/50 border border-red-100/60">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-red-400 mb-1.5">
-            Why $4.9B without action?
+            Why ${withoutVal}B without action?
           </p>
           <p className="text-xs text-red-800/80 leading-relaxed">
             {outcome.withoutAction.why}
@@ -244,7 +297,7 @@ export function OutcomeStep() {
         {/* With action — why */}
         <div className="px-5 py-4 rounded-xl bg-emerald-50/50 border border-emerald-100/60">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-emerald-400 mb-1.5">
-            Why $4.3B with action?
+            Why ${withVal}B with action?
           </p>
           <p className="text-xs text-emerald-800/80 leading-relaxed">
             {outcome.withAction.why}
@@ -261,7 +314,7 @@ export function OutcomeStep() {
       >
         <div className="px-5 py-3 rounded-xl bg-blue-50/60 border border-blue-100/50">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-400 mb-1">
-            How is $600M derived?
+            How is ${savedVal}M derived?
           </p>
           <p className="text-xs text-blue-700/80 leading-relaxed">
             {outcome.saved.explanation}

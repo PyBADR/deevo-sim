@@ -3,7 +3,7 @@
 /**
  * /demo — Executive Demo Mode
  *
- * Full-screen, autoplay narrative walkthrough of the Impact Observatory platform.
+ * Full-screen, autoplay narrative walkthrough of Impact Observatory.
  * Curated scenario: Strait of Hormuz Partial Blockage.
  *
  * Controls: Play/Pause/Next/Back/Exit via right panel or keyboard.
@@ -80,7 +80,7 @@ export default function DemoPage() {
         </p>
 
         <p className="text-sm text-slate-400 mb-12">
-          AI-powered simulation of financial and systemic shocks
+          Scenario-based financial stress assessment for the GCC region
         </p>
 
         {/* Start button */}
