@@ -70,10 +70,10 @@ class ScenarioChainResponse(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "decision_contract": {...},
-                "counterfactual_contract": {...},
-                "propagation_contracts": [...],
-                "outcome_review_contract": {...},
+                "decision_contract": {"id": "..."},
+                "counterfactual_contract": {"id": "..."},
+                "propagation_contracts": [{"id": "..."}],
+                "outcome_review_contract": {"id": "..."},
                 "metadata": {
                     "bridged_timestamp": "2026-04-10T14:30:00Z",
                     "run_id": "run_20260410_001",
