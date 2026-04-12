@@ -4,7 +4,8 @@ import React, { useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/store/app-store";
 import { t, type Locale } from "@/i18n/dictionary";
-import { Globe, ChevronRight } from "lucide-react";
+import { Globe, ChevronRight, Play } from "lucide-react";
+import Link from "next/link";
 
 interface ObservatoryShellProps {
   children: React.ReactNode;
@@ -106,14 +107,25 @@ export function ObservatoryShell({
               </div>
             </div>
 
-            {/* Language Toggle Button */}
-            <button
-              onClick={handleLanguageToggle}
-              className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
-              aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
-            >
-              {isArabic ? "EN" : "عربي"}
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Start Demo CTA */}
+              <Link
+                href="/demo"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <Play size={12} />
+                {isArabic ? "عرض تجريبي" : "Start Demo"}
+              </Link>
+
+              {/* Language Toggle Button */}
+              <button
+                onClick={handleLanguageToggle}
+                className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
+                aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
+              >
+                {isArabic ? "EN" : "عربي"}
+              </button>
+            </div>
           </div>
 
           {/* Subtitle */}
