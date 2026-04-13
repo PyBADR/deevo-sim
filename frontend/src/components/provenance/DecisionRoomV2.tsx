@@ -144,7 +144,7 @@ export function DecisionRoomV2({
               <span className="mx-2 text-[#3a3937]">·</span>
               {isAr ? "الإلحاح" : "Urgency"}: <span className="text-[#c4a35a] font-semibold">{
                 primary.urgency != null && primary.urgency > 0
-                  ? `${Math.round(primary.urgency * 100)}%`
+                  ? `${Math.round(primary.urgency)}%`
                   : isAr ? "فوري" : "Immediate"
               }</span>
               {confidenceScore != null && (
@@ -194,7 +194,7 @@ export function DecisionRoomV2({
                         <>
                           <span className="mx-2 text-[#3a3937]">·</span>
                           <span className="text-[#c4a35a]">
-                            {Math.round(action.urgency * 100)}% urgency
+                            {Math.round(action.urgency)}% urgency
                           </span>
                         </>
                       )}
