@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { ScenarioResult, GlobeLayer, GeoCoord } from "@/types";
 import type { WsSignalScoredData, ScenarioSeed, OperatorDecision, Outcome, DecisionValue } from "@/types/observatory";
 import type { Persona } from "@/lib/persona-view-model";
+import type { IntelligencePerspective } from "@/lib/intelligence/perspectiveEngine";
 
 const _PERSONA_KEY = "io_persona_v1";
 
@@ -67,6 +68,10 @@ interface AppState {
   // ---- Decision Output ----
   decisionOutputOpen: boolean;
   setDecisionOutputOpen: (open: boolean) => void;
+
+  // ---- Intelligence Perspective ----
+  activePerspective: IntelligencePerspective;
+  setActivePerspective: (p: IntelligencePerspective) => void;
 
   // ---- Time Horizon ----
   timeHorizon: 24 | 72 | 168;
@@ -175,6 +180,10 @@ export const useAppStore = create<AppState>((set) => ({
   // ---- Decision Output ----
   decisionOutputOpen: false,
   setDecisionOutputOpen: (open) => set({ decisionOutputOpen: open }),
+
+  // ---- Intelligence Perspective ----
+  activePerspective: "gcc_sovereign" as IntelligencePerspective,
+  setActivePerspective: (p) => set({ activePerspective: p }),
 
   // ---- Time Horizon ----
   timeHorizon: 72,

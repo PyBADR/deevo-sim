@@ -12,3 +12,4 @@ export { GraphPanel } from "./GraphPanel";
 export { SectorRollupBar } from "./SectorRollupBar";
 export { StatusBar } from "./StatusBar";
 export { ImpactPanel } from "./ImpactPanel";
+export { SovereignBriefing } from "./SovereignBriefing";

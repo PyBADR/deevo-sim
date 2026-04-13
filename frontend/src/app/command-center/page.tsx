@@ -1,18 +1,26 @@
 "use client";
 
 /**
- * Impact Observatory | مرصد الأثر — Command Center (White Enterprise Theme)
+ * Impact Observatory | مرصد الأثر — Command Center
  *
- * RESTORED ARCHITECTURE:
+ * CORRECTED ARCHITECTURE (Gate 1):
  * ┌─────────────────────────────────────────────────────────────┐
- * │  OBSERVATORY SHELL (identity, language, scenario bar, tabs) │
+ * │  DEFAULT: SovereignBriefing — vertical reading surface      │
+ * │  Executive lands here. No tab discovery required.           │
  * ├─────────────────────────────────────────────────────────────┤
- * │  TAB: Dashboard     → Scenario Library + Intelligence Brief │
- * │  TAB: Scenarios     → Full ScenarioLibrary page             │
- * │  TAB: Macro         → MacroIntelligenceView (top-down flow) │
- * │  TAB: Propagation   → Causal chain flow diagram             │
+ * │  ANALYST TABS (subordinate, accessed via explicit nav):     │
+ * │  TAB: Scenarios     → Scenario selection                    │
+ * │  TAB: Macro         → MacroIntelligenceView                 │
+ * │  TAB: Propagation   → Causal chain flow                     │
  * │  TAB: Map           → GCC 6-country impact map              │
- * │  TAB: Sectors       → Banking / Insurance / Fintech stress  │\n * │  TAB: Decisions     → DecisionRoomV2 (full decision engine) │\n * │  TAB: Audit         → Audit trail + regulatory breaches     │\n * └─────────────────────────────────────────────────────────────┘\n *\n * Scenario context is preserved across all tabs via URL params.\n * Data flow: useCommandCenter(runId) feeds all views.\n */
+ * │  TAB: Sectors       → Banking / Insurance / Fintech stress  │
+ * │  TAB: Decisions     → DecisionRoomV2                        │
+ * │  TAB: Audit         → Audit trail + regulatory              │
+ * └─────────────────────────────────────────────────────────────┘
+ *
+ * The SovereignBriefing is the canonical intelligence surface.
+ * It replaces the old Dashboard + Intelligence tab pattern.
+ */
 
 import React, { Suspense, useState, useCallback, useMemo } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -22,7 +30,11 @@ import { useCommandCenter } from "@/features/command-center/lib/use-command-cent
 // ── Shell & Navigation ──
 import { ObservatoryShell } from "@/components/shell/ObservatoryShell";
 
-// ── Tab: Dashboard (Scenario Library + Brief) ──
+// ── Canonical Intelligence Surface ──
+import { SovereignBriefing } from "@/features/command-center/components/SovereignBriefing";
+import { useSovereignBriefing } from "@/features/command-center/lib/use-sovereign-briefing";
+
+// ── Tab: Scenarios ──
 import { ScenarioLibrary } from "@/components/scenario/ScenarioLibrary";
 import { ScenarioSelector } from "@/components/scenario/ScenarioSelector";
 
@@ -471,8 +483,13 @@ function CommandCenterInner() {
   const locale = language as "en" | "ar";
 
   const runId = searchParams.get("run");
-  const activeTab = searchParams.get("tab") || "dashboard";
+  // Default is NO tab — the executive lands on SovereignBriefing directly.
+  // Analyst tabs are only shown when explicitly selected via ?tab=...
+  const activeTab = searchParams.get("tab") || "";
   const [isRunningScenario, setIsRunningScenario] = useState(false);
+
+  // ── Canonical intelligence surface ──
+  const briefing = useSovereignBriefing();
 
   const {
     status,
@@ -729,23 +746,32 @@ function CommandCenterInner() {
           />
         );
 
-      // Dashboard (default)
-      default:
+      // Scenario selection (also accessible from default when no data)
+      case "dashboard":
         return (
-          <DashboardView
-            scenario={scenario}
-            headline={headline}
-            narrativeEn={narrativeEn}
-            narrativeAr={narrativeAr ?? undefined}
-            macroContext={macroContext}
-            confidence={confidence}
-            causalChain={causalChain}
-            sectorRollups={sectorRollups}
-            decisionActions={decisionActions}
-            locale={locale}
-            onSelectScenario={handleScenarioSelect}
-            isRunningScenario={isRunningScenario}
-          />
+          <div className="p-6 max-w-7xl mx-auto">
+            <ScenarioLibrary
+              onSelectScenario={handleScenarioSelect}
+              isLoading={isRunningScenario}
+              locale={locale}
+            />
+          </div>
+        );
+
+      // Default: Executive lands on SovereignBriefing — no tab discovery required
+      default:
+        if (briefing) {
+          return <SovereignBriefing briefing={briefing} />;
+        }
+        // No briefing data yet → show scenario selection
+        return (
+          <div className="p-6 max-w-7xl mx-auto">
+            <ScenarioLibrary
+              onSelectScenario={handleScenarioSelect}
+              isLoading={isRunningScenario}
+              locale={locale}
+            />
+          </div>
         );
     }
   };

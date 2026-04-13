@@ -1,8 +1,8 @@
 /**
- * TopNav — minimal, calm top navigation.
+ * TopNav — Sovereign-grade navigation.
  *
- * Product name left, navigation links right.
- * Frosted glass bar, sticky. No visual noise. Institutional.
+ * Authoritative product identity. Quiet navigation.
+ * Frosted glass. No visual noise. Executive restraint.
  */
 'use client';
 
@@ -20,21 +20,21 @@ export function TopNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="sticky top-0 z-50 bg-[var(--io-bg)]/80 backdrop-blur-md border-b border-[var(--io-border-muted)]">
+    <nav className="sticky top-0 z-50 bg-[var(--io-bg)]/85 backdrop-blur-xl border-b border-[var(--io-border-muted)]">
       <Container>
         <div className="flex items-center justify-between h-14">
-          {/* Brand */}
-          <Link href="/" className="flex items-baseline gap-2.5">
-            <span className="text-[0.9375rem] font-semibold tracking-tight text-[var(--io-charcoal)]">
+          {/* Brand — authoritative, bilingual */}
+          <Link href="/" className="flex items-baseline gap-3 group">
+            <span className="text-[0.9375rem] font-bold tracking-tight text-[var(--io-charcoal)] group-hover:text-[var(--io-graphite)] transition-colors duration-200">
               Impact Observatory
             </span>
-            <span className="text-[0.75rem] text-[var(--io-text-tertiary)] font-medium hidden sm:inline">
+            <span className="text-[0.6875rem] text-[var(--io-text-tertiary)] font-medium hidden sm:inline tracking-wide">
               مرصد الأثر
             </span>
           </Link>
 
-          {/* Navigation */}
-          <div className="flex items-center gap-8">
+          {/* Navigation — minimal, restrained */}
+          <div className="flex items-center gap-1.5">
             {links.map((link) => {
               const isActive =
                 link.href === '/'
@@ -46,10 +46,10 @@ export function TopNav() {
                   key={link.href}
                   href={link.href}
                   className={[
-                    'text-[0.8125rem] font-medium transition-colors duration-150',
+                    'px-3.5 py-1.5 rounded-md text-[0.8125rem] font-medium transition-all duration-200',
                     isActive
-                      ? 'text-[var(--io-charcoal)]'
-                      : 'text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)]',
+                      ? 'text-[var(--io-charcoal)] bg-[var(--io-muted)]/60'
+                      : 'text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] hover:bg-[var(--io-muted)]/40',
                   ].join(' ')}
                 >
                   {link.label}

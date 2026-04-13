@@ -15,15 +15,16 @@ interface ObservatoryShellProps {
   activeTab?: string;
 }
 
+// Subordinate analyst tabs. The default landing (no tab) is SovereignBriefing.
 const TABS = [
-  { id: "dashboard", labelEn: "Dashboard", labelAr: "لوحة المعلومات" },
+  { id: "", labelEn: "Briefing", labelAr: "الإحاطة" },
   { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
-  { id: "macro", labelEn: "Macro Intelligence", labelAr: "الذكاء الكلي" },
+  { id: "macro", labelEn: "Macro", labelAr: "الكلي" },
   { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
-  { id: "map", labelEn: "GCC Map", labelAr: "خريطة الخليج" },
+  { id: "map", labelEn: "Map", labelAr: "الخريطة" },
   { id: "sectors", labelEn: "Sectors", labelAr: "القطاعات" },
-  { id: "decisions", labelEn: "Decision Room", labelAr: "غرفة القرار" },
-  { id: "audit", labelEn: "Audit & Trust", labelAr: "التدقيق والثقة" },
+  { id: "decisions", labelEn: "Decisions", labelAr: "القرارات" },
+  { id: "audit", labelEn: "Audit", labelAr: "التدقيق" },
 ];
 
 const FLOW_STAGES = [
@@ -52,9 +53,10 @@ export function ObservatoryShell({
   const setLanguage = useAppStore((s) => s.setLanguage);
 
   const isArabic = language === "ar";
-  const tabParam = searchParams.get("tab") || "dashboard";
-  const currentTabId = tabParam === "dashboard" ? "dashboard" : tabParam || "dashboard";
-  
+  // Default (no tab param) = briefing. Tab param = analyst view.
+  const tabParam = searchParams.get("tab") || "";
+  const currentTabId = tabParam;
+
   const flowStageDisplay = useMemo(() => {
     return FLOW_STAGES.map((stage, idx) => (
       <React.Fragment key={stage}>
@@ -69,9 +71,9 @@ export function ObservatoryShell({
   const runId = searchParams.get("run");
 
   const handleTabClick = (tabId: string) => {
-    const runSuffix = runId ? `${tabId === "dashboard" ? "?" : "&"}run=${runId}` : "";
-    if (tabId === "dashboard") {
-      router.push(`/command-center${runSuffix}`);
+    // Empty tabId = briefing (default landing, no tab param needed)
+    if (tabId === "") {
+      router.push(`/command-center${runId ? `?run=${runId}` : ""}`);
     } else {
       router.push(`/command-center?tab=${tabId}${runId ? `&run=${runId}` : ""}`);
     }

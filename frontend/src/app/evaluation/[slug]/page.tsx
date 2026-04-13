@@ -1,17 +1,17 @@
 /**
  * Impact Observatory | مرصد الأثر — Evaluation Briefing
  *
- * An institutional accountability document — not an analytics dashboard.
+ * Institutional accountability document.
  * Read top to bottom like a post-decision review memo.
  *
- *   1. Evaluation Identity   — verdict, scenario, summary
- *   2. Outcome Assessment    — expected vs actual in prose
- *   3. Correctness           — quiet score with rationale
- *   4. Analyst Commentary    — human-voice review
- *   5. Institutional Learning — replay summary
- *   6. Rule Performance      — calm audit list
- *
- * Data: src/lib/evaluations.ts (static manifest, SSG-compatible).
+ *   1. Evaluation Identity     — verdict, scenario, summary
+ *   2. Outcome Assessment      — expected vs actual in prose
+ *   3. Correctness             — quiet verdict with rationale
+ *   4. Signal Traceability     — which signals drove the decision
+ *   5. Decision Reasoning Trace — full WHY/HOW/WHAT audit
+ *   6. Analyst Commentary      — human-voice review
+ *   7. Institutional Learning  — replay summary
+ *   8. Rule Performance        — calm audit list
  */
 
 import Link from 'next/link';
@@ -19,6 +19,11 @@ import { notFound } from 'next/navigation';
 import { PageShell, Container } from '@/components/layout';
 import { getEvaluation, getAllEvaluations } from '@/lib/evaluations';
 import type { Verdict } from '@/lib/evaluations';
+import { EvaluationProgression } from '@/components/system/EvaluationProgression';
+import { SignalLayer } from '@/components/intelligence/SignalLayer';
+import { DecisionIntelligence } from '@/components/intelligence/DecisionIntelligence';
+import { PropagationLayer } from '@/components/intelligence/PropagationLayer';
+import { MonitoringBlock } from '@/components/intelligence/MonitoringBlock';
 
 export async function generateStaticParams() {
   return getAllEvaluations().map((e) => ({ slug: e.id }));
@@ -49,154 +54,175 @@ export default async function EvaluationPage({
       <Container>
 
         {/* Back */}
-        <div className="pt-8 pb-4">
+        <div className="pt-8 pb-3">
           <Link
             href="/evaluation"
-            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-200"
           >
             ← All evaluations
           </Link>
         </div>
 
-        {/* ════════════════════════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════
+           EVALUATION PROGRESSION (live data collection when active)
+           ═══════════════════════════════════════════════════════ */}
+        <EvaluationProgression scenarioId={e.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
            EVALUATION IDENTITY
-           ════════════════════════════════════════════════════ */}
-        <header className="pt-6 pb-14 sm:pb-16 border-b border-[var(--io-border-muted)]">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-5">
+           ═══════════════════════════════════════════════════════ */}
+        <header className="pt-4 pb-16 sm:pb-20">
+          <div className="io-meta mb-6">
             <span className="io-label">Evaluation</span>
-            <span className={`text-[0.8125rem] font-semibold ${vColor(e.verdict)}`}>
+            <span className={`io-status ${vColor(e.verdict)}`}>
               {e.verdict}
             </span>
-            <span className="text-[0.8125rem] text-[var(--io-text-tertiary)]">
+            <span className="tabular-nums">
               {(e.correctness * 100).toFixed(0)}%
             </span>
           </div>
 
-          <h1 className="text-[1.75rem] sm:text-[2.25rem] font-bold tracking-tight leading-[1.12] text-[var(--io-charcoal)] mb-6">
+          <h1 className="io-briefing-title mb-8 max-w-3xl">
             {e.scenarioTitle}
           </h1>
 
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl mb-4">
+          <p className="io-prose-lg mb-6">
             {e.summary}
           </p>
 
-          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
             <Link
               href={`/scenario/${e.scenarioRef}`}
-              className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+              className="text-[0.8125rem] font-medium text-[var(--io-text-tertiary)] hover:text-[var(--io-charcoal)] transition-colors duration-200"
             >
               View scenario →
             </Link>
             <Link
               href={`/decision/${e.scenarioRef}`}
-              className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+              className="text-[0.8125rem] font-medium text-[var(--io-text-tertiary)] hover:text-[var(--io-charcoal)] transition-colors duration-200"
             >
               View decision brief →
             </Link>
           </div>
         </header>
 
-        {/* ════════════════════════════════════════════════════
-           OUTCOME ASSESSMENT
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
+        <hr className="io-divider-accent" />
+
+        {/* ═══════════════════════════════════════════════════════
+           OUTCOME ASSESSMENT — expected vs actual
+           ═══════════════════════════════════════════════════════ */}
+        <section className="io-section">
           <p className="io-label mb-6">Outcome Assessment</p>
 
-          <div className="max-w-3xl space-y-10">
+          <div className="max-w-3xl space-y-12">
             <div>
-              <p className="text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-2">
+              <p className="text-[0.9375rem] font-semibold text-[var(--io-charcoal)] mb-3">
                 Expected
               </p>
-              <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)]">
+              <p className="io-prose">
                 {e.expectedOutcome}
               </p>
             </div>
 
             <div>
-              <p className="text-[0.8125rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-2">
+              <p className="text-[0.9375rem] font-semibold text-[var(--io-charcoal)] mb-3">
                 Actual
               </p>
-              <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)]">
+              <p className="io-prose">
                 {e.actualOutcome}
               </p>
             </div>
           </div>
         </section>
 
-        {/* ════════════════════════════════════════════════════
-           CORRECTNESS
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
+        {/* ═══════════════════════════════════════════════════════
+           CORRECTNESS — verdict with rationale
+           ═══════════════════════════════════════════════════════ */}
+        <section className="io-section">
           <p className="io-label mb-6">Correctness</p>
 
-          <p className="text-[1.125rem] font-semibold text-[var(--io-charcoal)] mb-4">
+          <p className="text-[1.125rem] font-bold text-[var(--io-charcoal)] mb-6">
             <span className={vColor(e.verdict)}>{e.verdict}</span>
             <span className="text-[var(--io-text-tertiary)] font-normal mx-2">at</span>
-            {(e.correctness * 100).toFixed(0)}%
+            <span className="tabular-nums">{(e.correctness * 100).toFixed(0)}%</span>
           </p>
 
-          <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
+          <p className="io-prose">
             {e.correctnessRationale}
           </p>
         </section>
 
-        {/* ════════════════════════════════════════════════════
-           ANALYST COMMENTARY
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
-          <p className="io-label mb-6">Analyst Commentary</p>
+        {/* ═══════════════════════════════════════════════════════
+           SIGNAL TRACEABILITY
+           ═══════════════════════════════════════════════════════ */}
+        <SignalLayer scenarioId={e.scenarioRef} />
 
-          <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
+        {/* ═══════════════════════════════════════════════════════
+           PROPAGATION — how pressure spread
+           ═══════════════════════════════════════════════════════ */}
+        <PropagationLayer scenarioId={e.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           DECISION REASONING TRACE
+           ═══════════════════════════════════════════════════════ */}
+        <DecisionIntelligence scenarioId={e.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           MONITORING — accountability chain (live only)
+           ═══════════════════════════════════════════════════════ */}
+        <MonitoringBlock scenarioId={e.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           ANALYST COMMENTARY
+           ═══════════════════════════════════════════════════════ */}
+        <section className="io-section">
+          <p className="io-label mb-6">Analyst Commentary</p>
+          <p className="io-prose">
             {e.analystCommentary}
           </p>
         </section>
 
-        {/* ════════════════════════════════════════════════════
-           INSTITUTIONAL LEARNING
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
+        {/* ═══════════════════════════════════════════════════════
+           INSTITUTIONAL LEARNING — replay summary
+           ═══════════════════════════════════════════════════════ */}
+        <section className="io-section">
           <p className="io-label mb-6">Replay Summary</p>
-
-          <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
+          <p className="io-prose">
             {e.replaySummary}
           </p>
         </section>
 
-        {/* ════════════════════════════════════════════════════
-           RULE PERFORMANCE
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16">
+        {/* ═══════════════════════════════════════════════════════
+           RULE PERFORMANCE — institutional audit
+           ═══════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-20">
           <p className="io-label mb-6">Rule Performance</p>
 
-          <ol className="space-y-4 max-w-3xl">
+          <ol className="space-y-4 max-w-3xl io-stagger">
             {e.rulePerformance.map((rule, i) => (
               <li
                 key={i}
-                className="text-[0.875rem] leading-[1.7] text-[var(--io-text-secondary)]"
+                className="io-numbered-item"
               >
-                <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
+                <span className="text-[var(--io-text-tertiary)] tabular-nums mr-2.5">{i + 1}.</span>
                 {rule}
               </li>
             ))}
           </ol>
         </section>
 
-        {/* ════════════════════════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════
            BRIEFING FOOTER
-           ════════════════════════════════════════════════════ */}
+           ═══════════════════════════════════════════════════════ */}
         <footer className="py-10 border-t border-[var(--io-border-muted)]">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-8 max-w-3xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6 gap-x-8 max-w-3xl">
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Reference
-              </p>
-              <p className="text-xs text-[var(--io-text-tertiary)]">{e.id}</p>
+              <p className="io-label mb-1.5">Reference</p>
+              <p className="io-footer-text">{e.id}</p>
             </div>
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Evaluated
-              </p>
-              <p className="text-xs text-[var(--io-text-tertiary)]">
+              <p className="io-label mb-1.5">Evaluated</p>
+              <p className="io-footer-text">
                 {new Date(e.evaluatedDate).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
@@ -205,23 +231,19 @@ export default async function EvaluationPage({
               </p>
             </div>
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Scenario
-              </p>
+              <p className="io-label mb-1.5">Scenario</p>
               <Link
                 href={`/scenario/${e.scenarioRef}`}
-                className="text-xs text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+                className="io-footer-text hover:text-[var(--io-text-secondary)] transition-colors duration-200"
               >
                 View scenario →
               </Link>
             </div>
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Decision
-              </p>
+              <p className="io-label mb-1.5">Decision</p>
               <Link
                 href={`/decision/${e.scenarioRef}`}
-                className="text-xs text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+                className="io-footer-text hover:text-[var(--io-text-secondary)] transition-colors duration-200"
               >
                 View directive →
               </Link>

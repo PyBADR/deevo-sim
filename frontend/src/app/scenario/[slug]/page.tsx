@@ -1,23 +1,42 @@
 /**
- * Impact Observatory | مرصد الأثر — Scenario Briefing
+ * Impact Observatory | مرصد الأثر — Scenario Intelligence Briefing
  *
- * A vertical institutional briefing — not a dashboard.
- * Read top to bottom like a sovereign intelligence memo.
+ * Unified sovereign-grade CEO Command Surface.
+ * Three layers integrated into one page:
+ *   Intelligence Core + Multi-Narrative + Executive Clarity
  *
- *   1. Context        — what happened and why it matters now
- *   2. Transmission   — how pressure moves through the system
- *   3. Impact         — institutional exposure in business language
- *   4. Decision       — what must happen, by whom, by when
- *   5. Outcome        — expected result and monitoring criteria
+ * Section Hierarchy:
+ *   1. Macro Context       — headline, severity, context, significance
+ *   2. System Activation   — run / stop / reset with live posture
+ *   3. Three-Lens Reading  — US Financial, EU Regulatory, Asia Industrial
+ *   4. Signal Intelligence — Layer A (dominant) + Layer B (supporting)
+ *   5. Propagation Chain   — country → sector → entity → contagion
+ *   6. Entity Exposure     — top 3 with dependency reasoning
+ *   7. Decision Block      — WHY / HOW / WHAT with posture
+ *   8. Monitoring          — execution / monitoring / escalation / review
+ *   9. Outcome             — what confirms the path
  *
- * Data: src/lib/scenarios.ts (static manifest, SSG-compatible).
+ * HARD RULE: CEO understands the system in 10 seconds.
+ * The page answers:
+ *   What is happening?
+ *   Why does it matter economically?
+ *   How is it spreading?
+ *   Who is exposed?
+ *   What is the decision?
+ *   What confirms success?
  */
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageShell, Container } from '@/components/layout';
 import { getScenario, getAllScenarios } from '@/lib/scenarios';
-import type { ExposureLine } from '@/lib/scenarios';
+import { ScenarioActivation } from '@/components/system/ScenarioActivation';
+import { NarrativeLayer } from '@/components/intelligence/NarrativeLayer';
+import { SignalLayer } from '@/components/intelligence/SignalLayer';
+import { PropagationLayer } from '@/components/intelligence/PropagationLayer';
+import { DecisionIntelligence } from '@/components/intelligence/DecisionIntelligence';
+import { EntityExposureHighlight } from '@/components/intelligence/EntityExposureHighlight';
+import { MonitoringBlock } from '@/components/intelligence/MonitoringBlock';
 
 export async function generateStaticParams() {
   return getAllScenarios().map((s) => ({ slug: s.id }));
@@ -49,169 +68,132 @@ export default async function ScenarioPage({
       <Container>
 
         {/* Back */}
-        <div className="pt-8 pb-4">
+        <div className="pt-8 pb-3">
           <Link
             href="/"
-            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-200"
           >
             ← All scenarios
           </Link>
         </div>
 
-        {/* ════════════════════════════════════════════════════
-           1. CONTEXT
-           ════════════════════════════════════════════════════ */}
-        <header className="pt-6 pb-14 sm:pb-16 border-b border-[var(--io-border-muted)]">
-          {/* Metadata line */}
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-5">
-            <span className={`text-[0.8125rem] font-semibold ${sColor(b.severity)}`}>
+        {/* ═══════════════════════════════════════════════════════
+           1. MACRO CONTEXT — what is happening?
+           CEO reads headline + severity + context in 5 seconds.
+           ═══════════════════════════════════════════════════════ */}
+        <header className="pt-4 pb-16 sm:pb-20">
+          <div className="io-meta mb-6">
+            <span className={`io-status ${sColor(b.severity)}`}>
               {b.severity}
             </span>
-            <span className="text-[0.8125rem] text-[var(--io-text-tertiary)]">
-              {b.domain}
-            </span>
-            <span className="text-[0.8125rem] text-[var(--io-text-tertiary)]">
-              {b.horizonHours}h horizon
-            </span>
-            <span className="text-[0.8125rem] text-[var(--io-text-tertiary)]">
-              {b.sectors.join(' · ')}
-            </span>
+            <span>{b.domain}</span>
+            <span className="tabular-nums">{b.horizonHours}h horizon</span>
           </div>
 
-          {/* Title */}
-          <h1 className="text-[1.75rem] sm:text-[2.25rem] font-bold tracking-tight leading-[1.12] text-[var(--io-charcoal)] mb-8">
+          <h1 className="io-briefing-title mb-8 max-w-3xl">
             {b.title}
           </h1>
 
-          {/* Situational summary */}
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl mb-6">
+          <p className="io-prose-lg mb-6">
             {b.context}
           </p>
 
-          {/* Significance */}
-          <p className="text-[0.9375rem] leading-[1.75] text-[var(--io-text-tertiary)] max-w-3xl">
+          <p className="io-prose text-[var(--io-text-tertiary)]">
             {b.significance}
           </p>
         </header>
 
-        {/* ════════════════════════════════════════════════════
-           2. TRANSMISSION
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
-          <p className="io-label mb-3">How Pressure Transmits</p>
-          <p className="text-[0.9375rem] leading-relaxed text-[var(--io-text-secondary)] max-w-3xl mb-10">
-            {b.transmissionFraming}
-          </p>
+        {/* ═══════════════════════════════════════════════════════
+           2. SYSTEM ACTIVATION — run scenario with live posture
+           ═══════════════════════════════════════════════════════ */}
+        <ScenarioActivation
+          scenarioId={b.id}
+          scenarioName={b.title}
+          horizonHours={b.horizonHours}
+          severity={b.severity}
+        />
 
-          <div className="space-y-8">
-            {b.transmission.map((step, i) => (
-              <p key={i} className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
-                <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
-                <span className="font-medium text-[var(--io-charcoal)]">
-                  {step.from} → {step.to}
-                </span>
-                {step.delayHours > 0 && (
-                  <span className="text-[var(--io-text-tertiary)]"> (+{step.delayHours}h)</span>
-                )}
-                <span className="mx-1.5">—</span>
-                {step.mechanism}
-              </p>
-            ))}
-          </div>
-        </section>
+        <hr className="io-divider-accent" />
 
-        {/* ════════════════════════════════════════════════════
-           3. IMPACT
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
-          <p className="io-label mb-3">Institutional Exposure</p>
-          <p className="text-[0.9375rem] leading-relaxed text-[var(--io-text-secondary)] max-w-3xl mb-10">
-            {b.impactFraming}
-          </p>
+        {/* ═══════════════════════════════════════════════════════
+           3. THREE-LENS READING — why it matters differently
+           across financial, regulatory, industrial frameworks.
+           Full stacked prose. Not one-liners.
+           ═══════════════════════════════════════════════════════ */}
+        <NarrativeLayer scenarioId={b.id} />
 
-          <div className="space-y-8">
-            {b.impact.map((line: ExposureLine, i: number) => (
-              <div key={i} className="max-w-3xl">
-                <div className="flex items-baseline gap-3 mb-1.5">
-                  <span className="text-[0.9375rem] font-medium text-[var(--io-charcoal)]">
-                    {line.entity}
-                  </span>
-                  <span className={`text-[0.8125rem] font-semibold ${sColor(line.severity)}`}>
-                    {line.severity}
-                  </span>
-                </div>
-                <p className="text-[0.8125rem] text-[var(--io-text-tertiary)] mb-2">
-                  {line.sector}
-                </p>
-                <p className="text-[0.875rem] leading-[1.7] text-[var(--io-text-secondary)]">
-                  {line.exposure}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
+        {/* ═══════════════════════════════════════════════════════
+           4. SIGNAL INTELLIGENCE
+           Layer A: ONE dominant signal (3 seconds)
+           Layer B: 3–5 supporting signals (traceability)
+           ═══════════════════════════════════════════════════════ */}
+        <SignalLayer scenarioId={b.id} />
 
-        {/* ════════════════════════════════════════════════════
-           4. DECISION
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
-          <p className="io-label mb-3">Required Response</p>
-          <p className="text-[0.9375rem] leading-relaxed text-[var(--io-text-secondary)] max-w-3xl mb-10">
-            {b.decisionFraming}
-          </p>
+        {/* ═══════════════════════════════════════════════════════
+           5. PROPAGATION CHAIN — how is it spreading?
+           Event → Country pressure → Sector transmission →
+           Entity exposure → Contagion events
+           ═══════════════════════════════════════════════════════ */}
+        <PropagationLayer scenarioId={b.id} />
 
-          <div className="space-y-8">
-            {b.decisions.map((d, i) => (
-              <p key={i} className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
-                <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
-                <span className="font-medium text-[var(--io-charcoal)]">{d.action}</span>
-                <span className="mx-1.5">—</span>
-                {d.owner}, by {d.deadline} ({d.sector})
-              </p>
-            ))}
-          </div>
+        {/* ═══════════════════════════════════════════════════════
+           6. ENTITY EXPOSURE — who is exposed?
+           Top 3 entities with dependency reasoning.
+           Live: from intelligence core.
+           Static: from scenario manifest.
+           ═══════════════════════════════════════════════════════ */}
+        <EntityExposureHighlight scenarioId={b.id} />
 
-          <div className="mt-10">
-            <Link
-              href={`/decision/${b.id}`}
-              className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
-            >
-              View decision brief →
-            </Link>
-          </div>
-        </section>
+        {/* ═══════════════════════════════════════════════════════
+           7. DECISION BLOCK — what is the decision?
+           WHY / HOW / WHAT with posture integration.
+           ═══════════════════════════════════════════════════════ */}
+        <DecisionIntelligence scenarioId={b.id} />
 
-        {/* ════════════════════════════════════════════════════
-           5. OUTCOME
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16">
-          <p className="io-label mb-3">Expected Outcome</p>
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
+        {/* ═══════════════════════════════════════════════════════
+           8. MONITORING — who executes, who watches, who escalates
+           Institutional accountability chain.
+           Live only — invisible when static.
+           ═══════════════════════════════════════════════════════ */}
+        <MonitoringBlock scenarioId={b.id} />
+
+        {/* ═══════════════════════════════════════════════════════
+           9. OUTCOME — what confirms success?
+           ═══════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-20">
+          <p className="io-label mb-4">Expected Outcome</p>
+          <p className="io-prose-lg mt-6">
             {b.outcome}
           </p>
 
-          <div className="mt-16">
-            <p className="io-label mb-6">Monitoring Criteria</p>
-            <ol className="space-y-4 max-w-3xl">
+          <div className="mt-12">
+            <p className="io-label mb-4">What Confirms the Path</p>
+            <ol className="space-y-3 max-w-3xl io-stagger">
               {b.monitoringCriteria.map((criterion, i) => (
-                <li
-                  key={i}
-                  className="text-[0.875rem] leading-[1.7] text-[var(--io-text-secondary)]"
-                >
-                  <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
+                <li key={i} className="io-numbered-item">
+                  <span className="text-[var(--io-text-tertiary)] tabular-nums mr-2.5">{i + 1}.</span>
                   {criterion}
                 </li>
               ))}
             </ol>
           </div>
+
+          <div className="mt-12">
+            <Link
+              href={`/decision/${b.id}`}
+              className="text-[0.8125rem] font-medium text-[var(--io-text-tertiary)] hover:text-[var(--io-charcoal)] transition-colors duration-200"
+            >
+              View full decision brief →
+            </Link>
+          </div>
         </section>
 
-        {/* Quiet bottom */}
-        <div className="py-8 border-t border-[var(--io-border-muted)] flex items-baseline justify-between">
-          <span className="text-xs text-[var(--io-text-tertiary)]">
+        {/* Footer */}
+        <div className="io-footer">
+          <span className="io-footer-text">
             Impact Observatory · مرصد الأثر
           </span>
-          <span className="text-xs text-[var(--io-text-tertiary)]">
+          <span className="io-footer-text">
             {b.id}
           </span>
         </div>

@@ -1,22 +1,26 @@
 /**
  * Impact Observatory | مرصد الأثر — Decision Briefing
  *
- * A sovereign-grade directive document — not a task board.
+ * A sovereign-grade directive document.
  * Read top to bottom like a board-level decision memo.
  *
  *   1. Directive Identity  — classification, imperative title, summary
  *   2. Primary Directive   — the single dominant action, with rationale
- *   3. Supporting Actions   — subordinate measures in numbered prose
- *   4. Expected Effect      — aggregate outcome and monitoring criteria
- *   5. Briefing Footer      — reference, issued, origin, distribution
- *
- * Data: src/lib/decisions.ts (static manifest, SSG-compatible).
+ *   3. Decision Intelligence — WHY / HOW / WHAT reasoning trace
+ *   4. Supporting Actions   — subordinate measures in numbered prose
+ *   5. Expected Effect      — aggregate outcome and monitoring criteria
+ *   6. Briefing Footer      — reference, issued, origin, distribution
  */
 
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PageShell, Container } from '@/components/layout';
 import { getDecision, getAllDecisions } from '@/lib/decisions';
+import { DecisionReaction } from '@/components/system/DecisionReaction';
+import { DecisionIntelligence } from '@/components/intelligence/DecisionIntelligence';
+import { SignalLayer } from '@/components/intelligence/SignalLayer';
+import { MonitoringBlock } from '@/components/intelligence/MonitoringBlock';
+import { EntityExposureHighlight } from '@/components/intelligence/EntityExposureHighlight';
 
 export async function generateStaticParams() {
   return getAllDecisions().map((d) => ({ slug: d.id }));
@@ -49,143 +53,172 @@ export default async function DecisionPage({
       <Container>
 
         {/* Back */}
-        <div className="pt-8 pb-4">
+        <div className="pt-8 pb-3">
           <Link
-            href="/"
-            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+            href="/decision"
+            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-200"
           >
-            ← All scenarios
+            ← All directives
           </Link>
         </div>
 
-        {/* ════════════════════════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════
+           DECISION REACTION (live posture when scenario active)
+           ═══════════════════════════════════════════════════════ */}
+        <DecisionReaction
+          scenarioId={b.scenarioRef}
+          classification={b.classification}
+        />
+
+        {/* ═══════════════════════════════════════════════════════
            DIRECTIVE IDENTITY
-           ════════════════════════════════════════════════════ */}
-        <header className="pt-6 pb-14 sm:pb-16 border-b border-[var(--io-border-muted)]">
-          <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-5">
+           ═══════════════════════════════════════════════════════ */}
+        <header className="pt-4 pb-16 sm:pb-20">
+          <div className="io-meta mb-6">
             <span className="io-label">Directive</span>
-            <span className={`text-[0.8125rem] font-semibold ${cColor(b.classification)}`}>
+            <span className={`io-status ${cColor(b.classification)}`}>
               {b.classification}
             </span>
           </div>
 
-          <h1 className="text-[1.75rem] sm:text-[2.25rem] font-bold tracking-tight leading-[1.12] text-[var(--io-charcoal)] mb-6">
+          <h1 className="io-briefing-title mb-8 max-w-3xl">
             {b.directiveTitle}
           </h1>
 
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl mb-4">
+          <p className="io-prose-lg mb-6">
             {b.summary}
           </p>
 
           <Link
             href={`/scenario/${b.scenarioRef}`}
-            className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+            className="text-[0.8125rem] font-medium text-[var(--io-text-tertiary)] hover:text-[var(--io-charcoal)] transition-colors duration-200"
           >
             View scenario analysis →
           </Link>
         </header>
 
-        {/* ════════════════════════════════════════════════════
-           PRIMARY DIRECTIVE
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
+        <hr className="io-divider-accent" />
+
+        {/* ═══════════════════════════════════════════════════════
+           PRIMARY DIRECTIVE — the dominant action
+           ═══════════════════════════════════════════════════════ */}
+        <section className="io-section">
           <p className="io-label mb-6">Primary Directive</p>
 
-          <p className="text-[1.125rem] sm:text-[1.25rem] font-semibold leading-[1.5] text-[var(--io-charcoal)] max-w-3xl mb-3">
+          <p className="text-[1.125rem] sm:text-[1.25rem] font-bold leading-[1.45] text-[var(--io-charcoal)] max-w-3xl mb-4">
             {pd.action}
           </p>
 
-          <p className="text-[0.9375rem] leading-[1.75] text-[var(--io-text-secondary)] max-w-3xl mb-10">
+          <p className="io-prose mb-12">
             {pd.owner} must execute within {pd.deadline}. Sector: {pd.sector}.
           </p>
 
-          <div className="max-w-3xl space-y-8">
+          <div className="max-w-3xl space-y-10">
             <div>
               <p className="io-label mb-3">Rationale</p>
-              <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)]">
+              <p className="io-prose">
                 {pd.rationale}
               </p>
             </div>
 
             <div>
               <p className="io-label mb-3">If Not Executed</p>
-              <p className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)]">
+              <p className="io-prose">
                 {pd.consequenceOfInaction}
               </p>
             </div>
           </div>
         </section>
 
-        {/* ════════════════════════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════
+           SIGNAL CONTEXT — dominant signal driving this decision
+           ═══════════════════════════════════════════════════════ */}
+        <SignalLayer scenarioId={b.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           DECISION INTELLIGENCE (posture + advisory when live)
+           ═══════════════════════════════════════════════════════ */}
+        <DecisionIntelligence scenarioId={b.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
            SUPPORTING ACTIONS
-           ════════════════════════════════════════════════════ */}
+           ═══════════════════════════════════════════════════════ */}
         {b.supportingActions.length > 0 && (
-          <section className="py-14 sm:py-16 border-b border-[var(--io-border-muted)]">
+          <section className="io-section">
             <p className="io-label mb-6">Supporting Actions</p>
 
-            <div className="space-y-6">
+            <div className="space-y-6 io-stagger">
               {b.supportingActions.map((a, i) => (
-                <p key={i} className="text-[0.9375rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
-                  <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
-                  <span className="font-medium text-[var(--io-charcoal)]">{a.action}</span>
-                  <span className="mx-1.5">—</span>
-                  {a.owner}, by {a.deadline} ({a.sector})
-                </p>
+                <div key={i} className="max-w-3xl">
+                  <p className="io-numbered-item">
+                    <span className="text-[var(--io-text-tertiary)] tabular-nums mr-2.5">{i + 1}.</span>
+                    <span className="font-semibold text-[var(--io-charcoal)]">{a.action}</span>
+                  </p>
+                  <p className="text-[0.8125rem] text-[var(--io-text-tertiary)] mt-1.5 pl-6">
+                    {a.owner} · {a.deadline} · {a.sector}
+                  </p>
+                </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* ════════════════════════════════════════════════════
-           EXPECTED EFFECT
-           ════════════════════════════════════════════════════ */}
-        <section className="py-14 sm:py-16">
-          <p className="io-label mb-3">Expected Effect</p>
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
+        {/* ═══════════════════════════════════════════════════════
+           ENTITY EXPOSURE — who is at risk (live only)
+           ═══════════════════════════════════════════════════════ */}
+        <EntityExposureHighlight scenarioId={b.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           MONITORING — execution / monitoring / escalation (live)
+           ═══════════════════════════════════════════════════════ */}
+        <MonitoringBlock scenarioId={b.scenarioRef} />
+
+        {/* ═══════════════════════════════════════════════════════
+           EXPECTED EFFECT & MONITORING
+           ═══════════════════════════════════════════════════════ */}
+        <section className="py-16 sm:py-20">
+          <p className="io-label mb-4">Expected Effect</p>
+          <p className="io-prose-lg mt-6">
             {b.expectedEffect}
           </p>
 
-          <div className="mt-14">
-            <p className="io-label mb-6">Monitoring Criteria</p>
-            <ol className="space-y-4 max-w-3xl">
+          <div className="mt-16">
+            <p className="io-label mb-6">What Confirms the Path</p>
+            <ol className="space-y-4 max-w-3xl io-stagger">
               {b.monitoringCriteria.map((criterion, i) => (
                 <li
                   key={i}
-                  className="text-[0.875rem] leading-[1.7] text-[var(--io-text-secondary)]"
+                  className="io-numbered-item"
                 >
-                  <span className="text-[var(--io-text-tertiary)] mr-2">{i + 1}.</span>
+                  <span className="text-[var(--io-text-tertiary)] tabular-nums mr-2.5">{i + 1}.</span>
                   {criterion}
                 </li>
               ))}
             </ol>
           </div>
 
-          <div className="mt-10">
+          <div className="mt-12">
             <Link
               href={`/evaluation/${b.id}`}
-              className="text-[0.8125rem] text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+              className="text-[0.8125rem] font-medium text-[var(--io-text-tertiary)] hover:text-[var(--io-charcoal)] transition-colors duration-200"
             >
               View evaluation →
             </Link>
           </div>
         </section>
 
-        {/* ════════════════════════════════════════════════════
+        {/* ═══════════════════════════════════════════════════════
            BRIEFING FOOTER
-           ════════════════════════════════════════════════════ */}
+           ═══════════════════════════════════════════════════════ */}
         <footer className="py-10 border-t border-[var(--io-border-muted)]">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-5 gap-x-8 max-w-3xl">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-6 gap-x-8 max-w-3xl">
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Reference
-              </p>
-              <p className="text-xs text-[var(--io-text-tertiary)]">{b.id}</p>
+              <p className="io-label mb-1.5">Reference</p>
+              <p className="io-footer-text">{b.id}</p>
             </div>
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Issued
-              </p>
-              <p className="text-xs text-[var(--io-text-tertiary)]">
+              <p className="io-label mb-1.5">Issued</p>
+              <p className="io-footer-text">
                 {new Date(b.issued).toLocaleDateString('en-GB', {
                   day: 'numeric',
                   month: 'short',
@@ -194,21 +227,17 @@ export default async function DecisionPage({
               </p>
             </div>
             <div>
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Origin
-              </p>
+              <p className="io-label mb-1.5">Origin</p>
               <Link
                 href={`/scenario/${b.scenarioRef}`}
-                className="text-xs text-[var(--io-text-tertiary)] hover:text-[var(--io-text-secondary)] transition-colors duration-150"
+                className="io-footer-text hover:text-[var(--io-text-secondary)] transition-colors duration-200"
               >
                 Scenario briefing →
               </Link>
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-[var(--io-text-tertiary)] mb-1">
-                Distribution
-              </p>
-              <p className="text-xs text-[var(--io-text-tertiary)] leading-relaxed">
+              <p className="io-label mb-1.5">Distribution</p>
+              <p className="io-footer-text leading-relaxed">
                 {b.distribution.join(' · ')}
               </p>
             </div>

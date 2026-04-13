@@ -1,15 +1,15 @@
 /**
  * Impact Observatory | مرصد الأثر — Evaluation Register
  *
- * An institutional index of post-decision evaluations.
- * Same calm register pattern as the landing page.
- * Reads as an accountability ledger, not an analytics console.
+ * Institutional accountability ledger. Post-decision reviews
+ * ordered by verdict. Calm authority. Prose-led.
  */
 
 import Link from 'next/link';
 import { PageShell, Container } from '@/components/layout';
 import { getEvaluationsByVerdict } from '@/lib/evaluations';
 import type { Verdict } from '@/lib/evaluations';
+import { brand } from '@/lib/copy';
 
 const verdictColor: Record<Verdict, string> = {
   Confirmed:            'text-[var(--io-status-olive)]',
@@ -25,37 +25,40 @@ export default function EvaluationRegisterPage() {
     <PageShell>
       <Container>
 
-        <header className="pt-16 sm:pt-20 pb-14 sm:pb-16 border-b border-[var(--io-border-muted)]">
-          <p className="io-label mb-3">Accountability</p>
-          <h1 className="text-[1.75rem] sm:text-[2.25rem] font-bold tracking-tight leading-[1.12] text-[var(--io-charcoal)] mb-5">
+        <header className="pt-20 sm:pt-28 pb-16 sm:pb-20">
+          <p className="io-label-lg mb-5">Accountability</p>
+          <h1 className="io-hero max-w-3xl mb-8" style={{ fontSize: '2.25rem' }}>
             Decision Evaluation
           </h1>
-          <p className="text-[1rem] leading-[1.8] text-[var(--io-text-secondary)] max-w-3xl">
-            Post-decision review for each scenario. Expected outcomes compared against actual results, with analyst commentary and institutional learning.
+          <p className="io-subhero">
+            Post-decision review for each scenario. Expected outcomes compared against
+            actual results, with analyst commentary and institutional learning.
           </p>
         </header>
 
-        <ol className="divide-y divide-[var(--io-border-muted)]">
+        <hr className="io-divider-accent" />
+
+        <ol className="divide-y divide-[var(--io-border-muted)] io-stagger">
           {evaluations.map((e) => (
             <li key={e.id}>
               <Link
                 href={`/evaluation/${e.id}`}
-                className="group block py-6 sm:py-7 transition-colors duration-150 hover:bg-[var(--io-muted)]/40 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12"
+                className="group block py-7 sm:py-8 transition-colors duration-200 hover:bg-[var(--io-warm)]/40 -mx-6 sm:-mx-8 lg:-mx-12 px-6 sm:px-8 lg:px-12"
               >
-                <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-4 mb-2">
-                  <span className={`text-[0.8125rem] font-semibold ${verdictColor[e.verdict]}`}>
+                <div className="io-meta mb-3">
+                  <span className={`io-status ${verdictColor[e.verdict]}`}>
                     {e.verdict}
                   </span>
-                  <span className="text-[0.8125rem] text-[var(--io-text-tertiary)]">
+                  <span className="tabular-nums">
                     {(e.correctness * 100).toFixed(0)}% correctness
                   </span>
                 </div>
 
-                <p className="text-[1rem] font-medium text-[var(--io-charcoal)] group-hover:text-[var(--io-graphite)] transition-colors duration-150 mb-1.5">
+                <p className="text-[1.0625rem] font-semibold text-[var(--io-charcoal)] group-hover:text-[var(--io-graphite)] transition-colors duration-200 mb-2.5 leading-snug">
                   {e.scenarioTitle}
                 </p>
 
-                <p className="text-[0.875rem] leading-[1.65] text-[var(--io-text-secondary)] max-w-3xl">
+                <p className="text-[0.875rem] leading-[1.75] text-[var(--io-text-secondary)] max-w-3xl">
                   {e.summary}
                 </p>
               </Link>
@@ -63,11 +66,11 @@ export default function EvaluationRegisterPage() {
           ))}
         </ol>
 
-        <div className="py-8 border-t border-[var(--io-border-muted)] flex items-baseline justify-between">
-          <span className="text-xs text-[var(--io-text-tertiary)]">
-            Impact Observatory · مرصد الأثر
+        <div className="io-footer">
+          <span className="io-footer-text">
+            {brand.name} · {brand.nameAr}
           </span>
-          <span className="text-xs text-[var(--io-text-tertiary)]">
+          <span className="io-footer-text">
             {evaluations.length} evaluations
           </span>
         </div>
