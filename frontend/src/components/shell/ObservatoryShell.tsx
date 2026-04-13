@@ -17,15 +17,15 @@ interface ObservatoryShellProps {
 }
 
 const TABS = [
+  { id: "briefing", labelEn: "Briefing", labelAr: "الإحاطة" },
   { id: "dashboard", labelEn: "Dashboard", labelAr: "لوحة المعلومات" },
   { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
-  { id: "intelligence", labelEn: "Intelligence", labelAr: "الإحاطة الاستخباراتية" },
-  { id: "macro", labelEn: "Macro Intelligence", labelAr: "الذكاء الكلي" },
+  { id: "macro", labelEn: "Macro", labelAr: "الذكاء الكلي" },
   { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
   { id: "map", labelEn: "GCC Map", labelAr: "خريطة الخليج" },
   { id: "sectors", labelEn: "Sectors", labelAr: "القطاعات" },
-  { id: "decisions", labelEn: "Decision Room", labelAr: "غرفة القرار" },
-  { id: "audit", labelEn: "Audit & Trust", labelAr: "التدقيق والثقة" },
+  { id: "decisions", labelEn: "Decisions", labelAr: "غرفة القرار" },
+  { id: "audit", labelEn: "Audit", labelAr: "التدقيق والثقة" },
 ];
 
 // Flow stages removed — executive briefing does not show technical pipeline
@@ -45,15 +45,15 @@ export function ObservatoryShell({
   const setLanguage = useAppStore((s) => s.setLanguage);
 
   const isArabic = language === "ar";
-  const tabParam = searchParams.get("tab") || "dashboard";
-  const currentTabId = tabParam === "dashboard" ? "dashboard" : tabParam || "dashboard";
+  const tabParam = searchParams.get("tab") || "briefing";
+  const currentTabId = tabParam || "briefing";
 
   const runId = searchParams.get("run");
 
   const handleTabClick = (tabId: string) => {
-    const runSuffix = runId ? `${tabId === "dashboard" ? "?" : "&"}run=${runId}` : "";
-    if (tabId === "dashboard") {
-      router.push(`/command-center${runSuffix}`);
+    if (tabId === "briefing") {
+      // Briefing is the default — no tab param needed
+      router.push(`/command-center${runId ? `?run=${runId}` : ""}`);
     } else {
       router.push(`/command-center?tab=${tabId}${runId ? `&run=${runId}` : ""}`);
     }

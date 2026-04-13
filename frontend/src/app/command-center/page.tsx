@@ -1112,7 +1112,7 @@ function CommandCenterInner() {
   const locale = language as "en" | "ar";
 
   const runId = searchParams.get("run");
-  const activeTab = searchParams.get("tab") || "dashboard";
+  const activeTab = searchParams.get("tab") || "briefing";
   const [isRunningScenario, setIsRunningScenario] = useState(false);
   const [activeRole, setActiveRole] = useState<ExecutiveRole>("ceo");
 
@@ -1276,6 +1276,7 @@ function CommandCenterInner() {
         );
 
       case "intelligence":
+      case "briefing":
         return (
           <div className="max-w-7xl mx-auto px-6">
             <IntelligenceSurface />
@@ -1412,8 +1413,8 @@ function CommandCenterInner() {
           />
         );
 
-      // Dashboard (default)
-      default:
+      // Dashboard (explicit tab only)
+      case "dashboard":
         return (
           <DashboardView
             scenario={scenario}
@@ -1441,6 +1442,14 @@ function CommandCenterInner() {
             scenarioPresets={scenarioPresets}
             onSwitchScenario={switchScenario}
           />
+        );
+
+      // Default: Intelligence briefing surface
+      default:
+        return (
+          <div className="max-w-7xl mx-auto px-6">
+            <IntelligenceSurface />
+          </div>
         );
     }
   };
@@ -1481,7 +1490,7 @@ function CommandCenterInner() {
       )}
 
       {/* Scenario quick-switcher (compact pill bar) */}
-      {scenario && activeTab !== "dashboard" && (
+      {scenario && activeTab !== "briefing" && activeTab !== "dashboard" && (
         <div className="px-6 pt-3">
           <ScenarioSelector
             activeScenarioId={scenario.templateId}
