@@ -32,9 +32,6 @@ import { useSovereignBriefing } from "@/features/command-center/lib/use-sovereig
 import { PropagationView } from "@/components/panels/PropagationView";
 import { DecisionRoomV2 } from "@/components/provenance/DecisionRoomV2";
 import { RegulatoryAuditView } from "@/components/panels/RegulatoryAuditView";
-import { useMacroIntelligence } from "@/features/macro-intelligence/hooks/use-macro-intelligence";
-import { useScenarioOperatingLayer } from "@/features/scenario-operating-layer/hooks/use-scenario-operating-layer";
-import { ScenarioOperatingStrip } from "@/features/scenario-operating-layer/components/ScenarioOperatingStrip";
 
 // ── Loading Skeleton ──
 
@@ -111,11 +108,6 @@ function CommandCenterInner() {
   // ── Canonical intelligence surface ──
   const briefing = useSovereignBriefing();
 
-  // ── Macro intelligence core snapshot (Phase 1 binding) ──
-  const { snapshot } = useMacroIntelligence();
-
-  const { scenarios, activeScenario, activeScenarioId, setActiveScenarioId } = useScenarioOperatingLayer();
-
   const {
     status,
     error,
@@ -170,34 +162,14 @@ function CommandCenterInner() {
     switch (activeTab) {
       case "propagation":
         return (
-          <div>
-            <div className="max-w-3xl mx-auto px-6 sm:px-8 pt-5 pb-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#ffffff] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />
-                Propagation Engine Active
-                <span className="text-[#8e8e93]">·</span>
-                <span>{snapshot.propagation.length} steps</span>
-              </div>
-            </div>
-
-            <PropagationView
-              locale={locale}
-              scenarioLabel={scenario?.label}
-              scenarioLabelAr={scenario?.labelAr ?? undefined}
-              severity={scenario?.severity}
-              totalLossUsd={headline?.totalLossUsd}
-              causalChain={snapshot.propagation.map((step) => ({
-                step: step.step,
-                entity_label: step.targetNode.label,
-                entity_label_ar: step.targetNode.label,
-                event: step.effectSummary,
-                event_ar: step.effectSummary,
-                impact_usd: step.lossDeltaUsd ?? 0,
-                stress_delta: step.stressDelta,
-                mechanism: step.mechanism,
-              }))}
-            />
-          </div>
+          <PropagationView
+            locale={locale}
+            scenarioLabel={scenario?.label}
+            scenarioLabelAr={scenario?.labelAr ?? undefined}
+            severity={scenario?.severity}
+            totalLossUsd={headline?.totalLossUsd}
+            causalChain={causalChain}
+          />
         );
 
       case "decision":
@@ -211,123 +183,51 @@ function CommandCenterInner() {
           );
         }
         return (
-          <div>
-            <div className="max-w-3xl mx-auto px-6 sm:px-8 pt-5 pb-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#ffffff] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />
-                Decision Engine Active
-                <span className="text-[#8e8e93]">·</span>
-                <span>{snapshot.decisions.length} directives</span>
-              </div>
-            </div>
-
-            <div className="p-6">
-              <DecisionRoomV2
-                runId={runId ?? undefined}
-                scenarioLabel={scenario.label}
-                scenarioLabelAr={scenario.labelAr ?? ""}
-                severity={String(scenario.severity)}
-                totalLossUsd={headline.totalLossUsd}
-                averageStress={headline.averageStress}
-                propagationDepth={headline.propagationDepth}
-                peakDay={headline.peakDay}
-                causalChain={causalChain}
-                decisionActions={snapshot.decisions.map((d) => ({
-                  id: d.id,
-                  action: d.action,
-                  owner: d.owner,
-                  sector: d.sector,
-                  urgency: d.urgency,
-                  rationale: d.rationale,
-                  consequence_of_delay: d.consequenceOfDelay,
-                  confidence: confidence,
-                }))}
-                sectorRollups={sectorRollups}
-                locale={locale}
-                metricExplanations={metricExplanations}
-                decisionTransparency={decisionTransparencyResult ?? undefined}
-                reliability={reliabilityPayload ?? undefined}
-                confidenceScore={confidence}
-                narrativeEn={narrativeEn}
-                narrativeAr={narrativeAr ?? ""}
-                macroContext={macroContext ?? undefined}
-                trustInfo={trust ?? undefined}
-                onSubmitForReview={handleSubmitForReview}
-              />
-            </div>
+          <div className="p-6">
+            <DecisionRoomV2
+              runId={runId ?? undefined}
+              scenarioLabel={scenario.label}
+              scenarioLabelAr={scenario.labelAr ?? ""}
+              severity={String(scenario.severity)}
+              totalLossUsd={headline.totalLossUsd}
+              averageStress={headline.averageStress}
+              propagationDepth={headline.propagationDepth}
+              peakDay={headline.peakDay}
+              causalChain={causalChain}
+              decisionActions={decisionActions}
+              sectorRollups={sectorRollups}
+              locale={locale}
+              metricExplanations={metricExplanations}
+              decisionTransparency={decisionTransparencyResult ?? undefined}
+              reliability={reliabilityPayload ?? undefined}
+              confidenceScore={confidence}
+              narrativeEn={narrativeEn}
+              narrativeAr={narrativeAr ?? ""}
+              macroContext={macroContext ?? undefined}
+              trustInfo={trust ?? undefined}
+              onSubmitForReview={handleSubmitForReview}
+            />
           </div>
         );
 
       case "monitoring":
         return (
-          <div>
-            <div className="max-w-3xl mx-auto px-6 sm:px-8 pt-5 pb-0">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#ffffff] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />
-                Monitoring Engine Active
-                <span className="text-[#8e8e93]">·</span>
-                <span>{snapshot.monitoring.length} status lines</span>
-              </div>
-            </div>
-
-            <RegulatoryAuditView
-              locale={locale}
-              runId={runId ?? undefined}
-              scenarioLabel={scenario?.label}
-              scenarioLabelAr={scenario?.labelAr ?? undefined}
-              severity={scenario?.severity}
-              horizonHours={scenario?.horizonHours}
-              trustInfo={trust ?? undefined}
-              decisionActions={snapshot.decisions.map((d) => ({
-                id: d.id,
-                action: d.action,
-                owner: d.owner,
-                sector: d.sector,
-                urgency: d.urgency,
-                rationale: d.rationale,
-                consequence_of_delay: d.consequenceOfDelay,
-                confidence: confidence,
-              }))}
-            />
-          </div>
+          <RegulatoryAuditView
+            locale={locale}
+            runId={runId ?? undefined}
+            scenarioLabel={scenario?.label}
+            scenarioLabelAr={scenario?.labelAr ?? undefined}
+            severity={scenario?.severity}
+            horizonHours={scenario?.horizonHours}
+            trustInfo={trust ?? undefined}
+            decisionActions={decisionActions}
+          />
         );
 
       // Default: Executive lands on SovereignBriefing
       default:
         if (briefing) {
-          return (
-            <div>
-              <ScenarioOperatingStrip
-                scenarios={scenarios}
-                activeScenarioId={activeScenarioId}
-                onSelect={setActiveScenarioId}
-              />
-
-              <div className="max-w-5xl mx-auto px-6 pt-5 pb-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#ffffff] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />
-                    Macro Core Active
-                    <span className="text-[#8e8e93]">·</span>
-                    <span>{snapshot.countryStates.length} countries</span>
-                    <span className="text-[#8e8e93]">·</span>
-                    <span>{snapshot.decisions.length} directives</span>
-                  </div>
-
-                  {activeScenario && (
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#fbfbfd] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
-                      <span>{activeScenario.icon}</span>
-                      <span className="text-[#1d1d1f] font-medium">{activeScenario.title}</span>
-                      <span className="text-[#8e8e93]">·</span>
-                      <span>{Math.round(activeScenario.severity * 100)}%</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <SovereignBriefing briefing={briefing} />
-            </div>
-          );
+          return <SovereignBriefing briefing={briefing} />;
         }
         // No briefing data yet → show controlled executive empty state
         return (
