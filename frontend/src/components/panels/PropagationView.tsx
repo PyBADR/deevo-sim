@@ -1,7 +1,14 @@
 "use client";
 
+/**
+ * PropagationView — Causal Narrative Surface
+ *
+ * One continuous story: cause → transmission → consequence.
+ * Maximum 4 steps visible. Plain prose. No cards. No boxes.
+ * Executive reads this like a briefing paragraph.
+ */
+
 import React from "react";
-import { AlertTriangle } from "lucide-react";
 
 interface CausalChainStep {
   step: number;
@@ -26,61 +33,11 @@ interface PropagationViewProps {
 
 const formatUsd = (value: number): string => {
   if (value === 0) return "$0";
-  const absValue = Math.abs(value);
-
-  if (absValue >= 1e12) {
-    return `$${(value / 1e12).toFixed(1)}T`;
-  }
-  if (absValue >= 1e9) {
-    return `$${(value / 1e9).toFixed(1)}B`;
-  }
-  if (absValue >= 1e6) {
-    return `$${(value / 1e6).toFixed(1)}M`;
-  }
-  if (absValue >= 1e3) {
-    return `$${(value / 1e3).toFixed(1)}K`;
-  }
-  return `$${value.toFixed(0)}`;
-};
-
-const getStressColor = (stress: number, maxStress: number): string => {
-  const normalized = Math.min(stress / maxStress, 1);
-
-  if (normalized < 0.2) return "from-green-500/20 to-green-600/10";
-  if (normalized < 0.4) return "from-yellow-500/20 to-yellow-600/10";
-  if (normalized < 0.6) return "from-amber-500/20 to-amber-600/10";
-  if (normalized < 0.8) return "from-orange-500/20 to-orange-600/10";
-  return "from-red-500/20 to-red-600/10";
-};
-
-const getStressBorderColor = (stress: number, maxStress: number): string => {
-  const normalized = Math.min(stress / maxStress, 1);
-
-  if (normalized < 0.2) return "border-green-500/40";
-  if (normalized < 0.4) return "border-yellow-500/40";
-  if (normalized < 0.6) return "border-amber-500/40";
-  if (normalized < 0.8) return "border-orange-500/40";
-  return "border-red-500/40";
-};
-
-const getSeverityColor = (severity?: number): string => {
-  if (!severity) return "text-gray-400";
-  if (severity < 0.2) return "text-green-600";
-  if (severity < 0.35) return "text-yellow-600";
-  if (severity < 0.5) return "text-amber-600";
-  if (severity < 0.65) return "text-orange-600";
-  if (severity < 0.8) return "text-red-600";
-  return "text-red-700";
-};
-
-const getSeverityLabel = (severity?: number, locale: "en" | "ar" = "en"): string => {
-  if (!severity) return locale === "en" ? "Unknown" : "غير معروف";
-  if (severity < 0.2) return locale === "en" ? "Nominal" : "عادي";
-  if (severity < 0.35) return locale === "en" ? "Low" : "منخفض";
-  if (severity < 0.5) return locale === "en" ? "Guarded" : "محدود";
-  if (severity < 0.65) return locale === "en" ? "Elevated" : "مرتفع";
-  if (severity < 0.8) return locale === "en" ? "High" : "عالي";
-  return locale === "en" ? "Severe" : "حرج";
+  const abs = Math.abs(value);
+  if (abs >= 1e12) return `$${(value / 1e12).toFixed(1)}T`;
+  if (abs >= 1e9) return `$${(value / 1e9).toFixed(1)}B`;
+  if (abs >= 1e6) return `$${(value / 1e6).toFixed(0)}M`;
+  return `$${(value / 1e3).toFixed(0)}K`;
 };
 
 export const PropagationView: React.FC<PropagationViewProps> = ({
@@ -91,185 +48,122 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
   totalLossUsd,
   causalChain,
 }) => {
+  const isAr = locale === "ar";
   const hasData = causalChain && causalChain.length > 0;
-  const maxStress = hasData
-    ? Math.max(...causalChain.map((step) => Math.abs(step.stress_delta)))
-    : 1;
-  const peakStressStep = hasData
-    ? causalChain.reduce((max, step) =>
-        Math.abs(step.stress_delta) > Math.abs(max.stress_delta) ? step : max
-      )
-    : null;
+  const steps = hasData ? causalChain.slice(0, 4) : [];
+  const displayLabel = isAr ? (scenarioLabelAr || scenarioLabel) : scenarioLabel;
 
   return (
     <div
-      className="w-full h-full flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
-      dir={locale === "ar" ? "rtl" : "ltr"}
+      className="max-w-3xl mx-auto px-6 sm:px-8 py-10"
+      dir={isAr ? "rtl" : "ltr"}
     >
-      {/* Header */}
-      <div className="px-6 py-4 border-b border-slate-200 bg-white">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-slate-900 mb-1">
-              {locale === "en" ? "Propagation Chain" : "سلسلة الانتشار"}
-            </h2>
-            {scenarioLabel && (
-              <p className="text-sm text-slate-600">
-                {locale === "en" ? scenarioLabel : scenarioLabelAr || scenarioLabel}
-              </p>
+      {/* ── Opening context ── */}
+      <div className="mb-12">
+        <h2 className="text-[1.375rem] sm:text-[1.625rem] font-bold text-[#e8e6e3] leading-tight tracking-tight mb-3">
+          {isAr ? "كيف ينتقل الضغط" : "How Pressure Spreads"}
+        </h2>
+        {displayLabel && (
+          <p className="text-[0.875rem] text-[#706f6c] leading-relaxed">
+            {displayLabel}
+            {severity != null && (
+              <span className="text-[#c4a35a] ml-2">
+                · {Math.round(severity * 100)}% severity
+              </span>
             )}
-          </div>
-          {severity !== undefined && (
-            <div className="text-right">
-              <div className={`text-2xl font-bold ${getSeverityColor(severity)}`}>
-                {(severity * 100).toFixed(0)}%
-              </div>
-              <div className="text-xs text-slate-600">
-                {getSeverityLabel(severity, locale)}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {!hasData ? (
-          <div className="h-full flex items-center justify-center">
-            <div className="text-center">
-              <AlertTriangle className="w-12 h-12 text-slate-400 mx-auto mb-3 opacity-50" />
-              <p className="text-slate-500 text-sm">
-                {locale === "en"
-                  ? "No propagation data available"
-                  : "لا توجد بيانات انتشار متاحة"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {/* Propagation Chain */}
-            {causalChain.map((step, idx) => {
-              const isLast = idx === causalChain.length - 1;
-              const cumulativeStress = causalChain
-                .slice(0, idx + 1)
-                .reduce((sum, s) => sum + Math.abs(s.stress_delta), 0);
-
-              return (
-                <div key={`step-${step.step}`} className="relative">
-                  {/* Vertical connecting line */}
-                  {!isLast && (
-                    <div className="absolute left-[24px] top-[60px] w-0.5 h-[40px] bg-gradient-to-b from-slate-300 to-transparent" />
-                  )}
-
-                  {/* Step Card */}
-                  <div className="relative flex gap-4">
-                    {/* Step Number Circle */}
-                    <div className="flex-shrink-0 pt-1">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-white text-sm relative z-10 bg-gradient-to-br ${getStressColor(cumulativeStress, maxStress * causalChain.length)} border-2 ${getStressBorderColor(cumulativeStress, maxStress * causalChain.length)}`}
-                      >
-                        {step.step}
-                      </div>
-                    </div>
-
-                    {/* Step Content */}
-                    <div className="flex-1 pt-1">
-                      <div
-                        className={`rounded-lg border-2 ${getStressBorderColor(cumulativeStress, maxStress * causalChain.length)} bg-white border border-slate-200 p-4 hover:border-opacity-70 transition-all`}
-                      >
-                        {/* Entity Header */}
-                        <div className="flex items-start justify-between gap-3 mb-2">
-                          <div className="flex-1">
-                            <h3 className="font-semibold text-slate-900 text-sm leading-tight">
-                              {locale === "en" ? step.entity_label : step.entity_label_ar || step.entity_label}
-                            </h3>
-                            {locale === "ar" && step.entity_label_ar && (
-                              <p className="text-xs text-slate-600 mt-0.5">{step.entity_label}</p>
-                            )}
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-sm font-bold text-slate-900">
-                              {formatUsd(step.impact_usd)}
-                            </div>
-                            <div className="text-xs text-slate-600">
-                              {locale === "en" ? "Impact" : "التأثير"}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Event Description */}
-                        <p className="text-xs text-slate-700 mb-3 leading-snug">
-                          {locale === "en" ? step.event : step.event_ar || step.event}
-                        </p>
-
-                        {/* Metrics Row */}
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="bg-slate-50 rounded px-2.5 py-2">
-                            <div className="text-xs text-slate-600 mb-0.5">
-                              {locale === "en" ? "Stress Δ" : "تغير الضغط"}
-                            </div>
-                            <div className="text-sm font-bold text-slate-900">
-                              {step.stress_delta > 0 ? "+" : ""}
-                              {(step.stress_delta * 100).toFixed(1)}%
-                            </div>
-                          </div>
-                          <div className="bg-slate-50 rounded px-2.5 py-2">
-                            <div className="text-xs text-slate-600 mb-0.5">
-                              {locale === "en" ? "Mechanism" : "الآلية"}
-                            </div>
-                            <div className="text-xs font-semibold text-slate-800 truncate">
-                              {step.mechanism}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+            {totalLossUsd != null && totalLossUsd > 0 && (
+              <span className="ml-2">
+                · {formatUsd(totalLossUsd)} projected loss
+              </span>
+            )}
+          </p>
         )}
       </div>
 
-      {/* Summary Footer */}
+      {/* ── Empty state ── */}
+      {!hasData && (
+        <p className="text-[0.9375rem] text-[#706f6c]">
+          {isAr
+            ? "لا توجد سلسلة انتشار نشطة — اختر سيناريو من الإحاطة."
+            : "No active propagation chain — select a scenario from the Briefing."}
+        </p>
+      )}
+
+      {/* ── Causal narrative — max 4 steps ── */}
       {hasData && (
-        <div className="border-t border-slate-200 bg-slate-50 px-6 py-4">
-          <div className="grid grid-cols-3 gap-4">
-            {/* Total Steps */}
-            <div>
-              <div className="text-xs text-slate-600 mb-1">
-                {locale === "en" ? "Total Steps" : "إجمالي الخطوات"}
-              </div>
-              <div className="text-xl font-bold text-slate-900">{causalChain.length}</div>
-            </div>
+        <div className="space-y-10">
+          {steps.map((step, idx) => {
+            const entity = isAr
+              ? (step.entity_label_ar || step.entity_label)
+              : step.entity_label;
+            const event = isAr
+              ? (step.event_ar || step.event)
+              : step.event;
+            const stressPct = Math.abs(step.stress_delta * 100).toFixed(1);
+            const isLast = idx === steps.length - 1;
 
-            {/* Total Propagation Loss */}
-            <div>
-              <div className="text-xs text-slate-600 mb-1">
-                {locale === "en" ? "Total Loss" : "إجمالي الخسارة"}
-              </div>
-              <div className="text-xl font-bold text-red-600">
-                {formatUsd(totalLossUsd || causalChain.reduce((sum, s) => sum + s.impact_usd, 0))}
-              </div>
-            </div>
+            return (
+              <div key={step.step}>
+                {/* Step number — gold, anchors the eye */}
+                <p className="text-[0.75rem] text-[#c4a35a] font-bold tracking-widest uppercase mb-3">
+                  {isAr ? `الخطوة ${step.step}` : `Step ${step.step}`}
+                </p>
 
-            {/* Peak Stress Entity */}
-            <div>
-              <div className="text-xs text-slate-600 mb-1">
-                {locale === "en" ? "Peak Stress" : "ذروة الضغط"}
+                {/* Trigger — what entity is affected */}
+                <p className="text-[1.0625rem] font-semibold text-[#e8e6e3] leading-snug mb-2">
+                  {entity}
+                </p>
+
+                {/* Event — the consequence at this node */}
+                <p className="text-[0.9375rem] text-[#a09f9c] leading-[1.75] mb-3">
+                  {event}
+                </p>
+
+                {/* Transmission channel + stress delta + impact — inline, not boxed */}
+                <p className="text-[0.8125rem] text-[#706f6c] leading-relaxed">
+                  {isAr ? "القناة" : "Channel"}: <span className="text-[#a09f9c]">{step.mechanism}</span>
+                  <span className="mx-2 text-[#3a3937]">·</span>
+                  {isAr ? "تأثير الضغط" : "Stress impact"}: <span className="text-[#a09f9c]">+{stressPct}%</span>
+                  {step.impact_usd > 0 && (
+                    <>
+                      <span className="mx-2 text-[#3a3937]">·</span>
+                      {isAr ? "الخسارة" : "Loss"}: <span className="text-[#a09f9c]">{formatUsd(step.impact_usd)}</span>
+                    </>
+                  )}
+                </p>
+
+                {/* Connecting line between steps */}
+                {!isLast && (
+                  <div className="mt-6">
+                    <div className="h-px bg-[#1a1a1e]" />
+                  </div>
+                )}
               </div>
-              <div className="text-sm font-semibold text-orange-600 truncate">
-                {peakStressStep
-                  ? locale === "en"
-                    ? peakStressStep.entity_label
-                    : peakStressStep.entity_label_ar || peakStressStep.entity_label
-                  : "—"}
-              </div>
-            </div>
-          </div>
+            );
+          })}
         </div>
       )}
+
+      {/* ── Closing — total if more steps exist beyond 4 ── */}
+      {hasData && causalChain.length > 4 && (
+        <div className="mt-10 pt-5 border-t border-[#1a1a1e]">
+          <p className="text-[0.8125rem] text-[#706f6c]">
+            {causalChain.length - 4} {isAr ? "خطوات إضافية في سلسلة الانتشار" : "additional steps in the propagation chain"}.
+            {totalLossUsd != null && totalLossUsd > 0 && (
+              <span className="text-[#a09f9c] ml-1">
+                {isAr ? "إجمالي الخسارة المتوقعة" : "Total projected loss"}: {formatUsd(totalLossUsd)}.
+              </span>
+            )}
+          </p>
+        </div>
+      )}
+
+      {/* Timestamp */}
+      <div className="mt-14 pt-5 border-t border-[#1a1a1e]">
+        <p className="text-[0.625rem] text-[#3a3937] tracking-wider">
+          {isAr ? "سلسلة الانتشار" : "Propagation chain"} · {steps.length} {isAr ? "خطوات مرئية" : "steps visible"}
+        </p>
+      </div>
     </div>
   );
 };

@@ -1,408 +1,302 @@
 "use client";
 
 /**
- * SovereignBriefing — Vertical Intelligence Reading Surface
+ * SovereignBriefing — 5-Block Executive Command Surface
  *
- * Implements all 8 architectural fixes in a single scrollable briefing.
- * NOT a dashboard. NOT a simulation tool. NOT a SaaS UI.
- * This is a sovereign intelligence briefing — an economic decision surface.
+ * Block 1: CURRENT STATE — what is happening
+ * Block 2: DOMINANT SIGNAL — where pressure is concentrated
+ * Block 3: HOW PRESSURE SPREADS — causal transmission
+ * Block 4: EXECUTIVE DECISION — what must be done
+ * Block 5: MONITORING AND CONSEQUENCE — who owns it
  *
- * Vertical reading sequence:
- *   Macro → Signal → Propagation → Decision → Exposure → Monitoring
- *
- * Each section = ONE idea. CEO-readable. No chrome. No widgets.
+ * No extra blocks. No tabs. No equal-weight sections.
+ * One focal point per block. Strong contrast. Command feel.
  */
 
-import React, { useMemo, useState } from "react";
+import React from "react";
 import type {
   SovereignBriefing as SovereignBriefingType,
-  SignalBrief,
-  PropagationProseStep,
-  DirectiveItem,
-  CountrySectorExposure,
-  MonitoringBrief,
-  TemporalHorizon,
-  ConfidenceBasis,
-  CounterfactualBaseline,
 } from "@/lib/intelligence/sovereignBriefingEngine";
-import {
-  type IntelligencePerspective,
-  ALL_PERSPECTIVES,
-  PERSPECTIVE_LABELS,
-  type PerspectiveNarrative,
-} from "@/lib/intelligence/perspectiveEngine";
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Section Primitives
+ * Block 1: CURRENT STATE
+ * What is happening. GCC posture. Top stress. Required decision now.
  * ═══════════════════════════════════════════════════════════════════════ */
 
-function SectionDivider({ label }: { label: string }) {
+function CurrentStateBlock({ briefing }: { briefing: SovereignBriefingType }) {
+  const topExposures = briefing.macroExposures.slice(0, 3);
+  const topCountries = [...new Set(topExposures.map(e => e.country))].slice(0, 3);
+  const topSector = topExposures[0]?.sector ?? "—";
+  const primaryDirective = briefing.directives[0];
+
   return (
-    <div className="flex items-center gap-3 pt-10 pb-4">
-      <div className="h-px flex-1 bg-white/[0.06]" />
-      <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.2em]">
-        {label}
-      </span>
-      <div className="h-px flex-1 bg-white/[0.06]" />
-    </div>
-  );
-}
+    <section className="mb-2">
+      {/* Posture headline — the single dominant focal point */}
+      <h2 className="text-[1.375rem] sm:text-[1.625rem] font-bold text-[#e8e6e3] leading-tight tracking-tight mb-5">
+        {briefing.macro.posture}
+      </h2>
 
-function Prose({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[13px] text-slate-300 leading-[1.75] tracking-wide">
-      {children}
-    </p>
-  );
-}
+      {/* Advisory — the context sentence */}
+      <p className="text-[0.9375rem] text-[#a09f9c] leading-[1.75] mb-6">
+        {briefing.macro.advisory}
+      </p>
 
-function ProseSecondary({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[12px] text-slate-500 leading-[1.7] tracking-wide">
-      {children}
-    </p>
-  );
-}
-
-function Label({ children }: { children: React.ReactNode }) {
-  return (
-    <p className="text-[10px] font-semibold text-slate-600 uppercase tracking-[0.15em] mb-2">
-      {children}
-    </p>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
- * Section 1: MACRO
- * ═══════════════════════════════════════════════════════════════════════ */
-
-function MacroSection({ posture, advisory }: { posture: string; advisory: string }) {
-  return (
-    <div>
-      <div className="mb-4">
-        <p className="text-[15px] font-semibold text-white tracking-wide leading-snug">
-          {posture}
-        </p>
-      </div>
-      <Prose>{advisory}</Prose>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
- * Section 2: SIGNAL (FIX 2 — dual signal with selection rationale)
- * ═══════════════════════════════════════════════════════════════════════ */
-
-function SignalSection({ signal }: { signal: SignalBrief }) {
-  return (
-    <div className="space-y-4">
-      {/* Dominant signal */}
-      <div>
-        <Label>Dominant Signal</Label>
-        <p className="text-[14px] font-semibold text-white leading-snug mb-1">
-          {signal.dominantSignal}
-        </p>
-        {signal.dominantType && (
-          <span className="inline-block text-[10px] font-semibold text-blue-400 bg-blue-400/10 px-2 py-0.5 rounded tracking-wider uppercase mb-3">
-            {signal.dominantType} · {Math.round(signal.dominantIntensity * 100)}%
-          </span>
+      {/* Key facts — prose, not grid */}
+      <p className="text-[0.8125rem] text-[#706f6c] leading-[1.75]">
+        {briefing.temporalHorizon.now.split('.')[0]}.
+        {topCountries.length > 0 && (
+          <> Top stress in {topCountries.join(', ')} — primary sector: {topSector}.</>
         )}
-      </div>
+        {primaryDirective && (
+          <> Required now: <span className="text-[#c4a35a] font-semibold">{primaryDirective.directive.split('.')[0]}</span>.</>
+        )}
+        {!primaryDirective && (
+          <> Monitoring posture — no binding directive.</>
+        )}
+      </p>
+    </section>
+  );
+}
 
-      {/* Selection basis */}
-      <Prose>{signal.selectionBasis}</Prose>
+/* ═══════════════════════════════════════════════════════════════════════
+ * Block 2: DOMINANT SIGNAL
+ * What signal dominates. Why. Runner-up in diminished form.
+ * ═══════════════════════════════════════════════════════════════════════ */
 
-      {/* Second signal */}
+function DominantSignalBlock({ briefing }: { briefing: SovereignBriefingType }) {
+  const signal = briefing.signal;
+
+  return (
+    <section>
+      {/* Dominant signal — large, unmissable */}
+      <p className="text-[1.125rem] font-bold text-[#e8e6e3] leading-snug mb-2">
+        {signal.dominantSignal}
+      </p>
+
+      {/* Intensity marker */}
+      {signal.dominantType && (
+        <p className="text-[0.75rem] text-[#c4a35a] font-semibold tracking-wide uppercase mb-4">
+          {signal.dominantType} · {Math.round(signal.dominantIntensity * 100)}% intensity
+        </p>
+      )}
+
+      {/* Why it dominates — one sentence */}
+      <p className="text-[0.875rem] text-[#a09f9c] leading-[1.75] mb-5">
+        {signal.selectionBasis}
+      </p>
+
+      {/* Runner-up — deliberately smaller */}
       {signal.secondSignal && (
-        <div className="border-l-2 border-white/[0.06] pl-4">
-          <Label>Runner-up Signal</Label>
-          <p className="text-[12px] text-slate-400 leading-relaxed">
-            {signal.secondSignal}
-            <span className="text-slate-600 ml-2">
-              ({signal.secondType} · {Math.round(signal.secondIntensity * 100)}%)
+        <div className="border-l-2 border-[#1a1a1e] pl-5">
+          <p className="text-[0.8125rem] text-[#706f6c] leading-relaxed">
+            Runner-up: {signal.secondSignal}
+            <span className="text-[#706f6c] ml-2">
+              · {signal.secondType} · {Math.round(signal.secondIntensity * 100)}%
             </span>
           </p>
         </div>
       )}
-
-      <ProseSecondary>
-        {signal.activeCount} signals active · {signal.peakCount} at peak intensity
-      </ProseSecondary>
-    </div>
+    </section>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Section 3: PROPAGATION (FIX 3 — numbered prose, no visuals)
+ * Block 3: HOW PRESSURE SPREADS
+ * 3-4 steps. Plain prose. No containers. No dead space.
  * ═══════════════════════════════════════════════════════════════════════ */
 
-function PropagationSection({ steps }: { steps: PropagationProseStep[] }) {
+function PressureSpreadsBlock({ briefing }: { briefing: SovereignBriefingType }) {
+  const steps = briefing.propagation.slice(0, 4);
+
   if (steps.length === 0) {
-    return <ProseSecondary>No propagation chain detected at current scenario progress.</ProseSecondary>;
+    return (
+      <section>
+        <p className="text-[0.875rem] text-[#706f6c]">
+          No propagation chain detected at current scenario progress.
+        </p>
+      </section>
+    );
   }
 
   return (
-    <div className="space-y-4">
+    <section className="space-y-5">
       {steps.map((step) => (
         <div key={step.stepNumber} className="flex gap-4">
-          <span className="text-[13px] font-bold text-slate-600 tabular-nums flex-shrink-0 w-5 text-right">
+          <span className="text-[0.875rem] font-bold text-[#c4a35a] tabular-nums flex-shrink-0 w-5 text-right">
             {step.stepNumber}.
           </span>
-          <Prose>{step.prose}</Prose>
+          <p className="text-[0.875rem] text-[#a09f9c] leading-[1.75]">
+            {step.prose}
+          </p>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Section 4: DECISION (FIX 5 — directive prose + consequence)
+ * Block 4: EXECUTIVE DECISION
+ * One dominant directive. Max 2 supporting. Owner. Urgency. Consequence.
  * ═══════════════════════════════════════════════════════════════════════ */
 
-function DecisionSection({ directives }: { directives: DirectiveItem[] }) {
+function ExecutiveDecisionBlock({ briefing }: { briefing: SovereignBriefingType }) {
+  const directives = briefing.directives;
+
   if (directives.length === 0) {
-    return <ProseSecondary>No active directives. System in monitoring posture.</ProseSecondary>;
+    return (
+      <section>
+        <p className="text-[0.875rem] text-[#706f6c]">
+          No active directives. System in monitoring posture.
+        </p>
+      </section>
+    );
   }
 
-  return (
-    <div className="space-y-6">
-      {directives.map((d, i) => (
-        <div key={i} className="space-y-2">
-          <p className="text-[13px] font-semibold text-white leading-snug">
-            {d.directive}
-          </p>
-          <p className="text-[11px] text-slate-500">
-            <span className="text-slate-600">{d.owner}</span>
-            <span className="text-slate-700 mx-2">·</span>
-            <span className="text-slate-600">{d.sector}</span>
-          </p>
-          <p className="text-[12px] text-amber-400/80 leading-[1.7]">
-            {d.consequence}
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
- * Section 5: EXPOSURE (FIX 4 — country-specific, no aggregation)
- * ═══════════════════════════════════════════════════════════════════════ */
-
-function ExposureSection({ exposures }: { exposures: CountrySectorExposure[] }) {
-  if (exposures.length === 0) {
-    return <ProseSecondary>No country-sector exposures above threshold.</ProseSecondary>;
-  }
+  const primary = directives[0];
+  const supporting = directives.slice(1, 3);
 
   return (
-    <div className="space-y-3">
-      {exposures.slice(0, 12).map((e, i) => (
-        <div key={i} className="flex gap-3 items-baseline">
-          <span className="text-[12px] font-semibold text-slate-300 whitespace-nowrap flex-shrink-0" style={{ minWidth: '180px' }}>
-            {e.country} {e.sector}:
+    <section>
+      {/* Primary directive — the dominant visual element */}
+      <div className="mb-8">
+        <p className="text-[1.0625rem] font-bold text-[#e8e6e3] leading-snug mb-3">
+          {primary.directive}
+        </p>
+
+        {/* Owner and urgency — visible, not buried */}
+        <div className="flex flex-wrap gap-x-6 gap-y-1 text-[0.75rem] mb-3">
+          <span className="text-[#a09f9c]">
+            Owner: <span className="text-[#e8e6e3] font-semibold">{primary.owner}</span>
           </span>
-          <p className="text-[12px] text-slate-400 leading-[1.6]">
-            {e.exposure}
-          </p>
+          <span className="text-[#a09f9c]">
+            Sector: <span className="text-[#e8e6e3] font-semibold">{primary.sector}</span>
+          </span>
         </div>
-      ))}
-    </div>
-  );
-}
 
-/* ═══════════════════════════════════════════════════════════════════════
- * Section 6: MONITORING (FIX 6 — owner/escalation/review only)
- * ═══════════════════════════════════════════════════════════════════════ */
+        {/* Consequence of delay — amber, not decorative */}
+        <p className="text-[0.8125rem] text-[#c4a35a] leading-[1.7]">
+          {primary.consequence}
+        </p>
+      </div>
 
-function MonitoringSection({ monitoring }: { monitoring: MonitoringBrief }) {
-  return (
-    <div className="space-y-4">
-      <Prose>{monitoring.statusSummary}</Prose>
-
-      {monitoring.assignments.length > 0 && (
-        <div className="space-y-3 pt-2">
-          {monitoring.assignments.map((a, i) => (
-            <div key={i} className="border-l-2 border-white/[0.06] pl-4">
-              <p className="text-[12px] text-slate-300 font-medium mb-1">{a.action}</p>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-500">
-                <span>Owner: <span className="text-slate-400">{a.owner}</span></span>
-                <span>Escalation: <span className="text-slate-400">{a.escalationAuthority}</span></span>
-                <span>Review: <span className="text-slate-400">every {a.reviewCycleHours}h</span></span>
-                <span className={a.status === 'escalated' ? 'text-red-400' : a.status === 'at_risk' ? 'text-amber-400' : ''}>
-                  Status: {a.status} · {Math.round(a.hoursRemaining)}h remaining
-                </span>
-              </div>
+      {/* Supporting directives — deliberately smaller */}
+      {supporting.length > 0 && (
+        <div className="space-y-4 border-l-2 border-[#1a1a1e] pl-5">
+          {supporting.map((d, i) => (
+            <div key={i}>
+              <p className="text-[0.875rem] text-[#a09f9c] leading-snug mb-1">
+                {d.directive}
+              </p>
+              <p className="text-[0.6875rem] text-[#706f6c]">
+                {d.owner} · {d.sector}
+              </p>
             </div>
           ))}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * FIX 8: Missing Intelligence Layers
+ * Block 5: MONITORING AND CONSEQUENCE
+ * Who is responsible. Review cycle. Counterfactual. Confidence.
  * ═══════════════════════════════════════════════════════════════════════ */
 
-function TemporalSection({ horizon }: { horizon: TemporalHorizon }) {
-  return (
-    <div className="space-y-4">
-      <div>
-        <Label>Now</Label>
-        <Prose>{horizon.now}</Prose>
-      </div>
-      <div>
-        <Label>72 Hours</Label>
-        <ProseSecondary>{horizon.hours72}</ProseSecondary>
-      </div>
-      <div>
-        <Label>30 Days</Label>
-        <ProseSecondary>{horizon.days30}</ProseSecondary>
-      </div>
-    </div>
-  );
-}
+function MonitoringConsequenceBlock({ briefing }: { briefing: SovereignBriefingType }) {
+  const monitoring = briefing.monitoring;
+  const topAssignment = monitoring.assignments[0];
 
-function ConfidenceSection({ basis }: { basis: ConfidenceBasis }) {
   return (
-    <div>
-      <Prose>{basis.explanation}</Prose>
-    </div>
-  );
-}
+    <section className="space-y-6">
+      {/* Execution ownership — prose, not grid */}
+      {topAssignment && (
+        <div>
+          <p className="text-[0.9375rem] text-[#a09f9c] leading-[1.8]">
+            Execution is owned by <span className="text-[#e8e6e3] font-semibold">{topAssignment.owner}</span>.
+            {' '}If the deadline passes, escalation authority transfers to{' '}
+            <span className="text-[#e8e6e3] font-semibold">{topAssignment.escalationAuthority}</span>.
+            {' '}Review cycle is every {topAssignment.reviewCycleHours}h.
+          </p>
+          <p className={`text-[0.8125rem] mt-2 ${
+            topAssignment.status === 'escalated' ? 'text-[#e05252]'
+              : topAssignment.status === 'at_risk' ? 'text-[#c4a35a]'
+              : 'text-[#706f6c]'
+          }`}>
+            Status: {topAssignment.status} · {Math.round(topAssignment.hoursRemaining)}h remaining
+          </p>
+        </div>
+      )}
 
-function CounterfactualSection({ baseline }: { baseline: CounterfactualBaseline }) {
-  return (
-    <div className="bg-red-500/[0.04] border border-red-500/10 rounded-lg px-5 py-4">
-      <Label>Without Action</Label>
-      <p className="text-[13px] text-red-400/80 leading-[1.75]">{baseline.withoutAction}</p>
-    </div>
+      {/* Counterfactual — what happens without action */}
+      <div className="border-l-2 border-[#e05252]/30 pl-5">
+        <p className="text-[0.6875rem] text-[#706f6c] uppercase tracking-widest font-medium mb-2">
+          Without Action
+        </p>
+        <p className="text-[0.875rem] text-[#e05252]/80 leading-[1.75]">
+          {briefing.counterfactual.withoutAction}
+        </p>
+      </div>
+
+      {/* Confidence basis — one sentence */}
+      <div>
+        <p className="text-[0.8125rem] text-[#706f6c] leading-[1.7]">
+          {briefing.confidenceBasis.explanation}
+        </p>
+      </div>
+    </section>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * FIX 1: Perspective Switcher
+ * Block divider — minimal, not decorative
  * ═══════════════════════════════════════════════════════════════════════ */
 
-function PerspectivePanel({
-  perspectives,
-  active,
-  onSwitch,
-}: {
-  perspectives: PerspectiveNarrative[];
-  active: IntelligencePerspective;
-  onSwitch: (p: IntelligencePerspective) => void;
-}) {
-  const current = perspectives.find(p => p.perspective === active) ?? perspectives[0];
-  if (!current) return null;
-
+function BlockDivider({ label }: { label: string }) {
   return (
-    <div className="space-y-4">
-      {/* Switcher tabs */}
-      <div className="flex flex-wrap gap-2">
-        {ALL_PERSPECTIVES.map((p) => (
-          <button
-            key={p}
-            onClick={() => onSwitch(p)}
-            className={`px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider rounded-md transition-colors ${
-              active === p
-                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
-                : "text-slate-600 hover:text-slate-400 border border-transparent"
-            }`}
-          >
-            {PERSPECTIVE_LABELS[p].en}
-          </button>
-        ))}
-      </div>
-
-      {/* Active perspective narrative */}
-      <div className="space-y-4">
-        <div>
-          <Label>Transmission Framing</Label>
-          <Prose>{current.transmissionFraming}</Prose>
-        </div>
-        <div>
-          <Label>Exposure Narrative</Label>
-          <Prose>{current.exposureNarrative}</Prose>
-        </div>
-        <div>
-          <Label>Decision Rationale</Label>
-          <Prose>{current.decisionRationale}</Prose>
-        </div>
-      </div>
+    <div className="pt-10 pb-6">
+      <p className="text-[0.6875rem] text-[#3a3937] uppercase tracking-[0.2em] font-semibold mb-2">
+        {label}
+      </p>
+      <div className="h-px bg-[#1a1a1e]" />
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
- * Main Component — FIX 7: Vertical Reading Sequence
+ * Main Component — 5 blocks, vertical read, one pass
  * ═══════════════════════════════════════════════════════════════════════ */
 
 interface SovereignBriefingProps {
   briefing: SovereignBriefingType;
-  onPerspectiveChange?: (p: IntelligencePerspective) => void;
 }
 
-export function SovereignBriefing({ briefing, onPerspectiveChange }: SovereignBriefingProps) {
-  const [activePerspective, setActivePerspective] = useState<IntelligencePerspective>(
-    briefing.activePerspective,
-  );
-
-  const handlePerspectiveSwitch = (p: IntelligencePerspective) => {
-    setActivePerspective(p);
-    onPerspectiveChange?.(p);
-  };
-
+export function SovereignBriefing({ briefing }: SovereignBriefingProps) {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 text-left">
-      {/* ── MACRO ──────────────────────────────────────────────── */}
-      <SectionDivider label="Macro" />
-      <MacroSection posture={briefing.macro.posture} advisory={briefing.macro.advisory} />
+    <div className="max-w-3xl mx-auto px-6 sm:px-8 py-10">
+      {/* Block 1: CURRENT STATE */}
+      <CurrentStateBlock briefing={briefing} />
 
-      {/* ── SIGNAL ─────────────────────────────────────────────── */}
-      <SectionDivider label="Signal" />
-      <SignalSection signal={briefing.signal} />
+      {/* Block 2: DOMINANT SIGNAL */}
+      <BlockDivider label="Dominant Signal" />
+      <DominantSignalBlock briefing={briefing} />
 
-      {/* ── PROPAGATION ────────────────────────────────────────── */}
-      <SectionDivider label="Propagation" />
-      <PropagationSection steps={briefing.propagation} />
+      {/* Block 3: HOW PRESSURE SPREADS */}
+      <BlockDivider label="How Pressure Spreads" />
+      <PressureSpreadsBlock briefing={briefing} />
 
-      {/* ── DECISION ───────────────────────────────────────────── */}
-      <SectionDivider label="Decision" />
-      <DecisionSection directives={briefing.directives} />
+      {/* Block 4: EXECUTIVE DECISION */}
+      <BlockDivider label="Executive Decision" />
+      <ExecutiveDecisionBlock briefing={briefing} />
 
-      {/* ── EXPOSURE ───────────────────────────────────────────── */}
-      <SectionDivider label="Exposure" />
-      <ExposureSection exposures={briefing.macroExposures} />
+      {/* Block 5: MONITORING AND CONSEQUENCE */}
+      <BlockDivider label="Monitoring and Consequence" />
+      <MonitoringConsequenceBlock briefing={briefing} />
 
-      {/* ── MONITORING ─────────────────────────────────────────── */}
-      <SectionDivider label="Monitoring" />
-      <MonitoringSection monitoring={briefing.monitoring} />
-
-      {/* ── TEMPORAL HORIZON (FIX 8A) ──────────────────────────── */}
-      <SectionDivider label="Temporal Horizon" />
-      <TemporalSection horizon={briefing.temporalHorizon} />
-
-      {/* ── CONFIDENCE (FIX 8B) ────────────────────────────────── */}
-      <SectionDivider label="Confidence" />
-      <ConfidenceSection basis={briefing.confidenceBasis} />
-
-      {/* ── COUNTERFACTUAL (FIX 8C) ────────────────────────────── */}
-      <SectionDivider label="Counterfactual" />
-      <CounterfactualSection baseline={briefing.counterfactual} />
-
-      {/* ── PERSPECTIVE (FIX 1) ────────────────────────────────── */}
-      <SectionDivider label="Intelligence Perspective" />
-      <PerspectivePanel
-        perspectives={briefing.perspectives}
-        active={activePerspective}
-        onSwitch={handlePerspectiveSwitch}
-      />
-
-      {/* Footer */}
-      <div className="mt-16 pt-6 border-t border-white/[0.04]">
-        <p className="text-[10px] text-slate-700 tracking-wider">
-          Generated {new Date(briefing.timestamp).toLocaleString()} · Scenario: {briefing.scenarioId}
+      {/* Timestamp — minimal */}
+      <div className="mt-14 pt-5 border-t border-[#1a1a1e]">
+        <p className="text-[0.625rem] text-[#3a3937] tracking-wider">
+          Generated {new Date(briefing.timestamp).toLocaleString()} · {briefing.scenarioId}
         </p>
       </div>
     </div>

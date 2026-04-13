@@ -1,11 +1,16 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+/**
+ * ObservatoryShell — Executive command surface shell.
+ *
+ * 4 primary tabs only: Briefing | Propagation | Decision | Monitoring
+ * No analyst toolbox. No flow diagrams. No demo CTAs.
+ * The executive sees one command flow.
+ */
+
+import React from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/store/app-store";
-import { t, type Locale } from "@/i18n/dictionary";
-import { Globe, ChevronRight, Play } from "lucide-react";
-import Link from "next/link";
 
 interface ObservatoryShellProps {
   children: React.ReactNode;
@@ -15,28 +20,12 @@ interface ObservatoryShellProps {
   activeTab?: string;
 }
 
-// Subordinate analyst tabs. The default landing (no tab) is SovereignBriefing.
+// Executive command flow — 4 tabs only.
 const TABS = [
   { id: "", labelEn: "Briefing", labelAr: "الإحاطة" },
-  { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
-  { id: "macro", labelEn: "Macro", labelAr: "الكلي" },
   { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
-  { id: "map", labelEn: "Map", labelAr: "الخريطة" },
-  { id: "sectors", labelEn: "Sectors", labelAr: "القطاعات" },
-  { id: "decisions", labelEn: "Decisions", labelAr: "القرارات" },
-  { id: "audit", labelEn: "Audit", labelAr: "التدقيق" },
-];
-
-const FLOW_STAGES = [
-  "Signal",
-  "Graph",
-  "Physics",
-  "Math",
-  "Sector",
-  "Entity",
-  "Decision",
-  "Value",
-  "Audit",
+  { id: "decision", labelEn: "Decision", labelAr: "القرار" },
+  { id: "monitoring", labelEn: "Monitoring", labelAr: "المراقبة" },
 ];
 
 export function ObservatoryShell({
@@ -44,34 +33,23 @@ export function ObservatoryShell({
   scenarioLabel,
   scenarioLabelAr,
   dataSource = "mock",
-  activeTab = "dashboard",
+  activeTab = "",
 }: ObservatoryShellProps) {
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
 
   const isArabic = language === "ar";
-  // Default (no tab param) = briefing. Tab param = analyst view.
   const tabParam = searchParams.get("tab") || "";
   const currentTabId = tabParam;
-
-  const flowStageDisplay = useMemo(() => {
-    return FLOW_STAGES.map((stage, idx) => (
-      <React.Fragment key={stage}>
-        <span className="text-xs font-medium text-io-secondary">{stage}</span>
-        {idx < FLOW_STAGES.length - 1 && (
-          <ChevronRight className="w-3 h-3 text-border-io-border" />
-        )}
-      </React.Fragment>
-    ));
-  }, []);
-
   const runId = searchParams.get("run");
 
+  const scenarioDisplayLabel = isArabic
+    ? scenarioLabelAr || scenarioLabel
+    : scenarioLabel;
+
   const handleTabClick = (tabId: string) => {
-    // Empty tabId = briefing (default landing, no tab param needed)
     if (tabId === "") {
       router.push(`/command-center${runId ? `?run=${runId}` : ""}`);
     } else {
@@ -83,115 +61,66 @@ export function ObservatoryShell({
     setLanguage(language === "en" ? "ar" : "en");
   };
 
-  const scenarioDisplayLabel = isArabic ? scenarioLabelAr || scenarioLabel : scenarioLabel;
-
   return (
     <div
-      className={`min-h-screen bg-io-bg text-io-primary flex flex-col ${isArabic ? "rtl" : "ltr"}`}
+      className={`min-h-screen bg-[#0a0a0c] text-[#e8e6e3] flex flex-col ${isArabic ? "rtl" : "ltr"}`}
       dir={isArabic ? "rtl" : "ltr"}
     >
-      {/* Identity Header */}
-      <header className="bg-io-surface border-b border-io-border px-6 py-5 shadow-sm">
-        <div className="max-w-7xl mx-auto">
-          {/* Top Row: Logo + Title + Language Toggle */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <Globe className="w-5 h-5 text-io-accent" />
-              </div>
-              <div className={`flex flex-col gap-0.5 ${isArabic ? "text-right" : "text-left"}`}>
-                <h1 className="text-lg font-semibold text-io-primary">
-                  {isArabic ? "الذكاء المالي الكلي" : "Macro Financial Intelligence"}
-                </h1>
-                <p className="text-xs text-io-secondary">
-                  {isArabic ? "دول مجلس التعاون الخليجي" : "GCC"}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {/* Start Demo CTA */}
-              <Link
-                href="/demo"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                <Play size={12} />
-                {isArabic ? "عرض تجريبي" : "Start Demo"}
-              </Link>
-
-              {/* Language Toggle Button */}
-              <button
-                onClick={handleLanguageToggle}
-                className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
-                aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
-              >
-                {isArabic ? "EN" : "عربي"}
-              </button>
-            </div>
+      {/* ── Identity Header ── */}
+      <header className="border-b border-[#1a1a1e] px-6 py-4">
+        <div className="max-w-6xl mx-auto flex items-center justify-between">
+          <div className={`flex items-baseline gap-3 ${isArabic ? "flex-row-reverse" : ""}`}>
+            <h1 className="text-[0.9375rem] font-bold tracking-tight text-[#e8e6e3]">
+              Impact Observatory
+            </h1>
+            <span className="text-[0.6875rem] text-[#706f6c] font-medium tracking-wide">
+              مرصد الأثر
+            </span>
           </div>
 
-          {/* Subtitle */}
-          <p className="text-xs text-io-secondary mb-3">
-            {isArabic
-              ? "نظام القرار لأسواق دول مجلس التعاون المالية"
-              : "Decision System for GCC Financial Markets"}
-          </p>
+          <div className="flex items-center gap-3">
+            {/* Active scenario indicator */}
+            {scenarioDisplayLabel && (
+              <div className={`flex items-center gap-2 ${isArabic ? "flex-row-reverse" : ""}`}>
+                <div className="w-1.5 h-1.5 rounded-full bg-[#c4a35a] animate-pulse" />
+                <span className="text-[0.75rem] text-[#a09f9c] font-medium truncate max-w-[200px]">
+                  {scenarioDisplayLabel}
+                </span>
+              </div>
+            )}
 
-          {/* Flow Stages */}
-          <div className="flex items-center gap-2 text-io-secondary overflow-x-auto pb-1">
-            {flowStageDisplay}
+            {/* Data source */}
+            <span className="text-[0.625rem] text-[#3a3937] uppercase tracking-widest font-medium">
+              {dataSource === "live" ? "Live" : "Sim"}
+            </span>
+
+            {/* Language toggle */}
+            <button
+              onClick={handleLanguageToggle}
+              className="px-2.5 py-1 text-[0.6875rem] font-medium rounded border border-[#1a1a1e] text-[#706f6c] hover:text-[#a09f9c] hover:border-[#2a2a2e] transition-colors"
+              aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
+            >
+              {isArabic ? "EN" : "عربي"}
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Scenario Context Bar */}
-      {scenarioDisplayLabel && (
-        <div className="bg-io-surface border-b border-io-border px-6 py-3">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className={`flex items-center gap-3 ${isArabic ? "flex-row-reverse" : ""}`}>
-              <div className="w-2 h-2 rounded-full bg-io-accent animate-pulse" />
-              <span className="text-sm text-io-secondary">
-                {isArabic ? "السيناريو النشط:" : "Active Scenario:"}
-              </span>
-              <span className="text-sm font-medium text-io-accent">{scenarioDisplayLabel}</span>
-            </div>
-
-            {/* Live/Demo Indicator */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  dataSource === "live" ? "bg-green-500" : "bg-yellow-500"
-                } animate-pulse`}
-              />
-              <span className="text-xs text-io-secondary">
-                {dataSource === "live"
-                  ? isArabic
-                    ? "بث مباشر"
-                    : "Live"
-                  : isArabic
-                    ? "محاكاة"
-                    : "Demo"}
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tab Navigation */}
-      <nav className="bg-io-surface border-b border-io-border px-6">
-        <div className="max-w-7xl mx-auto flex gap-8 overflow-x-auto">
+      {/* ── Executive Tab Navigation ── */}
+      <nav className="border-b border-[#1a1a1e] px-6">
+        <div className="max-w-6xl mx-auto flex gap-0">
           {TABS.map((tab) => {
             const isActive = currentTabId === tab.id;
             const tabLabel = isArabic ? tab.labelAr : tab.labelEn;
-            
+
             return (
               <button
                 key={tab.id}
                 onClick={() => handleTabClick(tab.id)}
-                className={`py-4 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`py-3 px-5 text-[0.8125rem] font-medium border-b-2 transition-colors whitespace-nowrap ${
                   isActive
-                    ? "text-io-accent border-io-accent"
-                    : "text-io-secondary border-transparent hover:text-io-primary"
+                    ? "text-[#e8e6e3] border-[#c4a35a]"
+                    : "text-[#706f6c] border-transparent hover:text-[#a09f9c]"
                 }`}
                 aria-current={isActive ? "page" : undefined}
               >
@@ -202,7 +131,7 @@ export function ObservatoryShell({
         </div>
       </nav>
 
-      {/* Main Content Area */}
+      {/* ── Main Content ── */}
       <main className="flex-1 overflow-auto">
         <div className="h-full w-full">{children}</div>
       </main>
