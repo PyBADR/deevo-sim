@@ -42,6 +42,15 @@ from src.banking_intelligence.api.v1.decisions import router as v1_banking_decis
 from src.api.v1.institutional import router as v1_institutional_router
 from src.api.v1.provenance import router as v1_provenance_router
 
+# Data Foundation — Outcome/Evaluation/Replay API
+from src.data_foundation.api.outcomes import router as df_outcomes_router
+from src.data_foundation.api.evaluations import router as df_evaluations_router
+from src.data_foundation.api.feedback import router as df_feedback_router
+from src.data_foundation.api.replay import router as df_replay_router
+
+# Data Foundation — Enforcement API
+from src.data_foundation.enforcement.api import router as df_enforcement_router
+
 from src.core.config import settings
 from src.services.state import init_state
 
@@ -94,6 +103,8 @@ async def lifespan(app: FastAPI):
         import src.models.action_tracking  # noqa: F401
         import src.models.enterprise  # noqa: F401
         import src.models.orm  # noqa: F401
+        import src.data_foundation.enforcement.orm_models  # noqa: F401
+        import src.data_foundation.governance.orm_models  # noqa: F401
 
         async with pg_engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
@@ -291,6 +302,15 @@ api_v1.include_router(v1_institutional_router)
 
 # ── Metrics Provenance Layer (Stage 85 — explainability + factor decomposition) ──
 api_v1.include_router(v1_provenance_router)
+
+# ── Data Foundation — Outcome/Evaluation/Replay endpoints ────────────────
+api_v1.include_router(df_outcomes_router)
+api_v1.include_router(df_evaluations_router)
+api_v1.include_router(df_feedback_router)
+api_v1.include_router(df_replay_router)
+
+# ── Data Foundation — Enforcement Layer endpoints ────────────────────────
+api_v1.include_router(df_enforcement_router)
 
 # ── Auth endpoints — no API key required ─────────────────────────────────
 app.include_router(v1_auth_router, prefix="/api/v1")

@@ -124,6 +124,9 @@ interface CommandCenterState {
   // ---- Trust ----
   trust: CommandCenterTrust | null;
 
+  // ---- Raw API result (for downstream derivation) ----
+  rawResult: UnifiedRunResult | null;
+
   // ---- Phase 1 Execution Engines ----
   transmissionChain: TransmissionChain | null;
   counterfactual: CalibratedCounterfactual | null;
@@ -223,6 +226,7 @@ const INITIAL_STATE = {
   confidence: 0,
   totalSteps: 0,
   trust: null as CommandCenterTrust | null,
+  rawResult: null as UnifiedRunResult | null,
   transmissionChain: null as TransmissionChain | null,
   counterfactual: null as CalibratedCounterfactual | null,
   actionPathways: null as ActionPathways | null,
@@ -394,6 +398,7 @@ export const useCommandCenterStore = create<CommandCenterState>((set) => ({
       runId: "mock_run",
       status: "ready",
       error: null,
+      rawResult: null,
       panelStates: derivePanelStates(
         data.graphNodes,
         data.causalChain,
@@ -443,21 +448,34 @@ export const useCommandCenterStore = create<CommandCenterState>((set) => ({
 
     const nodes = result.graph_payload?.nodes ?? [];
     const edges = result.graph_payload?.edges ?? [];
-    const criticalCount = nodes.filter((n) => (n.stress ?? 0) >= 0.8).length;
-    const elevatedCount = nodes.filter((n) => {
+
+    // Prefer backend-computed headline fields; fall back to graph-derived heuristics
+    const backendCritical = result.headline?.critical_count;
+    const backendElevated = result.headline?.elevated_count;
+    const backendAvgStress = result.headline?.average_stress;
+    const backendPeakDay = result.headline?.peak_day;
+    const backendRecoveryDays = result.headline?.max_recovery_days;
+    const backendAffected = result.headline?.affected_entities ?? result.headline?.total_nodes_impacted;
+
+    const criticalCount = backendCritical ?? nodes.filter((n) => (n.stress ?? 0) >= 0.8).length;
+    const elevatedCount = backendElevated ?? nodes.filter((n) => {
       const s = n.stress ?? 0;
       return s >= 0.65 && s < 0.8;
     }).length;
-    const avgStress = nodes.length > 0
+    const avgStress = backendAvgStress ?? (nodes.length > 0
       ? nodes.reduce((sum, n) => sum + (n.stress ?? 0), 0) / nodes.length
-      : 0;
+      : 0);
 
-    // Derive peakDay from propagation depth heuristic (day ≈ depth * severity_factor)
+    // Peak day: backend value first, then heuristic
     const depthVal = result.headline?.propagation_depth ?? 3;
     const severityVal = result.scenario?.severity ?? 0.5;
-    const estimatedPeakDay = Math.max(1, Math.round(depthVal * severityVal * 2));
-    // Recovery estimate: 6× peak day as a conservative bound
-    const estimatedRecoveryDays = Math.max(7, estimatedPeakDay * 6);
+    const estimatedPeakDay = backendPeakDay && backendPeakDay > 0
+      ? backendPeakDay
+      : Math.max(1, Math.round(depthVal * severityVal * 2));
+    // Recovery: backend value first, then 6× peak day heuristic
+    const estimatedRecoveryDays = backendRecoveryDays && backendRecoveryDays > 0
+      ? backendRecoveryDays
+      : Math.max(7, estimatedPeakDay * 6);
 
     const narrative = extractNarrative(result);
     const causalChain = extractCausalChain(result);
@@ -534,6 +552,7 @@ export const useCommandCenterStore = create<CommandCenterState>((set) => ({
       runId,
       status: "ready",
       error: null,
+      rawResult: result,
       panelStates: derivePanelStates(
         nodes,
         causalChain,
@@ -553,7 +572,7 @@ export const useCommandCenterStore = create<CommandCenterState>((set) => ({
       },
       headline: {
         totalLossUsd: result.headline?.total_loss_usd ?? 0,
-        nodesImpacted: result.headline?.total_nodes_impacted ?? 0,
+        nodesImpacted: backendAffected ?? 0,
         propagationDepth: result.headline?.propagation_depth ?? 0,
         peakDay: estimatedPeakDay,
         maxRecoveryDays: estimatedRecoveryDays,

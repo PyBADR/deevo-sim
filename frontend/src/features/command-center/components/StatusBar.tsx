@@ -1,18 +1,16 @@
 "use client";
 
 /**
- * StatusBar — Bottom-of-screen pipeline status and audit metadata
+ * StatusBar — Minimal bottom bar for data provenance
  *
- * Shows: data source indicator, pipeline stages, audit hash,
- * model version, confidence, latency. Minimal footprint.
+ * Clean, light-themed. Shows: data source, confidence, model version, audit hash.
+ * No technical pipeline stages or dark theme.
  */
 
 import React from "react";
 import {
   CheckCircle2,
-  Database,
   Fingerprint,
-  Clock,
   Wifi,
   WifiOff,
 } from "lucide-react";
@@ -37,72 +35,55 @@ export function StatusBar({
   durationMs,
 }: StatusBarProps) {
   const _confidence = safeNum(confidence);
-  const _durationMs = safeNum(durationMs, -1);
-  const _stagesCompleted = trust ? safeArr<string>(trust.stagesCompleted) : [];
   const _modelVersion = trust ? safeStr(trust.modelVersion, "—") : "—";
   const _auditHash = trust ? safeStr(trust.auditHash, "—") : "—";
 
   return (
-    <footer className="w-full bg-[#060910] border-t border-white/[0.06] px-4 py-1.5">
+    <footer className="w-full bg-white border-t border-slate-200 px-4 py-1.5">
       <div className="flex items-center gap-4 text-[10px]">
         {/* Data source */}
         <div className="flex items-center gap-1">
           {dataSource === "live" ? (
-            <Wifi size={10} className="text-emerald-500" />
+            <Wifi size={10} className="text-emerald-600" />
           ) : (
             <WifiOff size={10} className="text-amber-500" />
           )}
           <span
             className={
-              dataSource === "live" ? "text-emerald-400" : "text-amber-400"
+              dataSource === "live" ? "text-emerald-700 font-medium" : "text-amber-600 font-medium"
             }
           >
-            {dataSource === "live" ? "LIVE" : "MOCK"}
+            {dataSource === "live" ? "Live Data" : "Demo Mode"}
           </span>
         </div>
 
         {/* Separator */}
-        <span className="text-slate-800">|</span>
-
-        {/* Pipeline stages */}
-        {trust && (
-          <div className="flex items-center gap-1">
-            <CheckCircle2 size={10} className="text-emerald-600" />
-            <span className="text-slate-500">
-              {_stagesCompleted.length}/9 stages
-            </span>
-          </div>
-        )}
-
-        <span className="text-slate-800">|</span>
+        <span className="text-slate-300">|</span>
 
         {/* Confidence */}
         <div className="flex items-center gap-1">
-          <Database size={10} className="text-slate-600" />
+          <CheckCircle2 size={10} className="text-slate-400" />
           <span className="text-slate-500">
             Confidence:{" "}
             <span
-              style={{
-                color:
-                  _confidence >= 0.8
-                    ? "#22C55E"
-                    : _confidence >= 0.6
-                    ? "#EAB308"
-                    : "#EF4444",
-              }}
+              className={
+                _confidence >= 0.8
+                  ? "text-emerald-700 font-semibold"
+                  : _confidence >= 0.6
+                  ? "text-amber-700 font-semibold"
+                  : "text-red-700 font-semibold"
+              }
             >
               {safePercent(_confidence, 0)}%
             </span>
           </span>
         </div>
 
-        <span className="text-slate-800">|</span>
+        <span className="text-slate-300">|</span>
 
         {/* Model version */}
         {trust && (
-          <div className="flex items-center gap-1">
-            <span className="text-slate-600">v{_modelVersion}</span>
-          </div>
+          <span className="text-slate-400">v{_modelVersion}</span>
         )}
 
         {/* Spacer */}
@@ -111,21 +92,9 @@ export function StatusBar({
         {/* Audit hash (truncated) */}
         {trust && (
           <div className="flex items-center gap-1">
-            <Fingerprint size={10} className="text-slate-700" />
-            <span className="font-mono text-slate-700 truncate max-w-[180px]">
+            <Fingerprint size={10} className="text-slate-400" />
+            <span className="font-mono text-slate-400 truncate max-w-[180px]">
               {_auditHash}
-            </span>
-          </div>
-        )}
-
-        {/* Duration */}
-        {_durationMs >= 0 && (
-          <div className="flex items-center gap-1">
-            <Clock size={10} className="text-slate-700" />
-            <span className="text-slate-600 tabular-nums">
-              {_durationMs >= 1000
-                ? `${safeFixed(_durationMs / 1000, 1)}s`
-                : `${_durationMs}ms`}
             </span>
           </div>
         )}

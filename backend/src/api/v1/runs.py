@@ -140,6 +140,30 @@ async def get_run_result(run_id: str, request: Request):
     return result
 
 
+@router.get("/{run_id}/status")
+async def get_run_status(run_id: str, request: Request):
+    """Get lightweight status for a run — used by frontend polling.
+
+    Returns: run_id, status, scenario_id, severity, headline summary.
+    Designed for 2-second polling intervals with minimal payload.
+    """
+    enforce_permission(get_role_from_request(request), "run:read")
+    result = await run_store.aget_for_org(run_id, org=_get_org_from_request(request))
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
+    headline = result.get("headline", {})
+    return {
+        "run_id": run_id,
+        "status": "completed",
+        "scenario_id": result.get("scenario_id", ""),
+        "severity": result.get("severity", 0),
+        "headline_loss_usd": headline.get("total_loss_usd", 0),
+        "peak_day": headline.get("peak_day", 0),
+        "risk_level": result.get("risk_level", ""),
+        "stages_completed": result.get("pipeline_stages_completed", 0),
+    }
+
+
 @router.get("/{run_id}/financial")
 async def get_run_financial(run_id: str, request: Request):
     """Get financial impacts for a run."""

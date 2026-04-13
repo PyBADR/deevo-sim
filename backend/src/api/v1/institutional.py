@@ -159,16 +159,16 @@ async def get_explainability(run_id: str, request: Request):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  GET /api/v1/runs/{run_id}/audit-trail
+#  GET /api/v1/runs/{run_id}/institutional-audit-trail
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @router.get(
-    "/{run_id}/audit-trail",
+    "/{run_id}/institutional-audit-trail",
     response_model=AuditTrailResponse,
-    summary="SHA-256 audit trail",
+    summary="SHA-256 institutional audit trail",
     description="Immutable, hash-verified audit log for all decision chain outputs.",
 )
-async def get_audit_trail(run_id: str, request: Request):
+async def get_institutional_audit_trail(run_id: str, request: Request):
     """Get the institutional audit trail for a completed run."""
     enforce_permission(get_role_from_request(request), "audit:read")
 

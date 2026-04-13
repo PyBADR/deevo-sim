@@ -18,6 +18,9 @@ import src.models.action_tracking  # noqa: F401
 import src.models.enterprise  # noqa: F401
 import src.data_foundation.models.tables  # noqa: F401
 import src.data_foundation.models.reality_tables  # noqa: F401
+import src.data_foundation.models.outcome_tables  # noqa: F401
+import src.data_foundation.governance.orm_models  # noqa: F401
+import src.data_foundation.enforcement.orm_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.postgres_sync_dsn)

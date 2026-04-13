@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/store/app-store";
 import { t, type Locale } from "@/i18n/dictionary";
-import { Globe, ChevronRight } from "lucide-react";
+import { Globe } from "lucide-react";
 
 interface ObservatoryShellProps {
   children: React.ReactNode;
@@ -12,11 +12,14 @@ interface ObservatoryShellProps {
   scenarioLabelAr?: string;
   dataSource?: "live" | "mock";
   activeTab?: string;
+  /** Optional slot rendered between language toggle and scenario bar */
+  headerSlot?: React.ReactNode;
 }
 
 const TABS = [
   { id: "dashboard", labelEn: "Dashboard", labelAr: "لوحة المعلومات" },
   { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
+  { id: "intelligence", labelEn: "Intelligence", labelAr: "الإحاطة الاستخباراتية" },
   { id: "macro", labelEn: "Macro Intelligence", labelAr: "الذكاء الكلي" },
   { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
   { id: "map", labelEn: "GCC Map", labelAr: "خريطة الخليج" },
@@ -25,17 +28,7 @@ const TABS = [
   { id: "audit", labelEn: "Audit & Trust", labelAr: "التدقيق والثقة" },
 ];
 
-const FLOW_STAGES = [
-  "Signal",
-  "Graph",
-  "Physics",
-  "Math",
-  "Sector",
-  "Entity",
-  "Decision",
-  "Value",
-  "Audit",
-];
+// Flow stages removed — executive briefing does not show technical pipeline
 
 export function ObservatoryShell({
   children,
@@ -43,6 +36,7 @@ export function ObservatoryShell({
   scenarioLabelAr,
   dataSource = "mock",
   activeTab = "dashboard",
+  headerSlot,
 }: ObservatoryShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,17 +47,6 @@ export function ObservatoryShell({
   const isArabic = language === "ar";
   const tabParam = searchParams.get("tab") || "dashboard";
   const currentTabId = tabParam === "dashboard" ? "dashboard" : tabParam || "dashboard";
-  
-  const flowStageDisplay = useMemo(() => {
-    return FLOW_STAGES.map((stage, idx) => (
-      <React.Fragment key={stage}>
-        <span className="text-xs font-medium text-io-secondary">{stage}</span>
-        {idx < FLOW_STAGES.length - 1 && (
-          <ChevronRight className="w-3 h-3 text-border-io-border" />
-        )}
-      </React.Fragment>
-    ));
-  }, []);
 
   const runId = searchParams.get("run");
 
@@ -106,27 +89,25 @@ export function ObservatoryShell({
               </div>
             </div>
 
-            {/* Language Toggle Button */}
-            <button
-              onClick={handleLanguageToggle}
-              className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
-              aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
-            >
-              {isArabic ? "EN" : "عربي"}
-            </button>
+            <div className="flex items-center gap-3">
+              {headerSlot}
+              {/* Language Toggle Button */}
+              <button
+                onClick={handleLanguageToggle}
+                className="px-3 py-2 text-sm font-medium rounded-lg border border-io-border bg-io-bg hover:bg-slate-100 transition-colors text-io-primary hover:text-io-accent"
+                aria-label={isArabic ? "Switch to English" : "Switch to Arabic"}
+              >
+                {isArabic ? "EN" : "عربي"}
+              </button>
+            </div>
           </div>
 
           {/* Subtitle */}
-          <p className="text-xs text-io-secondary mb-3">
+          <p className="text-xs text-io-secondary">
             {isArabic
-              ? "نظام القرار لأسواق دول مجلس التعاون المالية"
-              : "Decision System for GCC Financial Markets"}
+              ? "إحاطة تنفيذية للأسواق المالية الخليجية"
+              : "Executive Briefing for GCC Financial Markets"}
           </p>
-
-          {/* Flow Stages */}
-          <div className="flex items-center gap-2 text-io-secondary overflow-x-auto pb-1">
-            {flowStageDisplay}
-          </div>
         </div>
       </header>
 

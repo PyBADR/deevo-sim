@@ -286,10 +286,10 @@ class TestConstants:
         assert len(VALID_CALIBRATION_STATUSES) == 4
 
     def test_audit_event_types_nonempty(self):
-        assert len(VALID_AUDIT_EVENT_TYPES) == 9
+        assert len(VALID_AUDIT_EVENT_TYPES) >= 9  # base 9 + enforcement extensions
 
     def test_audit_subject_types_nonempty(self):
-        assert len(VALID_AUDIT_SUBJECT_TYPES) == 5
+        assert len(VALID_AUDIT_SUBJECT_TYPES) >= 5  # base 5 + enforcement extensions
 
     def test_threshold_operators_nonempty(self):
         assert len(VALID_THRESHOLD_OPERATORS) == 5
