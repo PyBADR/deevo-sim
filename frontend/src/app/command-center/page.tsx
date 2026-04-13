@@ -32,6 +32,7 @@ import { useSovereignBriefing } from "@/features/command-center/lib/use-sovereig
 import { PropagationView } from "@/components/panels/PropagationView";
 import { DecisionRoomV2 } from "@/components/provenance/DecisionRoomV2";
 import { RegulatoryAuditView } from "@/components/panels/RegulatoryAuditView";
+import { useMacroIntelligence } from "@/features/macro-intelligence/hooks/use-macro-intelligence";
 
 // ── Loading Skeleton ──
 
@@ -107,6 +108,9 @@ function CommandCenterInner() {
 
   // ── Canonical intelligence surface ──
   const briefing = useSovereignBriefing();
+
+  // ── Macro intelligence core snapshot (Phase 1 binding) ──
+  const { snapshot } = useMacroIntelligence();
 
   const {
     status,
@@ -227,7 +231,21 @@ function CommandCenterInner() {
       // Default: Executive lands on SovereignBriefing
       default:
         if (briefing) {
-          return <SovereignBriefing briefing={briefing} />;
+          return (
+            <div>
+              <div className="max-w-5xl mx-auto px-6 pt-5 pb-0">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[#d6d6db] bg-[#ffffff] px-3 py-1.5 text-[0.75rem] text-[#6e6e73]">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#0071e3]" />
+                  Macro Core Active
+                  <span className="text-[#8e8e93]">·</span>
+                  <span>{snapshot.countryStates.length} countries</span>
+                  <span className="text-[#8e8e93]">·</span>
+                  <span>{snapshot.decisions.length} directives</span>
+                </div>
+              </div>
+              <SovereignBriefing briefing={briefing} />
+            </div>
+          );
         }
         // No briefing data yet → show controlled executive empty state
         return (
