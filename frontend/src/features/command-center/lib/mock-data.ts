@@ -451,9 +451,23 @@ export const MOCK_LIQUIDITY_SECTOR_DEPTH: Record<string, { topDriver: string; se
 // Scenario Presets
 // ══════════════════════════════════════════════════════════════════════
 
-export type ScenarioKey = "hormuz" | "liquidity";
+export type ScenarioKey = "hormuz" | "liquidity" | "cyber" | "lng" | "insurance" | "fintech";
+
+/** Maps a template_id to the ScenarioKey that owns its full payload. `undefined` = no payload available. */
+export const TEMPLATE_TO_SCENARIO_KEY: Record<string, ScenarioKey> = {
+  hormuz_chokepoint_disruption: "hormuz",
+  regional_liquidity_stress_event: "liquidity",
+  gcc_cyber_attack: "cyber",
+  qatar_lng_disruption: "lng",
+  gcc_insurance_reserve_shortfall: "insurance",
+  gcc_fintech_payment_outage: "fintech",
+};
 
 export const SCENARIO_PRESETS: Array<{ key: ScenarioKey; label: string; labelAr: string; domain: string }> = [
   { key: "hormuz", label: "Hormuz Chokepoint Disruption", labelAr: "اضطراب مضيق هرمز", domain: "ENERGY_TRADE" },
   { key: "liquidity", label: "Regional Liquidity Stress", labelAr: "ضغط السيولة الإقليمي", domain: "BANKING_FINANCE" },
+  { key: "cyber", label: "GCC Cyber Infrastructure Attack", labelAr: "هجوم سيبراني على البنية التحتية الخليجية", domain: "CYBER" },
+  { key: "lng", label: "Qatar LNG Export Disruption", labelAr: "تعطل صادرات الغاز القطري المسال", domain: "ENERGY" },
+  { key: "insurance", label: "GCC Insurance Reserve Shortfall", labelAr: "عجز احتياطيات التأمين الخليجي", domain: "INSURANCE" },
+  { key: "fintech", label: "GCC Fintech Payment System Outage", labelAr: "انقطاع نظام الدفع في التكنولوجيا المالية", domain: "FINTECH" },
 ];

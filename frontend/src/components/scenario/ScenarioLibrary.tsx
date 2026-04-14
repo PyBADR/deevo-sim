@@ -248,6 +248,34 @@ const FALLBACK_CATALOG: ScenarioCard[] = [
     impactedSectors: ["Shipping", "Logistics", "Trade"],
     base_loss_usd: 22000000000,
   },
+  {
+    id: "gcc_insurance_reserve_shortfall",
+    label_en: "GCC Insurance Reserve Shortfall",
+    label_ar: "عجز احتياطيات التأمين الخليجي",
+    domain: "REGULATORY",
+    severity: "ELEVATED",
+    description_en:
+      "IFRS 17 implementation reveals 23% reserve shortfall across GCC insurers. Reinsurance capacity drops, premiums spike, claims settlement delays exceed 90 days.",
+    description_ar:
+      "تطبيق IFRS 17 يكشف عجز احتياطي بنسبة 23% لدى شركات التأمين الخليجية. انخفاض طاقة إعادة التأمين، ارتفاع الأقساط، تأخير تسوية المطالبات.",
+    sectors_affected: ["insurance", "finance", "trade"],
+    impactedSectors: ["Insurance", "Finance", "Trade"],
+    base_loss_usd: 14000000000,
+  },
+  {
+    id: "gcc_fintech_payment_outage",
+    label_en: "GCC Fintech Payment System Outage",
+    label_ar: "انقطاع نظام الدفع في التكنولوجيا المالية",
+    domain: "CYBER",
+    severity: "HIGH",
+    description_en:
+      "Cascading failure in GCC payment gateway blocks 85% of digital transactions. Mobile wallets, POS networks, and e-commerce platforms offline across region.",
+    description_ar:
+      "فشل متتالي في بوابة الدفع الخليجية يحجب 85% من المعاملات الرقمية. المحافظ المحمولة ونقاط البيع ومنصات التجارة الإلكترونية متوقفة.",
+    sectors_affected: ["payments", "finance", "trade"],
+    impactedSectors: ["Payments", "Finance", "Trade"],
+    base_loss_usd: 9200000000,
+  },
 ];
 
 // Domain color mapping (light enterprise theme)

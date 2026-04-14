@@ -21,6 +21,7 @@ import { useCommandCenter } from "@/features/command-center/lib/use-command-cent
 import { useCommandCenterStore } from "@/features/command-center/lib/command-store";
 import type { CountryBakeEntry } from "@/features/command-center/lib/intelligence-engine";
 import type { UnifiedScenarioRun } from "@/types/observatory";
+import { TEMPLATE_TO_SCENARIO_KEY } from "@/features/command-center/lib/mock-data";
 
 // ── Scenario Label Catalog (for demo mode label override) ──
 const SCENARIO_LABELS: Record<string, { en: string; ar: string }> = {
@@ -39,6 +40,8 @@ const SCENARIO_LABELS: Record<string, { en: string; ar: string }> = {
   critical_port_throughput_disruption: { en: "Multi-Port Throughput Failure", ar: "فشل إنتاجية الموانئ المتعددة" },
   financial_infrastructure_cyber_disruption: { en: "Financial System Cyber Attack", ar: "هجوم سيبراني على النظام المالي" },
   iran_regional_escalation: { en: "Iran Regional Geopolitical Escalation", ar: "تصعيد جيوسياسي إيراني إقليمي" },
+  gcc_insurance_reserve_shortfall: { en: "GCC Insurance Reserve Shortfall — IFRS 17 Compliance Crisis", ar: "عجز احتياطيات التأمين الخليجي — أزمة الامتثال لمعيار IFRS 17" },
+  gcc_fintech_payment_outage: { en: "GCC Fintech Payment System Outage — Digital Infrastructure", ar: "انقطاع نظام الدفع في التكنولوجيا المالية الخليجية — البنية التحتية الرقمية" },
 };
 
 // ── Shell & Navigation ──
@@ -1168,6 +1171,7 @@ function CommandCenterInner() {
   const activeTab = searchParams.get("tab") || "dashboard";
   const isDemoParam = searchParams.get("demo") === "true";
   const [isRunningScenario, setIsRunningScenario] = useState(false);
+  const [scenarioUnavailableId, setScenarioUnavailableId] = useState<string | null>(null);
 
   // ── Demo contract from store ──
   const demoContract = useCommandCenterStore((s) => s.demoContract);
@@ -1283,20 +1287,17 @@ function CommandCenterInner() {
     async (templateId: string) => {
       // In demo/mock mode, switch scenario locally — no backend needed
       if (dataSource === "mock" || isDemoMode) {
-        setIsRunningScenario(true);
-        const key = templateId.includes("liquidity") ? "liquidity" as const : "hormuz" as const;
-        switchScenario(key);
-
-        // Override scenario label to match the selected catalog entry
-        const labels = SCENARIO_LABELS[templateId];
-        if (labels) {
-          const currentScenario = useCommandCenterStore.getState().scenario;
-          if (currentScenario) {
-            useCommandCenterStore.setState({
-              scenario: { ...currentScenario, label: labels.en, labelAr: labels.ar },
-            });
-          }
+        // Resolve scenario key — only commit if full payload exists
+        const key = TEMPLATE_TO_SCENARIO_KEY[templateId];
+        if (!key) {
+          // No full payload for this scenario — show institutional message, do NOT change active scenario
+          setScenarioUnavailableId(templateId);
+          return;
         }
+
+        setScenarioUnavailableId(null);
+        setIsRunningScenario(true);
+        switchScenario(key);
 
         // Update demo contract with new scenario
         if (isDemoMode) {
@@ -1773,6 +1774,26 @@ function CommandCenterInner() {
       {/* Demo Data Banner — explicit, never silent */}
       {isDemoMode && (
         <DemoDataBanner locale={locale} demoContract={demoContract} />
+      )}
+
+      {/* Scenario Unavailable Banner — institutional, no Pipeline Error */}
+      {scenarioUnavailableId && (
+        <div className="flex items-center justify-between px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-400" />
+            <p className="text-[12px] font-medium text-slate-700">
+              {locale === "ar"
+                ? `هذا السيناريو غير متاح حالياً في مجموعة البيانات المرجعية التجريبية.`
+                : `This scenario is not yet available in the Reference Demo Dataset.`}
+            </p>
+          </div>
+          <button
+            onClick={() => setScenarioUnavailableId(null)}
+            className="ml-3 flex-shrink-0 px-3 py-1 text-[10px] font-semibold rounded bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors"
+          >
+            {locale === "ar" ? "إغلاق" : "Dismiss"}
+          </button>
+        </div>
       )}
 
       {/* Fallback banner (API failed, showing mock — non-demo mode) */}
