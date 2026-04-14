@@ -33,18 +33,18 @@ function t(key: keyof typeof L, locale: "en" | "ar"): string {
 // ── Impact styling ────────────────────────────────────────────────────────
 
 const IMPACT_STYLES: Record<string, { bg: string; text: string; dot: string }> = {
-  high:   { bg: "bg-red-50",    text: "text-red-700",    dot: "bg-red-500" },
-  medium: { bg: "bg-amber-50",  text: "text-amber-700",  dot: "bg-amber-500" },
-  low:    { bg: "bg-slate-50",  text: "text-slate-600",  dot: "bg-slate-400" },
+  high:   { bg: "bg-io-status-severe/10", text: "text-io-status-severe",   dot: "bg-io-status-severe" },
+  medium: { bg: "bg-io-status-elevated/10", text: "text-io-status-elevated", dot: "bg-io-status-elevated" },
+  low:    { bg: "bg-io-muted",            text: "text-io-secondary",       dot: "bg-io-tertiary" },
 };
 
 const SRI_COLORS: Record<string, { bg: string; text: string; label_en: string; label_ar: string }> = {
-  severe:   { bg: "bg-red-600",    text: "text-white",    label_en: "SEVERE",   label_ar: "حرج" },
-  high:     { bg: "bg-red-500",    text: "text-white",    label_en: "HIGH",     label_ar: "عالي" },
-  elevated: { bg: "bg-amber-500",  text: "text-white",    label_en: "ELEVATED", label_ar: "مرتفع" },
-  guarded:  { bg: "bg-amber-400",  text: "text-slate-800", label_en: "GUARDED", label_ar: "متحفظ" },
-  low:      { bg: "bg-emerald-500", text: "text-white",   label_en: "LOW",      label_ar: "منخفض" },
-  nominal:  { bg: "bg-slate-400",  text: "text-white",    label_en: "NOMINAL",  label_ar: "طبيعي" },
+  severe:   { bg: "bg-io-status-severe",   text: "text-white",        label_en: "SEVERE",   label_ar: "حرج" },
+  high:     { bg: "bg-io-status-high",     text: "text-white",        label_en: "HIGH",     label_ar: "عالي" },
+  elevated: { bg: "bg-io-status-elevated", text: "text-white",        label_en: "ELEVATED", label_ar: "مرتفع" },
+  guarded:  { bg: "bg-io-status-guarded",  text: "text-white",        label_en: "GUARDED",  label_ar: "متحفظ" },
+  low:      { bg: "bg-io-status-low",      text: "text-white",        label_en: "LOW",      label_ar: "منخفض" },
+  nominal:  { bg: "bg-io-status-nominal",  text: "text-white",        label_en: "NOMINAL",  label_ar: "طبيعي" },
 };
 
 function sriLevel(score: number): keyof typeof SRI_COLORS {

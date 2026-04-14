@@ -2,6 +2,7 @@
 
 import React from "react";
 import { AlertTriangle } from "lucide-react";
+import { humanizeMechanism } from "@/lib/format";
 
 interface CausalChainStep {
   step: number;
@@ -46,31 +47,31 @@ const formatUsd = (value: number): string => {
 const getStressColor = (stress: number, maxStress: number): string => {
   const normalized = Math.min(stress / maxStress, 1);
 
-  if (normalized < 0.2) return "from-green-500/20 to-green-600/10";
-  if (normalized < 0.4) return "from-yellow-500/20 to-yellow-600/10";
-  if (normalized < 0.6) return "from-amber-500/20 to-amber-600/10";
-  if (normalized < 0.8) return "from-orange-500/20 to-orange-600/10";
-  return "from-red-500/20 to-red-600/10";
+  if (normalized < 0.2) return "from-io-status-nominal/20 to-io-status-nominal/10";
+  if (normalized < 0.4) return "from-io-status-low/20 to-io-status-low/10";
+  if (normalized < 0.6) return "from-io-status-elevated/20 to-io-status-elevated/10";
+  if (normalized < 0.8) return "from-io-status-high/20 to-io-status-high/10";
+  return "from-io-status-severe/20 to-io-status-severe/10";
 };
 
 const getStressBorderColor = (stress: number, maxStress: number): string => {
   const normalized = Math.min(stress / maxStress, 1);
 
-  if (normalized < 0.2) return "border-green-500/40";
-  if (normalized < 0.4) return "border-yellow-500/40";
-  if (normalized < 0.6) return "border-amber-500/40";
-  if (normalized < 0.8) return "border-orange-500/40";
-  return "border-red-500/40";
+  if (normalized < 0.2) return "border-io-status-nominal/40";
+  if (normalized < 0.4) return "border-io-status-low/40";
+  if (normalized < 0.6) return "border-io-status-elevated/40";
+  if (normalized < 0.8) return "border-io-status-high/40";
+  return "border-io-status-severe/40";
 };
 
 const getSeverityColor = (severity?: number): string => {
   if (!severity) return "text-gray-400";
-  if (severity < 0.2) return "text-green-600";
-  if (severity < 0.35) return "text-yellow-600";
-  if (severity < 0.5) return "text-amber-600";
-  if (severity < 0.65) return "text-orange-600";
-  if (severity < 0.8) return "text-red-600";
-  return "text-red-700";
+  if (severity < 0.2) return "text-io-status-nominal";
+  if (severity < 0.35) return "text-io-status-low";
+  if (severity < 0.5) return "text-io-status-guarded";
+  if (severity < 0.65) return "text-io-status-elevated";
+  if (severity < 0.8) return "text-io-status-high";
+  return "text-io-status-severe";
 };
 
 const getSeverityLabel = (severity?: number, locale: "en" | "ar" = "en"): string => {
@@ -218,7 +219,7 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
                               {locale === "en" ? "Mechanism" : "الآلية"}
                             </div>
                             <div className="text-xs font-semibold text-slate-800 truncate">
-                              {step.mechanism}
+                              {humanizeMechanism(step.mechanism, locale)}
                             </div>
                           </div>
                         </div>
@@ -249,7 +250,7 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
               <div className="text-xs text-slate-600 mb-1">
                 {locale === "en" ? "Total Loss" : "إجمالي الخسارة"}
               </div>
-              <div className="text-xl font-bold text-red-600">
+              <div className="text-xl font-bold text-io-status-severe">
                 {formatUsd(totalLossUsd || causalChain.reduce((sum, s) => sum + s.impact_usd, 0))}
               </div>
             </div>
@@ -259,7 +260,7 @@ export const PropagationView: React.FC<PropagationViewProps> = ({
               <div className="text-xs text-slate-600 mb-1">
                 {locale === "en" ? "Peak Stress" : "ذروة الضغط"}
               </div>
-              <div className="text-sm font-semibold text-orange-600 truncate">
+              <div className="text-sm font-semibold text-io-status-elevated truncate">
                 {peakStressStep
                   ? locale === "en"
                     ? peakStressStep.entity_label

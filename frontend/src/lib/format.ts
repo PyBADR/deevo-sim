@@ -78,6 +78,37 @@ export function safeArray<T>(value: unknown): T[] {
 }
 
 /**
+ * Convert snake_case mechanism labels to human-readable text.
+ * "direct_shock" → "Direct Shock", "price_transmission" → "Price Transmission"
+ */
+const MECHANISM_LABELS: Record<string, { en: string; ar: string }> = {
+  direct_shock:          { en: "Direct Shock",          ar: "صدمة مباشرة" },
+  price_transmission:    { en: "Price Transmission",    ar: "انتقال الأسعار" },
+  physical_constraint:   { en: "Physical Constraint",   ar: "قيد مادي" },
+  capacity_overflow:     { en: "Capacity Overflow",     ar: "تجاوز الطاقة" },
+  supply_chain:          { en: "Supply Chain",          ar: "سلسلة التوريد" },
+  claims_cascade:        { en: "Claims Cascade",        ar: "سلسلة المطالبات" },
+  monetary_transmission: { en: "Monetary Transmission", ar: "انتقال نقدي" },
+  secondary_contagion:   { en: "Secondary Contagion",   ar: "عدوى ثانوية" },
+  liquidity_stress:      { en: "Liquidity Stress",      ar: "ضغط السيولة" },
+  credit_channel:        { en: "Credit Channel",        ar: "قناة الائتمان" },
+  trade_disruption:      { en: "Trade Disruption",      ar: "اضطراب تجاري" },
+  sovereign_exposure:    { en: "Sovereign Exposure",    ar: "تعرض سيادي" },
+  reinsurance_trigger:   { en: "Reinsurance Trigger",   ar: "تفعيل إعادة التأمين" },
+  fx_pressure:           { en: "FX Pressure",           ar: "ضغط العملات" },
+  fiscal_transmission:   { en: "Fiscal Transmission",   ar: "انتقال مالي" },
+  operational_risk:      { en: "Operational Risk",      ar: "مخاطر تشغيلية" },
+};
+
+export function humanizeMechanism(mechanism: string | undefined | null, locale: "en" | "ar" = "en"): string {
+  if (!mechanism) return FALLBACK;
+  const known = MECHANISM_LABELS[mechanism];
+  if (known) return locale === "ar" ? known.ar : known.en;
+  // Fallback: capitalize and replace underscores
+  return mechanism.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
  * Count true values in a breach flags object.
  * Backend returns breach_flags as {lcr_breach: bool, nsfr_breach: bool, ...}.
  * This converts to an integer count.

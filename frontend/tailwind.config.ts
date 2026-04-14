@@ -1,131 +1,104 @@
 import type { Config } from "tailwindcss";
 
 /**
- * Impact Observatory — Design System Tokens
- * Neutral premium palette. No blue-led identity.
- * Apple-inspired calmness, decision-first structure.
+ * Impact Observatory | مرصد الأثر — Tailwind Design Tokens
+ *
+ * Calm, institutional, Apple-inspired.
+ * Neutral light palette. No neon. No blue-led. No admin-panel aesthetics.
  */
 const config: Config = {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
     extend: {
       colors: {
-        bg: {
-          main: "#F5F5F2",
-          surface: "#FFFFFF",
-          muted: "#ECECE8",
-        },
-        tx: {
-          primary: "#111111",
-          secondary: "#5F5F58",
-          tertiary: "#8A8A83",
-        },
-        border: {
-          soft: "#D9D9D2",
-          muted: "#E6E6E0",
-        },
-        charcoal: "#1B1B19",
-        graphite: "#252522",
-        status: {
-          amber: "#A06A34",
-          red: "#8E4338",
-          olive: "#5E6759",
-        },
-        // Legacy io-* tokens kept for backward compat with command-center
         io: {
-          bg: "#F8FAFC",
-          surface: "#FFFFFF",
-          primary: "#0F172A",
-          secondary: "#475569",
-          accent: "#1D4ED8",
-          success: "#15803D",
-          warning: "#B45309",
-          danger: "#B91C1C",
-          border: "#E2E8F0",
-          critical: "#991B1B",
-          elevated: "#B45309",
-          moderate: "#A16207",
-          guarded: "#15803D",
-          stable: "#475569",
+          // Surfaces — institutional warm white
+          bg:          '#F7F7F5',
+          surface:     '#FFFFFF',
+          muted:       '#EDEDEB',
+          // Text — sovereign charcoal hierarchy
+          primary:     '#1A1A1A',
+          secondary:   '#555550',
+          tertiary:    '#8A8A83',
+          // Borders — quiet institutional
+          'border-soft':  '#D9D9D2',
+          'border-muted': '#E6E6E0',
+          // Emphasis — dark sovereign
+          charcoal:    '#1B1B19',
+          graphite:    '#252522',
+          // Accent — sovereign teal (replaces blue)
+          accent:      '#0C6B58',
+          'accent-hover': '#0A5A4A',
+          'accent-dim':   '#E8F5F0',
+          // Status — institutional, desaturated
+          'status-severe':   '#8C2318',
+          'status-high':     '#A0522D',
+          'status-elevated': '#8B6914',
+          'status-guarded':  '#5E6759',
+          'status-low':      '#2D6A4F',
+          'status-nominal':  '#3A7D6C',
+        },
+        // Legacy ds-* tokens preserved for backward compatibility
+        ds: {
+          bg: '#F8FAFC', 'bg-alt': '#F1F5F9', surface: '#FFFFFF', 'surface-raised': '#FFFFFF',
+          card: '#FFFFFF', 'card-hover': '#F8FAFC', 'card-active': '#F1F5F9',
+          border: '#E2E8F0', 'border-subtle': '#F1F5F9', 'border-accent': '#CBD5E1', 'border-hover': '#94A3B8',
+          text: '#0F172A', 'text-secondary': '#475569', 'text-muted': '#94A3B8', 'text-dim': '#CBD5E1',
+          accent: '#0C6B58', 'accent-hover': '#0A5A4A', 'accent-dim': '#3A7D6C',
+          'accent-muted': 'rgba(12, 107, 88, 0.06)', 'accent-glow': 'rgba(12, 107, 88, 0.04)',
+          gold: '#8B6914', 'gold-light': '#A07D2E', 'gold-muted': 'rgba(139, 105, 20, 0.08)',
+          success: '#2D6A4F', 'success-dim': 'rgba(45, 106, 79, 0.06)',
+          warning: '#8B6914', 'warning-dim': 'rgba(139, 105, 20, 0.06)',
+          danger: '#8C2318', 'danger-dim': 'rgba(140, 35, 24, 0.06)',
+          critical: '#6B1A12', 'critical-dim': 'rgba(107, 26, 18, 0.05)',
         },
       },
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "-apple-system", "sans-serif"],
-        ar: ["IBM Plex Sans Arabic", "Noto Sans Arabic", "sans-serif"],
-        mono: ["JetBrains Mono", "SF Mono", "Fira Code", "monospace"],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        ar:   ['IBM Plex Sans Arabic', 'Noto Sans Arabic', 'sans-serif'],
+        mono: ['JetBrains Mono', 'SF Mono', 'Fira Code', 'monospace'],
       },
       fontSize: {
-        hero: ["4.5rem", { lineHeight: "1.04", letterSpacing: "-0.035em", fontWeight: "600" }],
-        "hero-sub": ["1.375rem", { lineHeight: "1.5", letterSpacing: "-0.01em", fontWeight: "400" }],
-        "section-title": ["2rem", { lineHeight: "1.15", letterSpacing: "-0.025em", fontWeight: "600" }],
-        "section-sub": ["1.0625rem", { lineHeight: "1.65", letterSpacing: "0", fontWeight: "400" }],
-        "card-title": ["1.125rem", { lineHeight: "1.35", letterSpacing: "-0.01em", fontWeight: "600" }],
-        "card-body": ["0.9375rem", { lineHeight: "1.6", fontWeight: "400" }],
-        label: ["0.8125rem", { lineHeight: "1.5", letterSpacing: "0.01em", fontWeight: "500" }],
-        caption: ["0.75rem", { lineHeight: "1.5", letterSpacing: "0.01em", fontWeight: "400" }],
-        micro: ["0.6875rem", { lineHeight: "1.45", letterSpacing: "0.02em", fontWeight: "500" }],
-        // Legacy sizes for command-center compat
-        display: ["4rem", { lineHeight: "1.06", letterSpacing: "-0.03em", fontWeight: "700" }],
-        "display-sm": ["3rem", { lineHeight: "1.08", letterSpacing: "-0.025em", fontWeight: "700" }],
-        h1: ["2.25rem", { lineHeight: "1.12", letterSpacing: "-0.02em", fontWeight: "700" }],
-        h2: ["1.75rem", { lineHeight: "1.18", letterSpacing: "-0.015em", fontWeight: "600" }],
-        h3: ["1.25rem", { lineHeight: "1.3", letterSpacing: "-0.01em", fontWeight: "600" }],
-        h4: ["1.0625rem", { lineHeight: "1.4", letterSpacing: "-0.005em", fontWeight: "600" }],
-        "body-lg": ["1.0625rem", { lineHeight: "1.7" }],
-        body: ["0.9375rem", { lineHeight: "1.65" }],
-        nano: ["0.6875rem", { lineHeight: "1.45" }],
+        'hero':       ['4rem',     { lineHeight: '1.06', letterSpacing: '-0.03em', fontWeight: '700' }],
+        'hero-sm':    ['3rem',     { lineHeight: '1.08', letterSpacing: '-0.025em', fontWeight: '700' }],
+        'heading-1':  ['2.5rem',   { lineHeight: '1.1',  letterSpacing: '-0.025em', fontWeight: '700' }],
+        'heading-2':  ['1.75rem',  { lineHeight: '1.2',  letterSpacing: '-0.02em',  fontWeight: '600' }],
+        'heading-3':  ['1.25rem',  { lineHeight: '1.35', letterSpacing: '-0.01em',  fontWeight: '600' }],
+        'body-lg':    ['1.0625rem',{ lineHeight: '1.7' }],
+        'body':       ['0.9375rem',{ lineHeight: '1.65' }],
+        'caption':    ['0.875rem', { lineHeight: '1.5' }],
+        'label':      ['0.75rem',  { lineHeight: '1.4',  letterSpacing: '0.04em',  fontWeight: '600' }],
+        'micro':      ['0.6875rem',{ lineHeight: '1.45' }],
       },
       borderRadius: {
-        sm: "6px",
-        md: "10px",
-        lg: "14px",
-        xl: "18px",
-        // Legacy
-        ds: "8px",
-        "ds-lg": "12px",
-        "ds-xl": "16px",
-        "ds-2xl": "20px",
+        'card': '12px',
+        'badge': '6px',
       },
       boxShadow: {
-        soft: "0 1px 4px rgba(0, 0, 0, 0.03)",
-        card: "0 2px 8px rgba(0, 0, 0, 0.04)",
-        "card-hover": "0 4px 16px rgba(0, 0, 0, 0.06)",
-        // Legacy
-        ds: "0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)",
-        "ds-md": "0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.06)",
-        "ds-lg": "0 10px 15px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.05)",
-        "ds-glow": "0 0 0 1px rgba(29, 78, 216, 0.06)",
-        "ds-glow-md": "0 0 0 1px rgba(29, 78, 216, 0.10)",
-        "ds-glow-accent": "0 0 0 3px rgba(29, 78, 216, 0.06)",
-        "ds-inner": "inset 0 1px 0 rgba(255,255,255,0.6)",
-        "ds-card-hover": "0 8px 25px rgba(0,0,0,0.05), 0 0 0 1px rgba(29, 78, 216, 0.04)",
+        'quiet':       '0 1px 3px rgba(0,0,0,0.03)',
+        'quiet-md':    '0 2px 8px rgba(0,0,0,0.04)',
+        'quiet-lg':    '0 4px 16px rgba(0,0,0,0.05)',
+        // Legacy shadows preserved
+        'ds':          '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06)',
+        'ds-md':       '0 4px 6px rgba(0,0,0,0.04), 0 2px 4px rgba(0,0,0,0.06)',
+        'ds-lg':       '0 10px 15px rgba(0,0,0,0.04), 0 4px 6px rgba(0,0,0,0.05)',
+        'ds-card-hover':'0 8px 25px rgba(0,0,0,0.05), 0 0 0 1px rgba(29, 78, 216, 0.04)',
       },
       spacing: {
-        18: "4.5rem",
-        22: "5.5rem",
-        26: "6.5rem",
-        30: "7.5rem",
-        34: "8.5rem",
-        38: "9.5rem",
-      },
-      maxWidth: {
-        content: "1120px",
-        narrow: "720px",
+        '18': '4.5rem',
+        '22': '5.5rem',
+        '26': '6.5rem',
+        '30': '7.5rem',
       },
       animation: {
-        "fade-in": "fadeIn 0.6s ease-out forwards",
-        "slide-up": "slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        'fade-in': 'fadeIn 0.4s ease-out forwards',
       },
       keyframes: {
         fadeIn: {
-          "0%": { opacity: "0" },
-          "100%": { opacity: "1" },
-        },
-        slideUp: {
-          "0%": { opacity: "0", transform: "translateY(20px)" },
-          "100%": { opacity: "1", transform: "translateY(0)" },
+          '0%':   { opacity: '0', transform: 'translateY(8px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
     },

@@ -356,7 +356,7 @@ export interface ScenarioCatalogEntry {
 
 export type GraphLayer = "geography" | "infrastructure" | "economy" | "finance" | "society";
 
-export type StressClassification = "CRITICAL" | "ELEVATED" | "MODERATE" | "LOW" | "NOMINAL";
+export type StressClassification = "SEVERE" | "CRITICAL" | "HIGH" | "ELEVATED" | "GUARDED" | "MODERATE" | "LOW" | "NOMINAL";
 
 /** GCC Knowledge Graph node (76 nodes, 5 layers) */
 export interface KnowledgeGraphNode {
@@ -460,7 +460,8 @@ export interface DecisionActionV2 {
   confidence: number;
   deadline_hours?: number;
   escalation_trigger?: string;
-  escalation_trigger_ar?: string;
+  time_to_act_hours?: number;
+  feasibility?: number;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -654,38 +655,13 @@ export interface UnifiedRunResult {
     total_nodes_impacted: number;
     propagation_depth: number;
     peak_day?: number;
-    max_recovery_days?: number;
-    average_stress?: number;
     affected_entities?: number;
     critical_count?: number;
     elevated_count?: number;
+    max_recovery_days?: number;
     severity_code?: string;
-  };
-  financial_impact?: {
-    total_loss_usd: number;
-    direct_loss_usd: number;
-    indirect_loss_usd: number;
-    gdp_impact_pct: number;
-    sector_losses: Array<{ sector: string; loss_usd: number; pct: number }>;
-    confidence_interval: { lower: number; upper: number; confidence: number };
-  };
-  sector_analysis?: Array<{
-    sector: string;
-    exposure: number;
-    stress: number;
-    classification: string;
-    risk_level: string;
-  }>;
-  decision_plan?: {
-    business_severity: string;
-    time_to_first_failure_hours: number;
-    actions: Array<Record<string, unknown>>;
-    escalation_triggers: string[];
-    monitoring_priorities: string[];
-    five_questions: Record<string, unknown>;
-    immediate_actions: Array<Record<string, unknown>>;
-    short_term_actions: Array<Record<string, unknown>>;
-    long_term_actions: Array<Record<string, unknown>>;
+    average_stress?: number;
+    total_loss_formatted?: string;
   };
   graph_payload: {
     nodes: KnowledgeGraphNode[];
@@ -756,6 +732,17 @@ export interface UnifiedRunResult {
     decision_plan: { actions: Array<{ action_id: string; rank: number; action_type: string; target_ref: string; priority_score: number; urgency: number; value: number; feasibility: number; expected_loss_reduction: number; execution_window_hours: number; [k: string]: unknown }>; [k: string]: unknown };
     explanation: { summary: string; drivers: Array<{ driver: string; magnitude: number; unit: string }>; assumptions: string[]; limitations: string[]; [k: string]: unknown };
     regulatory_state: { breach_level: string; aggregate_lcr: number; aggregate_solvency_ratio: number; mandatory_actions: string[]; [k: string]: unknown };
+  };
+  /** Financial impact summary with confidence interval */
+  financial_impact?: {
+    confidence_interval: { lower: number; upper: number; confidence: number };
+    [k: string]: unknown;
+  };
+  /** Top-level decision plan (distinct from sectors.decision_plan) */
+  decision_plan?: {
+    time_to_first_failure_hours?: number;
+    actions?: Array<Record<string, unknown>>;
+    [k: string]: unknown;
   };
   /** Model assumptions */
   assumptions?: string[];

@@ -18,7 +18,7 @@ export type Locale = "en" | "ar";
 
 const dict: Record<string, { en: string; ar: string }> = {
   // ── App chrome ──
-  "app.product_name":       { en: "Impact Observatory",     ar: "مرصد الأثر" },
+  "app.product_name":       { en: "GCC Macro Financial Intelligence Platform", ar: "منصة الاستخبارات الاقتصادية والمالية لدول الخليج" },
   "app.data_live":          { en: "Live Intelligence",      ar: "بيانات مباشرة" },
   "app.data_demo":          { en: "Demo Mode",              ar: "وضع العرض" },
   "app.present":            { en: "Present",                ar: "عرض" },
@@ -83,11 +83,27 @@ const dict: Record<string, { en: string; ar: string }> = {
   "explain.drivers":        { en: "Key Drivers",            ar: "المحركات الرئيسية" },
   "explain.range":          { en: "Range Analysis",         ar: "تحليل النطاق" },
 
-  // ── Sector Stress ──
-  "sector.banking":         { en: "Banking",                ar: "المصرفية" },
-  "sector.insurance":       { en: "Insurance",              ar: "التأمين" },
-  "sector.fintech":         { en: "Fintech",                ar: "التقنية المالية" },
-  "sector.title":           { en: "Sector Stress Analysis", ar: "تحليل ضغط القطاعات" },
+  // ── Sector Stress (Enterprise Taxonomy) ──
+  "sector.banking":         { en: "Banking & Liquidity",              ar: "المصرفية والسيولة" },
+  "sector.insurance":       { en: "Insurance & Risk Transfer",        ar: "التأمين ونقل المخاطر" },
+  "sector.fintech":         { en: "Technology & Digital Infrastructure", ar: "التقنية والبنية الرقمية" },
+  "sector.energy":          { en: "Energy & Hydrocarbon Revenue",     ar: "الطاقة وإيرادات الهيدروكربون" },
+  "sector.logistics":       { en: "Trade & Maritime Logistics",       ar: "التجارة والخدمات اللوجستية البحرية" },
+  "sector.real_estate":     { en: "Real Estate & Development",        ar: "العقارات والتطوير" },
+  "sector.capital_markets": { en: "Capital Markets & Investment",     ar: "أسواق المال والاستثمار" },
+  "sector.title":           { en: "Sector Risk Intelligence",         ar: "استخبارات مخاطر القطاعات" },
+
+  // ── Macro Indicators ──
+  "macro.gdp_sensitivity":    { en: "GDP Sensitivity",           ar: "حساسية الناتج المحلي" },
+  "macro.inflation":          { en: "Inflation Pressure",        ar: "ضغوط التضخم" },
+  "macro.sovereign_spread":   { en: "Sovereign Spread",          ar: "هامش السيادة" },
+  "macro.reserves":           { en: "Foreign Reserves",          ar: "الاحتياطيات الأجنبية" },
+  "macro.fiscal_capacity":    { en: "Fiscal Capacity",           ar: "القدرة المالية" },
+  "macro.liquidity":          { en: "Liquidity Conditions",      ar: "أوضاع السيولة" },
+  "macro.contagion":          { en: "Contagion Risk",            ar: "مخاطر العدوى" },
+  "macro.trade_finance":      { en: "Trade Finance",             ar: "التمويل التجاري" },
+  "macro.energy_revenue":     { en: "Energy Revenue Impact",     ar: "أثر إيرادات الطاقة" },
+  "macro.confidence_erosion": { en: "Confidence Erosion",        ar: "تآكل الثقة" },
 
   // ── Decision Cards ──
   "decision.cost":          { en: "Est. Cost",              ar: "التكلفة المقدرة" },
@@ -99,6 +115,8 @@ const dict: Record<string, { en: string; ar: string }> = {
   "decision.why_now":       { en: "Why Now",                ar: "لماذا الآن" },
   "decision.why_rank":      { en: "Why This Rank",          ar: "لماذا هذا الترتيب" },
   "decision.tradeoff":      { en: "If Not Executed",        ar: "في حال عدم التنفيذ" },
+  "decision.if_delayed_label": { en: "Consequence of Delay", ar: "نتيجة التأخير" },
+  "decision.escalation":    { en: "Escalation Threshold",    ar: "حد التصعيد" },
 
   // ── Trust / Transparency ──
   "trust.loss_inducing":    { en: "Loss-Inducing Warning",  ar: "تحذير من خسائر محتملة" },
@@ -115,13 +133,15 @@ const dict: Record<string, { en: string; ar: string }> = {
   "prop.entity":            { en: "Entity",                 ar: "الكيان" },
   "prop.impact":            { en: "Impact",                 ar: "الأثر" },
 
-  // ── Navigation / Tabs ──
-  "nav.dashboard":          { en: "Dashboard",              ar: "لوحة المعلومات" },
-  "nav.propagation":        { en: "Propagation",            ar: "الانتشار" },
-  "nav.impact_map":         { en: "Impact Map",             ar: "خريطة الأثر" },
-  "nav.sector_intel":       { en: "Sector Intel",           ar: "القطاعات" },
-  "nav.decision_room":      { en: "Decision Room",          ar: "غرفة القرار" },
-  "nav.regulatory":         { en: "Regulatory",             ar: "الرقابة والتدقيق" },
+  // ── Navigation / Tabs (Sarah-aligned order) ──
+  "nav.briefing":           { en: "Briefing",               ar: "الإحاطة التنفيذية" },
+  "nav.macro":              { en: "Macro Outlook",           ar: "المشهد الكلي" },
+  "nav.transmission":       { en: "Transmission",            ar: "مسار الانتقال" },
+  "nav.scenarios":          { en: "Scenarios",               ar: "السيناريوهات" },
+  "nav.gcc_exposure":       { en: "GCC Exposure",            ar: "خريطة التعرض" },
+  "nav.sector_risk":        { en: "Sector Risk",             ar: "مخاطر القطاعات" },
+  "nav.decision_room":      { en: "Decision Room",           ar: "غرفة القرار" },
+  "nav.governance":         { en: "Governance",              ar: "الحوكمة والرقابة" },
 
   // ── Scenario Library ──
   "scenario.library":       { en: "Scenario Library",       ar: "مكتبة السيناريوهات" },
@@ -134,16 +154,43 @@ const dict: Record<string, { en: string; ar: string }> = {
   "brief.system_risk":      { en: "System Risk",            ar: "مخاطر النظام" },
   "brief.confidence":       { en: "Confidence",             ar: "الثقة" },
 
-  // ── Flow Stages ──
-  "flow.macro_shock":       { en: "Macro Shock",            ar: "صدمة كلية" },
+  // ── 9-Layer Pipeline Stages (Sarah-aligned) ──
+  "flow.macro":             { en: "Macro",                  ar: "الكلي" },
+  "flow.banking":           { en: "Banking",                ar: "المصرفية" },
+  "flow.insurance":         { en: "Insurance",              ar: "التأمين" },
+  "flow.sectors":           { en: "Sectors",                ar: "القطاعات" },
   "flow.transmission":      { en: "Transmission",           ar: "الانتقال" },
-  "flow.sector_impact":     { en: "Sector Impact",          ar: "أثر القطاع" },
-  "flow.entity_exposure":   { en: "Entity Exposure",        ar: "تعرض الكيان" },
+  "flow.exposure":          { en: "Exposure",               ar: "التعرض" },
   "flow.decision":          { en: "Decision",               ar: "القرار" },
-  "flow.audit":             { en: "Audit",                  ar: "التدقيق" },
+  "flow.counterfactual":    { en: "Counterfactual",         ar: "المقارنة البديلة" },
+  "flow.governance":        { en: "Governance",             ar: "الحوكمة" },
 
-  // ── Regulatory / Audit ──
-  "audit.title":            { en: "Regulatory & Audit",     ar: "الرقابة والتدقيق" },
+  // ── Decision Anchoring (Sarah: owner, timing, trade-offs) ──
+  "decision.owner":         { en: "Owner",                  ar: "المسؤول" },
+  "decision.window":        { en: "Decision Window",        ar: "نافذة القرار" },
+  "decision.trade_off":     { en: "Trade-off",              ar: "المقايضة" },
+  "decision.if_delayed":    { en: "If Delayed",             ar: "في حال التأخير" },
+  "decision.priority_now":  { en: "Priority Decision — Required Now", ar: "القرار الأول — مطلوب الآن" },
+
+  // ── Transmission (elevated per Sarah) ──
+  "transmission.title":     { en: "Transmission Chain",     ar: "سلسلة الانتقال" },
+  "transmission.primary":   { en: "Primary Transmission Path", ar: "مسار الانتقال الرئيسي" },
+  "transmission.stress":    { en: "Stress Δ",               ar: "تغير الضغط" },
+  "transmission.mechanism": { en: "Mechanism",              ar: "الآلية" },
+
+  // ── Counterfactual (structural prep per Sarah) ──
+  "counter.title":          { en: "Counterfactual Analysis", ar: "التحليل البديل" },
+  "counter.with_action":    { en: "With Action",            ar: "مع التدخل" },
+  "counter.without_action": { en: "Without Action",         ar: "بدون تدخل" },
+  "counter.delta":          { en: "Impact Delta",           ar: "فارق الأثر" },
+
+  // ── Institutional Memory (structural prep per Sarah) ──
+  "memory.title":           { en: "Institutional Memory",   ar: "الذاكرة المؤسسية" },
+  "memory.outcome_record":  { en: "Decision Outcome Record", ar: "سجل نتائج القرارات" },
+  "memory.feedback_loop":   { en: "Outcome Feedback",       ar: "ملاحظات النتائج" },
+
+  // ── Governance & Audit ──
+  "audit.title":            { en: "Governance & Oversight",  ar: "الحوكمة والرقابة" },
   "audit.run_provenance":   { en: "Run Provenance",         ar: "مصدر التشغيل" },
   "audit.decision_lifecycle": { en: "Decision Lifecycle",   ar: "دورة حياة القرار" },
   "audit.outcome_trail":    { en: "Outcome Audit Trail",    ar: "سجل تدقيق النتائج" },

@@ -69,9 +69,9 @@ export interface SectorIntelligenceViewProps {
 const labels: Record<Language, Record<string, string>> = {
   en: {
     intelligence_brief: "Intelligence Brief",
-    banking_stress: "Banking Stress",
-    insurance_stress: "Insurance Stress",
-    fintech_stress: "Fintech Stress",
+    banking_stress: "Banking & Liquidity",
+    insurance_stress: "Insurance & Risk Transfer",
+    fintech_stress: "Technology & Digital Infrastructure",
     executive_directive: "Executive Directive",
     scenario_context: "Scenario Context",
     severity: "Severity",
@@ -106,9 +106,9 @@ const labels: Record<Language, Record<string, string>> = {
   },
   ar: {
     intelligence_brief: "موجز المعلومات",
-    banking_stress: "ضغط القطاع البنكي",
-    insurance_stress: "ضغط قطاع التأمين",
-    fintech_stress: "ضغط قطاع التكنولوجيا المالية",
+    banking_stress: "المصرفية والسيولة",
+    insurance_stress: "التأمين ونقل المخاطر",
+    fintech_stress: "التقنية والبنية الرقمية",
     executive_directive: "التوجيه التنفيذي",
     scenario_context: "سياق السيناريو",
     severity: "الشدة",

@@ -13,19 +13,24 @@ export const theme = {
     surface: "#FFFFFF",
     primary: "#0F172A",
     secondary: "#475569",
-    accent: "#1D4ED8",
-    success: "#15803D",
-    warning: "#B45309",
-    danger: "#B91C1C",
+    accent: "#0C6B58",
+    success: "#2D6A4F",
+    warning: "#8B6914",
+    danger: "#8C2318",
     border: "#E2E8F0",
   },
 
   classification: {
-    critical: "#B91C1C",
-    elevated: "#B45309",
-    moderate: "#CA8A04",
-    low: "#15803D",
-    nominal: "#059669",
+    severe: "#8C2318",
+    high: "#A0522D",
+    elevated: "#8B6914",
+    guarded: "#5E6759",
+    low: "#2D6A4F",
+    nominal: "#3A7D6C",
+    /** Alias: enterprise components use "critical" for severe-tier */
+    critical: "#8C2318",
+    /** Alias: enterprise components use "moderate" for guarded-tier */
+    moderate: "#5E6759",
   },
 
   typography: {

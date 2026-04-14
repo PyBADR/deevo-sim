@@ -231,7 +231,9 @@ export function DecisionRoomV2({
   const totalLossAvoided = useMemo(() => {
     return topDecisions.reduce((sum, a) => sum + (a.loss_avoided_usd ?? 0), 0);
   }, [topDecisions]);
-  const lossWithoutAction = totalLossUsd + totalLossAvoided * 0.3; // approximate unmitigated
+  // totalLossUsd already represents the baseline (without coordinated action).
+  // Loss avoided is the delta from the recommended actions.
+  const lossWithoutAction = totalLossUsd;
   const riskReductionPct = totalLossAvoided > 0
     ? Math.round((totalLossAvoided / lossWithoutAction) * 100)
     : 0;
@@ -250,25 +252,28 @@ export function DecisionRoomV2({
       let sectorImpact: string | null = null;
       let entityImpact: string | null = null;
 
+      // Only show driver percentages when we have real data — no hardcoded fallbacks
+      const driverPct = matchedDriver?.pct;
+
       if (sigName.includes("oil") || sigName.includes("energy")) {
-        sectorImpact = isAr
-          ? `إجهاد الطاقة +${matchedDriver?.pct ?? 30}%`
-          : `Energy stress +${matchedDriver?.pct ?? 30}%`;
-        entityImpact = isAr ? "التعرض التأميني +22%" : "Insurance exposure +22%";
+        sectorImpact = driverPct
+          ? (isAr ? `إجهاد الطاقة +${driverPct}%` : `Energy stress +${driverPct}%`)
+          : (isAr ? "إجهاد قطاع الطاقة" : "Energy sector stress");
+        entityImpact = isAr ? "التعرض التأميني" : "Insurance exposure";
       } else if (sigName.includes("liquidity") || sigName.includes("banking")) {
-        sectorImpact = isAr
-          ? `ضغط السيولة المصرفية +${matchedDriver?.pct ?? 25}%`
-          : `Banking liquidity stress +${matchedDriver?.pct ?? 25}%`;
+        sectorImpact = driverPct
+          ? (isAr ? `ضغط السيولة المصرفية +${driverPct}%` : `Banking liquidity stress +${driverPct}%`)
+          : (isAr ? "ضغط السيولة المصرفية" : "Banking liquidity stress");
         entityImpact = isAr ? "زيادة المطالبات" : "Claims surge";
       } else if (sigName.includes("trade") || sigName.includes("port") || sigName.includes("shipping")) {
-        sectorImpact = isAr
-          ? `اضطراب اللوجستيات +${matchedDriver?.pct ?? 20}%`
-          : `Logistics disruption +${matchedDriver?.pct ?? 20}%`;
+        sectorImpact = driverPct
+          ? (isAr ? `اضطراب اللوجستيات +${driverPct}%` : `Logistics disruption +${driverPct}%`)
+          : (isAr ? "اضطراب اللوجستيات" : "Logistics disruption");
         entityImpact = isAr ? "تأخر الموانئ" : "Port congestion";
       } else if (sigName.includes("fx") || sigName.includes("currency")) {
-        sectorImpact = isAr
-          ? `ضغط العملات +${matchedDriver?.pct ?? 15}%`
-          : `FX pressure +${matchedDriver?.pct ?? 15}%`;
+        sectorImpact = driverPct
+          ? (isAr ? `ضغط العملات +${driverPct}%` : `FX pressure +${driverPct}%`)
+          : (isAr ? "ضغط العملات" : "FX pressure");
         entityImpact = isAr ? "تدخل البنوك المركزية" : "Central bank intervention";
       } else if (matchedDriver) {
         sectorImpact = isAr
@@ -492,9 +497,9 @@ export function DecisionRoomV2({
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-io-secondary w-16">{isAr ? "الأساس" : "Base"}</span>
                   <div className="flex-1 h-1.5 bg-slate-700/30 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500/40 rounded-full" style={{ width: `${(scenarioBands.base / scenarioBands.worst) * 100}%` }} />
+                    <div className="h-full bg-io-accent/40 rounded-full" style={{ width: `${(scenarioBands.base / scenarioBands.worst) * 100}%` }} />
                   </div>
-                  <span className="text-blue-400 font-bold tabular-nums w-14 text-right">{formatUsdCompact(scenarioBands.base)}</span>
+                  <span className="text-io-accent font-bold tabular-nums w-14 text-right">{formatUsdCompact(scenarioBands.base)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-[10px]">
                   <span className="text-red-500 w-16">{isAr ? "أسوأ حال" : "Worst case"}</span>
@@ -551,7 +556,7 @@ export function DecisionRoomV2({
               {allDrivers.map((d) => (
                 <div key={d.label} className="flex items-center gap-2">
                   <div className="flex-1 flex items-center gap-2 min-w-0">
-                    <div className="h-1.5 rounded-full bg-blue-500/60" style={{ width: `${Math.max(d.pct, 8)}%`, maxWidth: "40%" }} />
+                    <div className="h-1.5 rounded-full bg-io-accent/60" style={{ width: `${Math.max(d.pct, 8)}%`, maxWidth: "40%" }} />
                     <span className="text-xs text-io-secondary truncate">{d.label}</span>
                   </div>
                   <span className="text-[10px] font-bold tabular-nums text-io-secondary flex-shrink-0">
@@ -600,7 +605,7 @@ export function DecisionRoomV2({
               <div className="flex flex-col items-center px-2">
                 <div className={`w-8 h-8 rounded-lg border flex items-center justify-center ${
                   i === TRANSMISSION_CHAIN.length - 1
-                    ? "bg-blue-500/10 border-blue-500/20"
+                    ? "bg-io-accent/10 border-io-accent/20"
                     : "bg-amber-500/10 border-amber-500/20"
                 }`}>
                   <span className="text-[10px]">{
@@ -732,6 +737,76 @@ export function DecisionRoomV2({
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
+           COUNTERFACTUAL COMPARISON — Structural prep per Sarah
+           ═══════════════════════════════════════════════════════════════ */}
+      {topDecisions.length > 0 && (
+        <div className="border border-io-border rounded-xl p-4 bg-io-surface/50">
+          <h3 className="text-[10px] font-semibold text-io-secondary uppercase tracking-wider mb-3">
+            {isAr ? "التحليل البديل — مع التدخل مقابل بدونه" : "Counterfactual — With Action vs Without"}
+          </h3>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="bg-io-surface rounded-lg p-3 border border-io-border">
+              <p className="text-[9px] text-io-secondary uppercase tracking-wider mb-1">
+                {isAr ? "بدون تدخل" : "Without Action"}
+              </p>
+              <p className="text-lg font-bold tabular-nums text-io-status-severe">
+                {formatUsdCompact(totalLossUsd)}
+              </p>
+              <p className="text-[9px] text-io-secondary mt-0.5">
+                {isAr ? "الخسارة المتوقعة الكاملة" : "Full projected loss"}
+              </p>
+            </div>
+            <div className="bg-io-surface rounded-lg p-3 border border-io-accent/20">
+              <p className="text-[9px] text-io-secondary uppercase tracking-wider mb-1">
+                {isAr ? "مع التدخل" : "With Action"}
+              </p>
+              <p className="text-lg font-bold tabular-nums text-io-accent">
+                {formatUsdCompact(totalLossUsd - topDecisions.reduce((sum, d) => sum + (d.loss_avoided_usd ?? 0), 0))}
+              </p>
+              <p className="text-[9px] text-io-secondary mt-0.5">
+                {isAr ? "بعد تطبيق القرارات" : "After decision execution"}
+              </p>
+            </div>
+          </div>
+          {/* Impact delta + recovery + assumptions */}
+          <div className="space-y-2 mt-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-io-secondary">
+                {isAr ? "إجمالي الخسائر المتجنبة:" : "Total loss avoided:"}
+              </span>
+              <span className="font-bold text-io-accent tabular-nums">
+                −{formatUsdCompact(topDecisions.reduce((sum, d) => sum + (d.loss_avoided_usd ?? 0), 0))}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-io-secondary">
+                {isAr ? "نسبة التخفيض:" : "Reduction:"}
+              </span>
+              <span className="font-bold text-io-accent tabular-nums">
+                {riskReductionPct}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-io-secondary">
+                {isAr ? "أفق التعافي:" : "Recovery horizon:"}
+              </span>
+              <span className="font-semibold text-io-secondary tabular-nums">
+                {peakDay * 6} {isAr ? "يوم (تقدير)" : "days (est.)"}
+              </span>
+            </div>
+          </div>
+          {/* Methodology note */}
+          <div className="mt-3 pt-2 border-t border-io-border/50">
+            <p className="text-[9px] text-slate-400 leading-relaxed">
+              {isAr
+                ? "الافتراض: يمثل 'بدون تدخل' إجمالي الخسائر من المحرك. 'مع التدخل' يطرح الخسائر المتجنبة المقدرة لكل قرار. التعافي يفترض عدم حدوث صدمة ثانوية."
+                : "Assumption: 'Without action' = total projected loss from engine. 'With action' deducts each decision's estimated loss_avoided_usd. Recovery assumes no secondary shock."}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════
            ADVANCED VIEW — Collapsed for analysts
            ═══════════════════════════════════════════════════════════════ */}
       <div className="border-t border-io-border pt-3">
@@ -817,8 +892,8 @@ function GccImpactMap({
 
       <div className="relative">
         <svg viewBox="0 0 320 170" className="w-full h-auto" style={{ maxHeight: 180 }}>
-          <ellipse cx="230" cy="70" rx="40" ry="25" fill="rgba(59,130,246,0.05)" stroke="rgba(59,130,246,0.1)" strokeWidth="0.5" />
-          <text x="230" y="73" textAnchor="middle" className="fill-blue-500/20 text-[5px]">Gulf</text>
+          <ellipse cx="230" cy="70" rx="40" ry="25" fill="rgba(12,107,88,0.05)" stroke="rgba(12,107,88,0.1)" strokeWidth="0.5" />
+          <text x="230" y="73" textAnchor="middle" className="fill-io-accent/20 text-[5px]">Gulf</text>
 
           {GCC_COUNTRIES.map((country) => {
             const data = countryExposures[country.id];
@@ -1024,7 +1099,14 @@ function DecisionCard({
           <span className="flex-shrink-0 w-6 h-6 rounded-full bg-slate-700/50 flex items-center justify-center text-[10px] font-bold text-io-secondary">{rank}</span>
           <div className="min-w-0">
             <p className="text-sm font-semibold text-io-primary leading-tight">{isAr ? action.action_ar : action.action}</p>
-            <p className="text-[10px] text-io-secondary mt-0.5">{action.sector} · {action.owner}</p>
+            <p className="text-[10px] text-io-secondary mt-0.5">
+              {action.sector?.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase())} · {action.owner}
+              {(action as any).time_to_act_hours != null && (
+                <span className="ml-2 text-io-status-elevated font-semibold">
+                  {isAr ? `خلال ${(action as any).time_to_act_hours}س` : `within ${(action as any).time_to_act_hours}h`}
+                </span>
+              )}
+            </p>
           </div>
         </div>
         {transparency && (
@@ -1036,12 +1118,45 @@ function DecisionCard({
         )}
       </div>
 
-      {/* Cost / Benefit / Net */}
-      <div className="px-4 pb-2 flex items-center gap-4 text-[10px]">
-        <span className="text-io-secondary">{isAr ? "التكلفة" : "Cost"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.cost_usd ?? 0)}</span></span>
-        <span className="text-io-secondary">{isAr ? "الفائدة" : "Benefit"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.loss_avoided_usd ?? 0)}</span></span>
-        <span className={`font-bold tabular-nums ${isNetPositive ? "text-emerald-400" : "text-red-400"}`}>{isNetPositive ? "+" : ""}{formatUsdCompact(netValue)}</span>
+      {/* Cost / Benefit / Net — with formula note */}
+      <div className="px-4 pb-2">
+        <div className="flex items-center gap-4 text-[10px]">
+          <span className="text-io-secondary">{isAr ? "التكلفة" : "Cost"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.cost_usd ?? 0)}</span></span>
+          <span className="text-io-secondary">{isAr ? "الفائدة" : "Benefit"}: <span className="text-io-secondary font-semibold tabular-nums">{formatUsdCompact(action.loss_avoided_usd ?? 0)}</span></span>
+          <span className={`font-bold tabular-nums ${isNetPositive ? "text-emerald-400" : "text-red-400"}`}>{isNetPositive ? "+" : ""}{formatUsdCompact(netValue)}</span>
+          {action.confidence != null && (
+            <span className="text-io-secondary">{isAr ? "ثقة" : "Conf"}: <span className="font-semibold">{Math.round(action.confidence * 100)}%</span></span>
+          )}
+        </div>
+        <p className="text-[8px] text-slate-400 mt-1">
+          {isAr
+            ? "الأولوية = ٢٥% إلحاح + ٣٠% خسائر متجنبة + ٢٠% مخاطر تنظيمية + ١٥% جدوى + ١٠% أثر الوقت"
+            : "Priority = 25% urgency + 30% loss_avoided + 20% regulatory_risk + 15% feasibility + 10% time_effect"}
+        </p>
       </div>
+
+      {/* Consequence of Delay */}
+      {action.urgency != null && action.urgency >= 0.6 && (() => {
+        const ttaHours = (action as any).time_to_act_hours ?? Math.round((1 - action.urgency) * 72);
+        const delayImpactPct = ttaHours <= 24 ? 40 : ttaHours <= 48 ? 25 : 15;
+        return (
+          <div className="px-4 pb-2 pt-2 border-t border-io-status-elevated/20">
+            <div className="flex items-start gap-2 bg-io-status-elevated/5 rounded-lg p-2.5">
+              <span className="text-io-status-elevated text-xs flex-shrink-0 mt-0.5">&#9888;</span>
+              <div>
+                <p className="text-[10px] font-semibold text-io-status-elevated uppercase tracking-wider mb-0.5">
+                  {isAr ? "نتيجة التأخير" : "If Delayed"}
+                </p>
+                <p className="text-[11px] text-io-secondary leading-relaxed">
+                  {isAr
+                    ? `تأخير يتجاوز ${ttaHours} ساعة يزيد الخسائر المتوقعة بنسبة ~${delayImpactPct}% — تصعيد تلقائي مطلوب`
+                    : `Delay beyond ${ttaHours}h increases projected loss by ~${delayImpactPct}% — auto-escalation triggered`}
+                </p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* STEP 6: Numeric WHY */}
       {whyReasons.length > 0 && (
@@ -1092,7 +1207,7 @@ function DecisionCard({
         <div className="px-4 pb-3">
           <button
             onClick={() => onSubmitForReview(action.id)}
-            className="w-full py-1.5 rounded-lg text-[10px] font-semibold bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors border border-blue-500/20"
+            className="w-full py-1.5 rounded-lg text-[10px] font-semibold bg-io-accent/20 text-io-accent hover:bg-io-accent/30 transition-colors border border-io-accent/20"
           >
             {isAr ? "تقديم للمراجعة" : "Submit for Review"}
           </button>

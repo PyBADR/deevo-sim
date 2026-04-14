@@ -1,5 +1,295 @@
 /**
- * Impact Observatory | مرصد الأثر
- * Entry CSS — imports the canonical theme.
+ * Impact Observatory | مرصد الأثر — Global Stylesheet
+ *
+ * Sovereign-grade executive intelligence visual system.
+ * Apple compositional discipline. Palantir information density.
+ * Premium calmness. Institutional typography. Generous whitespace.
+ *
+ * Palette:
+ *   bg main: #F5F5F2   bg surface: #FFFFFF   bg muted: #ECECE8
+ *   text primary: #111111   secondary: #5F5F58   tertiary: #8A8A83
+ *   border soft: #D9D9D2   border muted: #E6E6E0
+ *   charcoal: #1B1B19   graphite: #252522
+ *   status amber: #A06A34   red: #8E4338   olive: #5E6759
  */
-@import "../../theme/globals.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ────────────────────────────────────────────────────────
+   Base layer — variables, resets, defaults
+   ──────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    --io-bg:             #F5F5F2;
+    --io-surface:        #FFFFFF;
+    --io-muted:          #ECECE8;
+    --io-warm:           #F0EDE8;
+
+    --io-text-primary:   #111111;
+    --io-text-secondary: #5F5F58;
+    --io-text-tertiary:  #8A8A83;
+
+    --io-border-soft:    #D9D9D2;
+    --io-border-muted:   #E6E6E0;
+    --io-border-accent:  #C8C8BE;
+
+    --io-charcoal:       #1B1B19;
+    --io-graphite:       #252522;
+
+    --io-status-amber:   #A06A34;
+    --io-status-red:     #8E4338;
+    --io-status-olive:   #5E6759;
+
+    /* Accent — sovereign teal */
+    --io-accent:         #0C6B58;
+    --io-accent-hover:   #0A5A4A;
+    --io-accent-dim:     #E8F5F0;
+
+    /* Status — institutional 6-level scale */
+    --io-status-severe:   #8C2318;
+    --io-status-high:     #A0522D;
+    --io-status-elevated: #8B6914;
+    --io-status-guarded:  #5E6759;
+    --io-status-low:      #2D6A4F;
+    --io-status-nominal:  #3A7D6C;
+
+    /* Spacing scale for sections */
+    --io-section-gap:    7rem;
+    --io-section-gap-sm: 5rem;
+  }
+
+  html {
+    font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  html[dir="rtl"] {
+    font-family: 'IBM Plex Sans Arabic', 'Noto Sans Arabic', sans-serif;
+  }
+
+  body {
+    background-color: var(--io-bg);
+    color: var(--io-text-primary);
+    line-height: 1.65;
+  }
+
+  ::selection {
+    background-color: rgba(27, 27, 25, 0.08);
+  }
+
+  /* Smooth scroll with reduced-motion respect */
+  @media (prefers-reduced-motion: no-preference) {
+    html { scroll-behavior: smooth; }
+  }
+}
+
+/* ────────────────────────────────────────────────────────
+   Component layer — institutional reusable patterns
+   ──────────────────────────────────────────────────────── */
+@layer components {
+  /* ── Label: quiet uppercase institutional label ── */
+  .io-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--io-text-tertiary);
+  }
+
+  .io-label-lg {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--io-text-tertiary);
+  }
+
+  /* ── Section: standard institutional content section ── */
+  .io-section {
+    padding-top: var(--io-section-gap-sm);
+    padding-bottom: var(--io-section-gap-sm);
+    border-bottom: 1px solid var(--io-border-muted);
+  }
+  @media (min-width: 640px) {
+    .io-section {
+      padding-top: var(--io-section-gap);
+      padding-bottom: var(--io-section-gap);
+    }
+  }
+
+  /* ── Section heading: single dominant focal element ── */
+  .io-section-heading {
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    color: var(--io-text-secondary);
+    max-width: 48rem;
+    margin-bottom: 3rem;
+  }
+
+  /* ── Prose block: reading measure for long-form ── */
+  .io-prose {
+    font-size: 0.9375rem;
+    line-height: 1.85;
+    color: var(--io-text-secondary);
+    max-width: 48rem;
+  }
+
+  .io-prose-lg {
+    font-size: 1rem;
+    line-height: 1.85;
+    color: var(--io-text-secondary);
+    max-width: 48rem;
+  }
+
+  /* ── Hero text: dominant headline ── */
+  .io-hero {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.08;
+    color: var(--io-charcoal);
+  }
+  @media (min-width: 640px) {
+    .io-hero {
+      font-size: 3.25rem;
+    }
+  }
+
+  /* ── Subhero: supporting line under hero ── */
+  .io-subhero {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--io-text-secondary);
+    max-width: 42rem;
+  }
+
+  /* ── Briefing title (scenario/decision/evaluation pages) ── */
+  .io-briefing-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+    color: var(--io-charcoal);
+  }
+  @media (min-width: 640px) {
+    .io-briefing-title {
+      font-size: 2.25rem;
+    }
+  }
+
+  /* ── Divider: institutional section break ── */
+  .io-divider {
+    height: 1px;
+    background-color: var(--io-border-muted);
+    border: none;
+  }
+
+  .io-divider-accent {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      var(--io-border-accent) 0%,
+      var(--io-border-muted) 60%,
+      transparent 100%
+    );
+    border: none;
+  }
+
+  /* ── Card: quiet surface ── */
+  .io-card {
+    background-color: var(--io-surface);
+    border: 1px solid var(--io-border-muted);
+    border-radius: 12px;
+  }
+
+  .io-card-interactive {
+    background-color: var(--io-surface);
+    border: 1px solid var(--io-border-muted);
+    border-radius: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .io-card-interactive:hover {
+    border-color: var(--io-border-soft);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  /* ── Metadata line: inline key-value pairs ── */
+  .io-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1rem;
+    font-size: 0.8125rem;
+    color: var(--io-text-tertiary);
+  }
+
+  /* ── Numbered item: institutional ordered list item ── */
+  .io-numbered-item {
+    font-size: 0.9375rem;
+    line-height: 1.85;
+    color: var(--io-text-secondary);
+    max-width: 48rem;
+  }
+
+  /* ── Status badge: quiet inline status ── */
+  .io-status {
+    font-size: 0.8125rem;
+    font-weight: 600;
+  }
+
+  /* ── Footer: quiet institutional footer ── */
+  .io-footer {
+    padding-top: 2.5rem;
+    padding-bottom: 2.5rem;
+    border-top: 1px solid var(--io-border-muted);
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .io-footer-text {
+    font-size: 0.6875rem;
+    color: var(--io-text-tertiary);
+  }
+}
+
+/* ────────────────────────────────────────────────────────
+   Utility layer — animation & layout helpers
+   ──────────────────────────────────────────────────────── */
+@layer utilities {
+  /* ── Fade in: page entry ── */
+  .io-fade-in {
+    animation: ioFadeIn 0.5s ease-out forwards;
+  }
+  @keyframes ioFadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── Stagger children: sequential reveal ── */
+  .io-stagger > * {
+    opacity: 0;
+    animation: ioFadeIn 0.45s ease-out forwards;
+  }
+  .io-stagger > *:nth-child(1) { animation-delay: 0.08s; }
+  .io-stagger > *:nth-child(2) { animation-delay: 0.16s; }
+  .io-stagger > *:nth-child(3) { animation-delay: 0.24s; }
+  .io-stagger > *:nth-child(4) { animation-delay: 0.32s; }
+  .io-stagger > *:nth-child(5) { animation-delay: 0.40s; }
+  .io-stagger > *:nth-child(6) { animation-delay: 0.48s; }
+  .io-stagger > *:nth-child(7) { animation-delay: 0.56s; }
+  .io-stagger > *:nth-child(8) { animation-delay: 0.64s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .io-fade-in,
+    .io-stagger > * {
+      animation: none;
+      opacity: 1;
+    }
+  }
+}

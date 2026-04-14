@@ -1,10 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useMemo } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useAppStore } from "@/store/app-store";
 import { t, type Locale } from "@/i18n/dictionary";
-import { Globe } from "lucide-react";
+import { Globe, ChevronRight, Play } from "lucide-react";
+import Link from "next/link";
 
 interface ObservatoryShellProps {
   children: React.ReactNode;
@@ -12,23 +13,31 @@ interface ObservatoryShellProps {
   scenarioLabelAr?: string;
   dataSource?: "live" | "mock";
   activeTab?: string;
-  /** Optional slot rendered between language toggle and scenario bar */
-  headerSlot?: React.ReactNode;
 }
 
 const TABS = [
-  { id: "briefing", labelEn: "Briefing", labelAr: "الإحاطة" },
-  { id: "dashboard", labelEn: "Dashboard", labelAr: "لوحة المعلومات" },
+  { id: "dashboard", labelEn: "Briefing", labelAr: "الإحاطة التنفيذية" },
+  { id: "macro", labelEn: "Macro Outlook", labelAr: "المشهد الكلي" },
+  { id: "propagation", labelEn: "Transmission", labelAr: "مسار الانتقال" },
   { id: "scenarios", labelEn: "Scenarios", labelAr: "السيناريوهات" },
-  { id: "macro", labelEn: "Macro", labelAr: "الذكاء الكلي" },
-  { id: "propagation", labelEn: "Propagation", labelAr: "الانتشار" },
-  { id: "map", labelEn: "GCC Map", labelAr: "خريطة الخليج" },
-  { id: "sectors", labelEn: "Sectors", labelAr: "القطاعات" },
-  { id: "decisions", labelEn: "Decisions", labelAr: "غرفة القرار" },
-  { id: "audit", labelEn: "Audit", labelAr: "التدقيق والثقة" },
+  { id: "map", labelEn: "GCC Exposure", labelAr: "خريطة التعرض" },
+  { id: "sectors", labelEn: "Sector Risk", labelAr: "مخاطر القطاعات" },
+  { id: "decisions", labelEn: "Decision Room", labelAr: "غرفة القرار" },
+  { id: "audit", labelEn: "Governance", labelAr: "الحوكمة والرقابة" },
 ];
 
-// Flow stages removed — executive briefing does not show technical pipeline
+const FLOW_STAGES = [
+  "Signal",
+  "Macro",
+  "Transmission",
+  "Exposure",
+  "Banking",
+  "Insurance",
+  "Sector",
+  "Decision",
+  "Outcome",
+  "Audit",
+];
 
 export function ObservatoryShell({
   children,
@@ -36,7 +45,6 @@ export function ObservatoryShell({
   scenarioLabelAr,
   dataSource = "mock",
   activeTab = "dashboard",
-  headerSlot,
 }: ObservatoryShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -45,15 +53,26 @@ export function ObservatoryShell({
   const setLanguage = useAppStore((s) => s.setLanguage);
 
   const isArabic = language === "ar";
-  const tabParam = searchParams.get("tab") || "briefing";
-  const currentTabId = tabParam || "briefing";
+  const tabParam = searchParams.get("tab") || "dashboard";
+  const currentTabId = tabParam === "dashboard" ? "dashboard" : tabParam || "dashboard";
+  
+  const flowStageDisplay = useMemo(() => {
+    return FLOW_STAGES.map((stage, idx) => (
+      <React.Fragment key={stage}>
+        <span className="text-xs font-medium text-io-secondary">{stage}</span>
+        {idx < FLOW_STAGES.length - 1 && (
+          <ChevronRight className="w-3 h-3 text-border-io-border" />
+        )}
+      </React.Fragment>
+    ));
+  }, []);
 
   const runId = searchParams.get("run");
 
   const handleTabClick = (tabId: string) => {
-    if (tabId === "briefing") {
-      // Briefing is the default — no tab param needed
-      router.push(`/command-center${runId ? `?run=${runId}` : ""}`);
+    const runSuffix = runId ? `${tabId === "dashboard" ? "?" : "&"}run=${runId}` : "";
+    if (tabId === "dashboard") {
+      router.push(`/command-center${runSuffix}`);
     } else {
       router.push(`/command-center?tab=${tabId}${runId ? `&run=${runId}` : ""}`);
     }
@@ -76,21 +95,29 @@ export function ObservatoryShell({
           {/* Top Row: Logo + Title + Language Toggle */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
+              <div className="p-2 bg-io-accent-dim rounded-lg">
                 <Globe className="w-5 h-5 text-io-accent" />
               </div>
               <div className={`flex flex-col gap-0.5 ${isArabic ? "text-right" : "text-left"}`}>
                 <h1 className="text-lg font-semibold text-io-primary">
-                  {isArabic ? "الذكاء المالي الكلي" : "Macro Financial Intelligence"}
+                  {isArabic ? "مرصد الأثر" : "Impact Observatory"}
                 </h1>
                 <p className="text-xs text-io-secondary">
-                  {isArabic ? "دول مجلس التعاون الخليجي" : "GCC"}
+                  {isArabic ? "منصة الاستخبارات الاقتصادية والمالية لدول الخليج" : "GCC Macro Financial Intelligence Platform"}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {headerSlot}
+            <div className="flex items-center gap-2">
+              {/* Start Demo CTA */}
+              <Link
+                href="/demo"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-io-accent-hover transition-colors shadow-sm"
+              >
+                <Play size={12} />
+                {isArabic ? "عرض تجريبي" : "Start Demo"}
+              </Link>
+
               {/* Language Toggle Button */}
               <button
                 onClick={handleLanguageToggle}
@@ -102,12 +129,17 @@ export function ObservatoryShell({
             </div>
           </div>
 
-          {/* Subtitle */}
-          <p className="text-xs text-io-secondary">
+          {/* Subtitle — intelligence flow principle */}
+          <p className="text-xs text-io-secondary mb-3">
             {isArabic
-              ? "إحاطة تنفيذية للأسواق المالية الخليجية"
-              : "Executive Briefing for GCC Financial Markets"}
+              ? "إشارة ← انتقال ← تعرض ← بنوك ← تأمين ← قطاعات ← قرار ← نتيجة ← حوكمة"
+              : "Signal → Transmission → Exposure → Banking → Insurance → Sector → Decision → Outcome → Audit"}
           </p>
+
+          {/* Flow Stages */}
+          <div className="flex items-center gap-2 text-io-secondary overflow-x-auto pb-1">
+            {flowStageDisplay}
+          </div>
         </div>
       </header>
 
@@ -127,7 +159,7 @@ export function ObservatoryShell({
             <div className="flex items-center gap-2">
               <div
                 className={`w-2 h-2 rounded-full ${
-                  dataSource === "live" ? "bg-green-500" : "bg-yellow-500"
+                  dataSource === "live" ? "bg-io-status-low" : "bg-io-status-elevated"
                 } animate-pulse`}
               />
               <span className="text-xs text-io-secondary">
