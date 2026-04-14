@@ -86,7 +86,7 @@ export default function DemoPage() {
         {/* Start button */}
         <button
           onClick={() => setDemoStarted(true)}
-          className="group inline-flex items-center gap-3 px-8 py-4 bg-io-accent text-white rounded-xl font-semibold text-sm shadow-lg shadow-io-accent/20 hover:bg-io-accent-hover hover:shadow-xl hover:shadow-io-accent/20 transition-all"
+          className="group inline-flex items-center gap-3 px-8 py-4 bg-io-primary text-white rounded-xl font-semibold text-sm shadow-lg shadow-io-primary/20 hover:bg-io-accent hover:shadow-xl hover:shadow-io-accent/20 transition-all"
         >
           <Play size={18} />
           Start Executive Demo

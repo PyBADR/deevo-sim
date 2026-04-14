@@ -1058,6 +1058,7 @@ function CommandCenterInner() {
     executeAction,
     switchToMock,
     switchToLive,
+    switchScenario,
 
     // Phase 6: Intelligence Engine
     executiveStatus,
@@ -1070,9 +1071,21 @@ function CommandCenterInner() {
     collaborationStage,
   } = useCommandCenter(runId);
 
-  // ── Scenario selection: POST /api/v1/runs → navigate to new run ──
+  // ── Scenario selection ──
+  // Mock mode: switch scenario via store (no API call)
+  // Live mode: POST /api/v1/runs → navigate to new run
   const handleScenarioSelect = useCallback(
     async (templateId: string) => {
+      // In demo/mock mode, switch scenario locally — no backend needed
+      if (dataSource === "mock") {
+        setIsRunningScenario(true);
+        const key = templateId.includes("liquidity") ? "liquidity" as const : "hormuz" as const;
+        switchScenario(key);
+        setIsRunningScenario(false);
+        return;
+      }
+
+      // Live mode: call backend API
       setIsRunningScenario(true);
       try {
         const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
@@ -1081,10 +1094,16 @@ function CommandCenterInner() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ template_id: templateId, severity: 0.75 }),
         });
+        if (!res.ok) {
+          switchToMock();
+          return;
+        }
         const json = await res.json();
         const newRunId = json?.data?.run_id ?? json?.run_id;
         if (newRunId) {
           router.push(`/command-center?run=${newRunId}`);
+        } else {
+          switchToMock();
         }
       } catch {
         switchToMock();
@@ -1092,7 +1111,7 @@ function CommandCenterInner() {
         setIsRunningScenario(false);
       }
     },
-    [router, switchToMock],
+    [dataSource, router, switchToMock, switchScenario],
   );
 
   const handleSubmitForReview = useCallback(
@@ -1102,19 +1121,8 @@ function CommandCenterInner() {
     [executeAction],
   );
 
-  // ── State gates ──
-  if (status === "loading") return <LoadingSkeleton />;
-  if (status === "error" && !scenario) {
-    return (
-      <ErrorState
-        error={error ?? "Unknown error"}
-        onRetry={runId ? () => switchToLive(runId) : undefined}
-        onFallbackMock={switchToMock}
-      />
-    );
-  }
-
   // ── Derive country exposures from impacts for the map ──
+  // NOTE: useMemo must be called BEFORE any conditional returns (React Rules of Hooks)
   const countryExposures = useMemo(() => {
     if (!impacts?.length) return undefined;
     const exposures: Record<
@@ -1122,7 +1130,6 @@ function CommandCenterInner() {
       { stressLevel: number; lossUsd: number; dominantSector: string; entities: string[] }
     > = {};
 
-    // Map sector-level impacts to countries
     const sectorToCountry: Record<string, string[]> = {
       banking: ["SA", "AE", "BH"],
       insurance: ["SA", "AE", "QA"],
@@ -1148,6 +1155,18 @@ function CommandCenterInner() {
     }
     return Object.keys(exposures).length > 0 ? exposures : undefined;
   }, [impacts]);
+
+  // ── State gates ──
+  if (status === "loading") return <LoadingSkeleton />;
+  if (status === "error" && !scenario) {
+    return (
+      <ErrorState
+        error={error ?? "Unknown error"}
+        onRetry={runId ? () => switchToLive(runId) : undefined}
+        onFallbackMock={switchToMock}
+      />
+    );
+  }
 
   // ── Render active tab content ──
   const renderTabContent = () => {

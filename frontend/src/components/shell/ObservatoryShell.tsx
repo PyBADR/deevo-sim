@@ -112,7 +112,7 @@ export function ObservatoryShell({
               {/* Start Demo CTA */}
               <Link
                 href="/demo"
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-io-accent text-white hover:bg-io-accent-hover transition-colors shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-io-primary text-white hover:bg-io-accent transition-colors shadow-sm"
               >
                 <Play size={12} />
                 {isArabic ? "عرض تجريبي" : "Start Demo"}
