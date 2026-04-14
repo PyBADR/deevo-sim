@@ -1243,8 +1243,10 @@ function CommandCenterInner() {
     if (!currentContract) {
       // First init — distinguish explicit demo from implicit mock fallback
       const isExplicitDemo = isDemoParam;
+      const activeTemplateId = scenario?.templateId ?? "hormuz_chokepoint_disruption";
+      const hasFullPayload = !!TEMPLATE_TO_SCENARIO_KEY[activeTemplateId];
       const contract: UnifiedScenarioRun = {
-        scenarioId: scenario?.templateId ?? "hormuz_chokepoint_disruption",
+        scenarioId: activeTemplateId,
         runId: "demo_seeded",
         locale,
         mode: isExplicitDemo ? "demo" : "hybrid",
@@ -1256,6 +1258,8 @@ function CommandCenterInner() {
           : ["Mock Fallback", "No Backend Connected", "17-Stage Simulation Engine"],
         fallbackStatus: isExplicitDemo ? "none" : "api_unavailable",
         errorState: isExplicitDemo ? null : "Backend not connected — using reference dataset",
+        isScenarioComplete: hasFullPayload,
+        missingSections: hasFullPayload ? [] : ["briefing", "macro", "transmission", "exposure", "sector", "decisions", "outcome", "audit"],
       };
       setDemoContract(contract);
       return;
@@ -1269,12 +1273,16 @@ function CommandCenterInner() {
       (error && currentContract.fallbackStatus === "none");
 
     if (needsUpdate) {
+      const updatedTemplateId = scenario?.templateId ?? currentContract.scenarioId;
+      const hasPayload = !!TEMPLATE_TO_SCENARIO_KEY[updatedTemplateId];
       setDemoContract({
         ...currentContract,
         locale,
-        scenarioId: scenario?.templateId ?? currentContract.scenarioId,
+        scenarioId: updatedTemplateId,
         confidence: resolvedConfidence,
         generatedAt: new Date().toISOString(),
+        isScenarioComplete: hasPayload,
+        missingSections: hasPayload ? [] : currentContract.missingSections,
         ...(error ? { dataSourceType: "fallback_mock" as const, fallbackStatus: "api_unavailable" as const, errorState: error } : {}),
       });
     }
@@ -1299,7 +1307,7 @@ function CommandCenterInner() {
         setIsRunningScenario(true);
         switchScenario(key);
 
-        // Update demo contract with new scenario
+        // Update demo contract with new scenario — mark complete since key exists
         if (isDemoMode) {
           const currentContract = useCommandCenterStore.getState().demoContract;
           if (currentContract) {
@@ -1307,6 +1315,8 @@ function CommandCenterInner() {
               ...currentContract,
               scenarioId: templateId,
               generatedAt: new Date().toISOString(),
+              isScenarioComplete: true,
+              missingSections: [],
             });
           }
         }

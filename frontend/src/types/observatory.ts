@@ -784,6 +784,10 @@ export interface UnifiedScenarioRun {
   fallbackStatus: DemoFallbackStatus;
   /** Error state from live API, if any */
   errorState: string | null;
+  /** Whether the full scenario payload (all tabs) is loaded */
+  isScenarioComplete: boolean;
+  /** Sections missing from the payload, if any */
+  missingSections: string[];
 }
 
 /** Available scenario template for graph impact */
