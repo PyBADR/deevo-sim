@@ -356,7 +356,7 @@ export interface ScenarioCatalogEntry {
 
 export type GraphLayer = "geography" | "infrastructure" | "economy" | "finance" | "society";
 
-export type StressClassification = "CRITICAL" | "ELEVATED" | "MODERATE" | "LOW" | "NOMINAL";
+export type StressClassification = "SEVERE" | "CRITICAL" | "HIGH" | "ELEVATED" | "GUARDED" | "MODERATE" | "LOW" | "NOMINAL";
 
 /** GCC Knowledge Graph node (76 nodes, 5 layers) */
 export interface KnowledgeGraphNode {

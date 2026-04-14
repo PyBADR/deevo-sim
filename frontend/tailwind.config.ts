@@ -14,24 +14,31 @@ const config: Config = {
     extend: {
       colors: {
         io: {
-          // Surfaces
-          bg:          '#F5F5F2',
+          // Surfaces — institutional warm white
+          bg:          '#F7F7F5',
           surface:     '#FFFFFF',
-          muted:       '#ECECE8',
-          // Text
-          primary:     '#111111',
-          secondary:   '#5F5F58',
+          muted:       '#EDEDEB',
+          // Text — sovereign charcoal hierarchy
+          primary:     '#1A1A1A',
+          secondary:   '#555550',
           tertiary:    '#8A8A83',
-          // Borders
+          // Borders — quiet institutional
           'border-soft':  '#D9D9D2',
           'border-muted': '#E6E6E0',
-          // Emphasis
+          // Emphasis — dark sovereign
           charcoal:    '#1B1B19',
           graphite:    '#252522',
-          // Status (muted, institutional)
-          'status-amber': '#A06A34',
-          'status-red':   '#8E4338',
-          'status-olive': '#5E6759',
+          // Accent — sovereign teal (replaces blue)
+          accent:      '#0C6B58',
+          'accent-hover': '#0A5A4A',
+          'accent-dim':   '#E8F5F0',
+          // Status — institutional, desaturated
+          'status-severe':   '#8C2318',
+          'status-high':     '#A0522D',
+          'status-elevated': '#8B6914',
+          'status-guarded':  '#5E6759',
+          'status-low':      '#2D6A4F',
+          'status-nominal':  '#3A7D6C',
         },
         // Legacy ds-* tokens preserved for backward compatibility
         ds: {
@@ -39,13 +46,13 @@ const config: Config = {
           card: '#FFFFFF', 'card-hover': '#F8FAFC', 'card-active': '#F1F5F9',
           border: '#E2E8F0', 'border-subtle': '#F1F5F9', 'border-accent': '#CBD5E1', 'border-hover': '#94A3B8',
           text: '#0F172A', 'text-secondary': '#475569', 'text-muted': '#94A3B8', 'text-dim': '#CBD5E1',
-          accent: '#1D4ED8', 'accent-hover': '#1E40AF', 'accent-dim': '#3B82F6',
-          'accent-muted': 'rgba(29, 78, 216, 0.06)', 'accent-glow': 'rgba(29, 78, 216, 0.04)',
-          gold: '#B45309', 'gold-light': '#D97706', 'gold-muted': 'rgba(180, 83, 9, 0.08)',
-          success: '#15803D', 'success-dim': 'rgba(21, 128, 61, 0.06)',
-          warning: '#B45309', 'warning-dim': 'rgba(180, 83, 9, 0.06)',
-          danger: '#B91C1C', 'danger-dim': 'rgba(185, 28, 28, 0.06)',
-          critical: '#7F1D1D', 'critical-dim': 'rgba(127, 29, 29, 0.05)',
+          accent: '#0C6B58', 'accent-hover': '#0A5A4A', 'accent-dim': '#3A7D6C',
+          'accent-muted': 'rgba(12, 107, 88, 0.06)', 'accent-glow': 'rgba(12, 107, 88, 0.04)',
+          gold: '#8B6914', 'gold-light': '#A07D2E', 'gold-muted': 'rgba(139, 105, 20, 0.08)',
+          success: '#2D6A4F', 'success-dim': 'rgba(45, 106, 79, 0.06)',
+          warning: '#8B6914', 'warning-dim': 'rgba(139, 105, 20, 0.06)',
+          danger: '#8C2318', 'danger-dim': 'rgba(140, 35, 24, 0.06)',
+          critical: '#6B1A12', 'critical-dim': 'rgba(107, 26, 18, 0.05)',
         },
       },
       fontFamily: {

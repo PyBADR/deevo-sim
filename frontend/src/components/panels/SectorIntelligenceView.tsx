@@ -256,7 +256,7 @@ function IntelligenceBriefTab({
                 </tr>
               </thead>
               <tbody>
-                {macroSignals.slice(0, 4).map((signal) => (
+                {macroSignals.map((signal) => (
                   <tr key={signal.id} className="border-b border-io-border/50">
                     <td className="py-2.5 font-medium text-io-primary">
                       {locale === "ar" ? signal.name_ar : signal.name_en}

@@ -53,7 +53,7 @@ function safeRecord<T>(value: unknown): Record<string, T> {
 }
 
 function safeClassification(value: unknown): StressClassification {
-  const valid: StressClassification[] = ["CRITICAL", "ELEVATED", "MODERATE", "LOW", "NOMINAL"];
+  const valid: StressClassification[] = ["SEVERE", "CRITICAL", "HIGH", "ELEVATED", "GUARDED", "MODERATE", "LOW", "NOMINAL"];
   if (typeof value === "string" && valid.includes(value as StressClassification)) {
     return value as StressClassification;
   }

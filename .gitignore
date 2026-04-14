@@ -97,3 +97,10 @@ __pycache__/
 .env
 node_modules/
 .next/
+
+# Quarantined spiral artifacts (2026-04-13 command-center recovery)
+quarantine/
+
+# Scratch prompts and orphan code (not source)
+prompts/
+src/features/sovereign-control/

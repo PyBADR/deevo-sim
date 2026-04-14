@@ -20,11 +20,11 @@ import type {
 
 export const MOCK_SCENARIO = {
   template_id: "hormuz_chokepoint_disruption",
-  label: "Strait of Hormuz Partial Blockage",
-  label_ar: "إغلاق جزئي لمضيق هرمز",
+  label: "Energy & Trade Flow Disruption — Strait of Hormuz",
+  label_ar: "اضطراب تدفق الطاقة والتجارة — مضيق هرمز",
   severity: 0.72,
   horizon_hours: 168,
-  domain: "MARITIME",
+  domain: "ENERGY_TRADE",
   trigger_time: "2026-04-08T06:14:00Z",
 };
 
@@ -96,10 +96,10 @@ export const MOCK_PROPAGATION_STEPS: PropagationStep[] = [
 ];
 
 export const MOCK_SECTOR_IMPACTS: SectorImpact[] = [
-  { sector: "infrastructure", sectorLabel: "Infrastructure", avgImpact: 0.73, maxImpact: 0.88, nodeCount: 4, topNode: "ras_tanura", color: "#EF4444" },
-  { sector: "economy", sectorLabel: "Economy", avgImpact: 0.68, maxImpact: 0.78, nodeCount: 5, topNode: "brent_crude", color: "#F59E0B" },
-  { sector: "finance", sectorLabel: "Finance", avgImpact: 0.50, maxImpact: 0.58, nodeCount: 4, topNode: "gcc_insurance", color: "#3B82F6" },
-  { sector: "geography", sectorLabel: "Geography", avgImpact: 0.88, maxImpact: 0.88, nodeCount: 1, topNode: "hormuz_strait", color: "#8B5CF6" },
+  { sector: "infrastructure", sectorLabel: "Energy Infrastructure", avgImpact: 0.73, maxImpact: 0.88, nodeCount: 4, topNode: "ras_tanura", color: "#8C2318" },
+  { sector: "economy", sectorLabel: "Trade & Commodities", avgImpact: 0.68, maxImpact: 0.78, nodeCount: 5, topNode: "brent_crude", color: "#8B6914" },
+  { sector: "finance", sectorLabel: "Banking & Insurance", avgImpact: 0.50, maxImpact: 0.58, nodeCount: 4, topNode: "gcc_insurance", color: "#0C6B58" },
+  { sector: "geography", sectorLabel: "Maritime Corridors", avgImpact: 0.88, maxImpact: 0.88, nodeCount: 1, topNode: "hormuz_strait", color: "#A0522D" },
 ];
 
 // ── Causal Chain ──────────────────────────────────────────────────────
@@ -154,7 +154,7 @@ export const MOCK_EXPLANATION = {
     "A partial blockage of the Strait of Hormuz — reducing vessel transit by approximately 60% — triggers a multi-sector cascade across GCC financial infrastructure. The shock propagates through three primary channels: (1) physical constraint on oil export terminals, reducing Ras Tanura throughput to 40% and Jebel Ali container processing to 55%; (2) commodity price transmission, with Brent crude spiking +$18/bbl within 48 hours; and (3) insurance claims cascade, activating reinsurance triggers across marine P&I lines. Total estimated loss reaches $4.27B over the 7-day horizon, with peak stress on Day 3. Recovery is projected at 42 days assuming diplomatic resolution within 10 days.",
   narrative_ar:
     "يؤدي الإغلاق الجزئي لمضيق هرمز — مع تقليص حركة السفن بنسبة 60% تقريباً — إلى سلسلة تأثيرات متعددة القطاعات عبر البنية التحتية المالية الخليجية.",
-  methodology: "9-layer deterministic simulation: Signal → Graph → Causal → Propagation → Physics → Math → Sectors → Decision → Explanation. 76-node GCC knowledge graph with 190 causal edges. Confidence interval: Monte Carlo 10K iterations.",
+  methodology: "Institutional macro-financial intelligence: Macro → Banking → Insurance → Sector Transmission → Entity Exposure → Decision → Counterfactual → Governance. 76-node GCC knowledge graph with 190 causal edges. Confidence: Monte Carlo 10K iterations.",
   confidence: 0.84,
   total_steps: 7,
 };
@@ -162,11 +162,11 @@ export const MOCK_EXPLANATION = {
 // ── Sector Rollups ────────────────────────────────────────────────────
 
 export const MOCK_SECTOR_ROLLUPS = {
-  banking: { aggregate_stress: 0.52, total_loss: 890_000_000, node_count: 6, classification: "MODERATE" as const },
-  insurance: { aggregate_stress: 0.58, total_loss: 410_000_000, node_count: 4, classification: "MODERATE" as const },
-  fintech: { aggregate_stress: 0.35, total_loss: 120_000_000, node_count: 3, classification: "LOW" as const },
   energy: { aggregate_stress: 0.78, total_loss: 2_100_000_000, node_count: 5, classification: "ELEVATED" as const },
+  banking: { aggregate_stress: 0.52, total_loss: 890_000_000, node_count: 6, classification: "GUARDED" as const },
+  insurance: { aggregate_stress: 0.58, total_loss: 410_000_000, node_count: 4, classification: "GUARDED" as const },
   trade: { aggregate_stress: 0.67, total_loss: 750_000_000, node_count: 4, classification: "ELEVATED" as const },
+  fintech: { aggregate_stress: 0.35, total_loss: 120_000_000, node_count: 3, classification: "LOW" as const },
 };
 
 // ── Trust Metadata ────────────────────────────────────────────────────

@@ -76,11 +76,11 @@ export default function DemoPage() {
         </h1>
 
         <p className="text-body-lg text-slate-500 mb-2">
-          Macro Financial Intelligence for GCC
+          GCC Macro-Financial Intelligence
         </p>
 
         <p className="text-sm text-slate-400 mb-12">
-          Scenario-based financial stress assessment for the GCC region
+          Institutional Financial Intelligence & Decision Platform
         </p>
 
         {/* Start button */}

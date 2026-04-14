@@ -43,12 +43,12 @@ function CurrentStateBlock({ briefing }: { briefing: SovereignBriefingType }) {
 
       {/* Key facts — prose, not grid */}
       <p className="text-[0.8125rem] text-[#6e6e73] leading-[1.75]">
-        {briefing.temporalHorizon.now.split('.')[0]}.
+        {briefing.temporalHorizon?.now?.split('.')[0] ?? ''}.
         {topCountries.length > 0 && (
           <> Top stress in {topCountries.join(', ')} — primary sector: {topSector}.</>
         )}
         {primaryDirective && (
-          <> Required now: <span className="text-[#0071e3] font-semibold">{primaryDirective.directive.split('.')[0]}</span>.</>
+          <> Required now: <span className="text-[#0071e3] font-semibold">{primaryDirective.directive?.split('.')[0] ?? ''}</span>.</>
         )}
         {!primaryDirective && (
           <> Monitoring posture — no binding directive.</>

@@ -11,23 +11,24 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* Palette */
-  --color-background: #F8FAFC;
+  /* Palette — Institutional Sovereign */
+  --color-background: #F7F7F5;
   --color-surface: #FFFFFF;
-  --color-primary: #0F172A;
-  --color-secondary: #475569;
-  --color-accent: #1D4ED8;
-  --color-success: #15803D;
-  --color-warning: #B45309;
-  --color-danger: #B91C1C;
-  --color-border: #E2E8F0;
+  --color-primary: #1A1A1A;
+  --color-secondary: #555550;
+  --color-accent: #0C6B58;
+  --color-success: #2D6A4F;
+  --color-warning: #8B6914;
+  --color-danger: #8C2318;
+  --color-border: #D9D9D2;
 
-  /* Classification */
-  --color-critical: #B91C1C;
-  --color-elevated: #B45309;
-  --color-moderate: #CA8A04;
-  --color-low: #15803D;
-  --color-nominal: #059669;
+  /* Classification — Institutional Risk Scale */
+  --color-severe: #8C2318;
+  --color-high: #A0522D;
+  --color-elevated: #8B6914;
+  --color-guarded: #5E6759;
+  --color-low: #2D6A4F;
+  --color-nominal: #3A7D6C;
 
   /* Typography */
   --font-family: 'DM Sans', system-ui, sans-serif;
@@ -109,9 +110,10 @@ body {
 }
 
 /* Classification badges */
-.badge-critical { background: var(--color-critical); color: white; }
+.badge-severe { background: var(--color-severe); color: white; }
+.badge-high { background: var(--color-high); color: white; }
 .badge-elevated { background: var(--color-elevated); color: white; }
-.badge-moderate { background: var(--color-moderate); color: white; }
+.badge-guarded { background: var(--color-guarded); color: white; }
 .badge-low { background: var(--color-low); color: white; }
 .badge-nominal { background: var(--color-nominal); color: white; }
 

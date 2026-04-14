@@ -90,7 +90,7 @@ export function DemoController({
               Impact Observatory
             </p>
             <p className="text-[9px] text-slate-400 font-medium">
-              Macro Financial Intelligence
+              GCC Macro-Financial Intelligence
             </p>
           </div>
         </div>

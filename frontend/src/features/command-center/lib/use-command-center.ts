@@ -5,7 +5,7 @@
  *   1. On mount with runId → fetch UnifiedRunResult → store.loadRun()
  *   2. On mount without runId → store.loadMock() with deterministic data
  *   3. On API failure with runId → fallback to mock, preserve error message
- *   4. Action execution → api.decisions.create() + api.authority.propose()
+ *   4. Action execution → api.decisions.create() + api.authority.propose() + api.outcomes.create()
  *
  * Returns stable selectors for all 5 panels.
  *
@@ -254,6 +254,19 @@ export function useCommandCenter(runId?: string | null) {
           rationale: `Action ${actionId} submitted from Decision Command Center`,
         });
 
+        // Step 3: Create outcome record for feedback loop tracking
+        try {
+          await api.outcomes.create({
+            source_decision_id: decision.decision_id,
+            source_run_id: currentState.runId ?? undefined,
+            notes: `Action ${actionId} submitted from Decision Command Center`,
+            recorded_by: "command-center",
+          });
+        } catch {
+          // Outcome creation is non-blocking — log but don't fail the action
+          console.warn("[outcome] Failed to create outcome record for action", actionId);
+        }
+
         return decision;
       } finally {
         useCommandCenterStore.getState().stopExecuting(actionId);
@@ -262,6 +275,7 @@ export function useCommandCenter(runId?: string | null) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["authority"] });
       queryClient.invalidateQueries({ queryKey: ["decisions"] });
+      queryClient.invalidateQueries({ queryKey: ["outcomes"] });
     },
   });
 

@@ -268,9 +268,9 @@ const DOMAIN_COLORS: Record<string, { bg: string; text: string; border: string }
     border: "border-red-200",
   },
   LIQUIDITY: {
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
+    bg: "bg-io-accent/10",
+    text: "text-io-accent",
+    border: "border-io-accent/20",
   },
   REGULATORY: {
     bg: "bg-purple-50",
@@ -284,7 +284,7 @@ const SEVERITY_COLORS: Record<string, string> = {
   CRITICAL: "bg-red-50 text-red-700 border-red-200",
   HIGH: "bg-orange-50 text-orange-700 border-orange-200",
   ELEVATED: "bg-amber-50 text-amber-700 border-amber-200",
-  GUARDED: "bg-blue-50 text-blue-700 border-blue-200",
+  GUARDED: "bg-io-status-guarded/10 text-io-status-guarded border-io-status-guarded/20",
 };
 
 // Bilingual labels for all sectors
@@ -474,7 +474,7 @@ export function ScenarioLibrary(
               <button
                 onClick={() => onSelectScenario(scenario.id)}
                 disabled={isLoading}
-                className="mt-auto px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="mt-auto px-4 py-2.5 bg-io-accent hover:bg-io-accent-hover text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {isLoading
                   ? isAr

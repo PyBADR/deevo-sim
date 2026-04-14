@@ -27,23 +27,23 @@ interface ScenarioSelectorProps {
   locale?: "en" | "ar";
 }
 
-// Short display names for the scenario selector pills
+// Enterprise scenario display names — institutional macro-financial terminology
 const SHORT_NAMES: Record<string, { en: string; ar: string }> = {
-  hormuz_chokepoint_disruption: { en: "Hormuz", ar: "هرمز" },
-  hormuz_full_closure: { en: "Hormuz Full", ar: "إغلاق هرمز" },
-  saudi_oil_shock: { en: "Oil Shock", ar: "صدمة نفطية" },
-  uae_banking_crisis: { en: "Banking", ar: "أزمة بنوك" },
-  gcc_cyber_attack: { en: "Cyber", ar: "هجوم سيبراني" },
-  qatar_lng_disruption: { en: "Qatar LNG", ar: "غاز قطر" },
-  bahrain_sovereign_stress: { en: "Bahrain", ar: "البحرين" },
-  kuwait_fiscal_shock: { en: "Kuwait", ar: "الكويت" },
-  oman_port_closure: { en: "Oman Ports", ar: "موانئ عُمان" },
-  red_sea_trade_corridor_instability: { en: "Red Sea", ar: "البحر الأحمر" },
-  energy_market_volatility_shock: { en: "Energy", ar: "طاقة" },
-  regional_liquidity_stress_event: { en: "Liquidity", ar: "سيولة" },
-  critical_port_throughput_disruption: { en: "Ports", ar: "موانئ" },
-  financial_infrastructure_cyber_disruption: { en: "Fin Cyber", ar: "سيبراني مالي" },
-  iran_regional_escalation: { en: "Iran", ar: "إيران" },
+  hormuz_chokepoint_disruption: { en: "Hormuz Disruption", ar: "اضطراب هرمز" },
+  hormuz_full_closure: { en: "Hormuz Closure", ar: "إغلاق هرمز" },
+  saudi_oil_shock: { en: "Oil Supply Shock", ar: "صدمة إمداد نفطي" },
+  uae_banking_crisis: { en: "Banking Stress", ar: "ضغوط بنكية" },
+  gcc_cyber_attack: { en: "Cyber Disruption", ar: "اضطراب سيبراني" },
+  qatar_lng_disruption: { en: "LNG Disruption", ar: "اضطراب الغاز" },
+  bahrain_sovereign_stress: { en: "Sovereign Stress", ar: "ضغوط سيادية" },
+  kuwait_fiscal_shock: { en: "Fiscal Shock", ar: "صدمة مالية" },
+  oman_port_closure: { en: "Port Disruption", ar: "اضطراب الموانئ" },
+  red_sea_trade_corridor_instability: { en: "Red Sea Corridor", ar: "ممر البحر الأحمر" },
+  energy_market_volatility_shock: { en: "Energy Volatility", ar: "تقلب الطاقة" },
+  regional_liquidity_stress_event: { en: "Liquidity Stress", ar: "ضغوط سيولة" },
+  critical_port_throughput_disruption: { en: "Port Throughput", ar: "طاقة الموانئ" },
+  financial_infrastructure_cyber_disruption: { en: "Financial Cyber", ar: "سيبراني مالي" },
+  iran_regional_escalation: { en: "Regional Escalation", ar: "تصعيد إقليمي" },
 };
 
 export function ScenarioSelector({
@@ -121,8 +121,8 @@ export function ScenarioSelector({
             disabled={isLoading}
             className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[10px] font-semibold transition-all whitespace-nowrap ${
               isActive
-                ? "bg-blue-600/20 text-blue-400 border border-blue-500/30"
-                : "bg-slate-800/40 text-slate-500 border border-slate-700/30 hover:text-slate-300 hover:border-slate-600/40"
+                ? "bg-io-accent/15 text-io-accent border border-io-accent/30"
+                : "bg-io-muted text-io-secondary border border-io-border-muted hover:text-io-primary hover:border-io-border-soft"
             } ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             {label}

@@ -71,11 +71,12 @@ const COUNTRY_POSITIONS: Record<
 };
 
 function getStressColor(stress: number): string {
-  if (stress < 0.2) return "#10b981"; // emerald
-  if (stress < 0.4) return "#fbbf24"; // yellow
-  if (stress < 0.6) return "#f97316"; // amber
-  if (stress < 0.8) return "#f97316"; // orange
-  return "#ef4444"; // red
+  if (stress < 0.2) return "#3A7D6C"; // nominal
+  if (stress < 0.35) return "#2D6A4F"; // low
+  if (stress < 0.5) return "#5E6759"; // guarded
+  if (stress < 0.65) return "#8B6914"; // elevated
+  if (stress < 0.8) return "#A0522D"; // high
+  return "#8C2318"; // severe
 }
 
 function formatUsd(amount: number): string {
@@ -126,7 +127,7 @@ export function GCCImpactMap({
         {scenarioLabel && (
           <p className="text-sm text-slate-600">
             {locale === "ar" ? "السيناريو: " : "Scenario: "}
-            <span className="text-blue-700 font-semibold">{scenarioLabel}</span>
+            <span className="text-io-accent font-semibold">{scenarioLabel}</span>
           </p>
         )}
       </div>
@@ -242,9 +243,9 @@ export function GCCImpactMap({
           {/* Shock origin indicator (if scenario label provided) */}
           {scenarioLabel && (
             <g>
-              <circle cx="225" cy="160" r="40" fill="none" stroke="#2563eb" strokeWidth="1.5" opacity="0.4" />
-              <circle cx="225" cy="160" r="30" fill="none" stroke="#2563eb" strokeWidth="1" opacity="0.3" />
-              <circle cx="225" cy="160" r="3" fill="#2563eb" />
+              <circle cx="225" cy="160" r="40" fill="none" stroke="#0C6B58" strokeWidth="1.5" opacity="0.4" />
+              <circle cx="225" cy="160" r="30" fill="none" stroke="#0C6B58" strokeWidth="1" opacity="0.3" />
+              <circle cx="225" cy="160" r="3" fill="#0C6B58" />
             </g>
           )}
         </svg>
@@ -257,12 +258,12 @@ export function GCCImpactMap({
         </h3>
         <div className="grid grid-cols-2 sm:grid-cols-6 gap-2">
           {[
-            { label: "Nominal", ar: "طبيعي", color: "#10b981", range: "< 0.2" },
-            { label: "Low", ar: "منخفض", color: "#fbbf24", range: "0.2–0.4" },
-            { label: "Guarded", ar: "مراقب", color: "#f97316", range: "0.4–0.6" },
-            { label: "Elevated", ar: "مرتفع", color: "#f97316", range: "0.6–0.8" },
-            { label: "High", ar: "عالي", color: "#ef4444", range: "0.8–1.0" },
-            { label: "Severe", ar: "حرج", color: "#7f1d1d", range: "> 0.8" },
+            { label: "Nominal", ar: "طبيعي", color: "#3A7D6C", range: "< 0.20" },
+            { label: "Low", ar: "منخفض", color: "#2D6A4F", range: "0.20–0.35" },
+            { label: "Guarded", ar: "مراقب", color: "#5E6759", range: "0.35–0.50" },
+            { label: "Elevated", ar: "مرتفع", color: "#8B6914", range: "0.50–0.65" },
+            { label: "High", ar: "عالي", color: "#A0522D", range: "0.65–0.80" },
+            { label: "Severe", ar: "حرج", color: "#8C2318", range: "≥ 0.80" },
           ].map((level, idx) => (
             <div key={idx} className="flex items-center gap-2">
               <div
