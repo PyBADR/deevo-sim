@@ -55,17 +55,31 @@ export default function DemoPage() {
           </div>
         </div>
 
-        <h1 className="text-h1 md:text-display-sm text-slate-900 mb-4">
-          GCC Macro Financial Intelligence
+        <h1 className="text-h1 md:text-display-sm text-slate-900 mb-3">
+          GCC Decision Intelligence Platform
         </h1>
 
-        <p className="text-body-lg text-slate-500 mb-2">
-          Institutional Intelligence & Decision Platform
+        <p className="text-body-lg text-slate-500 mb-1.5">
+          for Macro, Financial & Strategic Systems
         </p>
 
-        <p className="text-sm text-slate-400 mb-12">
-          منصة الاستخبارات الاقتصادية والمالية لدول الخليج
+        <p className="text-[0.9375rem] leading-[1.7] text-slate-500 mb-4" dir="rtl">
+          تحويل الإشارات الاقتصادية إلى قرارات مؤسسية قابلة للتنفيذ.
         </p>
+
+        {/* Value line */}
+        <p className="text-sm font-medium text-slate-600 mb-6">
+          Understand Impact. Control Transmission. Execute Decisions.
+        </p>
+
+        {/* Trust strip */}
+        <div className="flex items-center justify-center gap-3 mb-10 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+          <span>Institutional Reference Dataset</span>
+          <span className="w-1 h-1 rounded-full bg-slate-300" />
+          <span>17-Stage Simulation Engine</span>
+          <span className="w-1 h-1 rounded-full bg-slate-300" />
+          <span>GCC Coverage</span>
+        </div>
 
         {/* Start button — navigates to Command Center */}
         <button
@@ -73,7 +87,7 @@ export default function DemoPage() {
           className="group inline-flex items-center gap-3 px-8 py-4 bg-io-primary text-white rounded-xl font-semibold text-sm shadow-lg shadow-io-primary/20 hover:bg-io-accent hover:shadow-xl hover:shadow-io-accent/20 transition-all"
         >
           <Play size={18} />
-          Start Executive Demo
+          Enter Decision Briefing
           <ArrowRight
             size={16}
             className="group-hover:translate-x-1 transition-transform"
@@ -81,7 +95,7 @@ export default function DemoPage() {
         </button>
 
         {/* Navigation hint */}
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="mt-8 flex items-center justify-center gap-5">
           <KeyHint label="Tabs" description="Navigate flow" />
           <KeyHint label="Scenarios" description="Switch scenarios" />
           <KeyHint label="EN/AR" description="Toggle language" />
