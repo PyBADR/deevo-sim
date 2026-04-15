@@ -87,7 +87,7 @@ export default function DemoPage() {
           className="group inline-flex items-center gap-3 px-8 py-4 bg-io-primary text-white rounded-xl font-semibold text-sm shadow-lg shadow-io-primary/20 hover:bg-io-accent hover:shadow-xl hover:shadow-io-accent/20 transition-all"
         >
           <Play size={18} />
-          Enter Executive Briefing
+          Enter Decision Briefing
           <ArrowRight
             size={16}
             className="group-hover:translate-x-1 transition-transform"
