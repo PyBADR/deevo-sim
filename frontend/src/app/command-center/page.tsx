@@ -70,6 +70,10 @@ import { RegulatoryAuditView } from "@/components/panels/RegulatoryAuditView";
 // ── Operational Deep-Dive (existing) ──
 import { StatusBar } from "@/features/command-center/components/StatusBar";
 
+// ── Data Trust Layer ──
+import { DataTrustPanel } from "@/features/command-center/components/DataTrustPanel";
+import { useDataTrust } from "@/features/command-center/lib/use-data-trust";
+
 // ── PDF Export ──
 
 const IO_API_KEY = process.env.NEXT_PUBLIC_IO_API_KEY || "io_master_key_2026";
@@ -1204,6 +1208,10 @@ function CommandCenterInner() {
   const [scenarioUnavailableId, setScenarioUnavailableId] = useState<string | null>(null);
   const [simulationLoadedLabel, setSimulationLoadedLabel] = useState<string | null>(null);
 
+  // ── Data Trust Layer (read-only provenance metadata) ──
+  const scenarioIdForTrust = scenarioParam || "hormuz_chokepoint_disruption";
+  const dataTrustMeta = useDataTrust(scenarioIdForTrust);
+
   // ── Demo contract from store ──
   const demoContract = useCommandCenterStore((s) => s.demoContract);
   const setDemoContract = useCommandCenterStore((s) => s.setDemoContract);
@@ -1952,6 +1960,11 @@ function CommandCenterInner() {
 
       {/* Active tab content */}
       {renderTabContent()}
+
+      {/* Data Trust Layer — read-only provenance & freshness display */}
+      {scenario && (
+        <DataTrustPanel meta={dataTrustMeta} locale={locale} />
+      )}
 
       {/* Status Bar */}
       <StatusBar dataSource={dataSource} trust={trust} confidence={confidence} />
