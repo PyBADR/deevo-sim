@@ -31,36 +31,56 @@ export default function LandingPage() {
         <div className="w-full max-w-[900px] px-8 sm:px-12 py-20 sm:py-0">
           <h1
             className="
-              text-[clamp(2.5rem,5.5vw,4.25rem)] font-semibold
-              leading-[1.08] tracking-[-0.035em]
+              text-[clamp(2.5rem,6vw,4.5rem)] font-semibold
+              leading-[1.06] tracking-[-0.035em]
               text-charcoal text-balance
             "
           >
-            From macro signals
+            GCC Decision
             <br />
-            to economic decisions.
+            Intelligence Platform
           </h1>
 
           <p
             className="
-              mt-8 text-[1.1875rem] sm:text-[1.3125rem]
+              mt-6 text-[1.1875rem] sm:text-[1.3125rem]
               leading-[1.6] text-tx-secondary
-              max-w-[440px]
+              max-w-[500px]
             "
           >
-            How shocks move across GCC economies
-            — and who must act.
+            for Macro, Financial & Strategic Systems
           </p>
 
-          {/* ── Scope ── */}
-          <div className="mt-16 flex items-baseline gap-10 sm:gap-14 flex-wrap">
-            <Fact value="6" label="economies" />
-            <Fact value="15" label="scenarios" />
-            <Fact value="7" label="sectors" />
+          <p
+            className="
+              mt-3 text-[1rem] sm:text-[1.125rem]
+              leading-[1.6] text-tx-tertiary
+              max-w-[500px]
+            "
+            dir="rtl"
+          >
+            للأنظمة الاقتصادية والمالية والاستراتيجية
+          </p>
+
+          {/* ── Value line ── */}
+          <p className="mt-8 text-[0.9375rem] sm:text-[1rem] font-medium text-charcoal/80 tracking-[-0.01em] max-w-[500px]">
+            Understand Impact. Control Transmission. Execute Decisions.
+          </p>
+          <p className="mt-2 text-[0.875rem] sm:text-[0.9375rem] text-tx-tertiary max-w-[500px]" dir="rtl">
+            استشراف الأثر. فهم انتقاله. توجيه القرار.
+          </p>
+
+          {/* ── Trust strip ── */}
+          <div className="mt-12 flex items-center gap-3 flex-wrap text-[0.6875rem] font-medium text-tx-tertiary uppercase tracking-[0.06em]">
+            <span>Institutional Reference Dataset</span>
+            <span className="w-1 h-1 rounded-full bg-tx-tertiary/40" />
+            <span>17-Stage Simulation Engine</span>
+            <span className="w-1 h-1 rounded-full bg-tx-tertiary/40" />
+            <span>GCC Coverage</span>
           </div>
 
           {/* ── Entry ── */}
-          <div className="mt-16">
+          <div className="mt-12">
             <Link
               href="/command-center?demo=true"
               className="
@@ -71,7 +91,7 @@ export default function LandingPage() {
                 hover:border-charcoal hover:gap-4
               "
             >
-              Enter
+              Enter Executive Briefing
               <svg
                 width="16"
                 height="16"
@@ -95,7 +115,7 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <footer className="px-8 pb-8 flex items-end justify-between">
         <span className="text-[0.6875rem] text-tx-tertiary tracking-[0.02em]">
-          GCC Macro Financial Intelligence
+          GCC Decision Intelligence Platform
         </span>
         <span className="text-[0.6875rem] text-tx-tertiary tabular-nums">
           2026
@@ -105,15 +125,3 @@ export default function LandingPage() {
   );
 }
 
-function Fact({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex items-baseline gap-2">
-      <span className="text-[1.75rem] font-semibold tabular-nums tracking-[-0.02em] text-charcoal">
-        {value}
-      </span>
-      <span className="text-[0.8125rem] text-tx-tertiary tracking-[0.01em]">
-        {label}
-      </span>
-    </div>
-  );
-}

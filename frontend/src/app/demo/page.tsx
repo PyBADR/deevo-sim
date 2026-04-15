@@ -55,27 +55,37 @@ export default function DemoPage() {
           </div>
         </div>
 
-        <h1 className="text-h1 md:text-display-sm text-slate-900 mb-4">
-          GCC Macro Financial Intelligence
+        <h1 className="text-h1 md:text-display-sm text-slate-900 mb-3">
+          GCC Decision Intelligence Platform
         </h1>
 
-        <p className="text-body-lg text-slate-500 mb-2">
-          Institutional Intelligence & Decision Platform
+        <p className="text-body-lg text-slate-500 mb-1.5">
+          for Macro, Financial & Strategic Systems
         </p>
 
-        <p className="text-sm text-slate-400 mb-4">
-          منصة الاستخبارات الاقتصادية والمالية لدول الخليج
+        <p className="text-sm text-slate-500 mb-1.5" dir="rtl">
+          منصة ذكاء القرار لدول الخليج
         </p>
 
-        {/* Capabilities strip */}
+        <p className="text-xs text-slate-400 mb-3" dir="rtl">
+          للأنظمة الاقتصادية والمالية والاستراتيجية
+        </p>
+
+        {/* Value line */}
+        <p className="text-sm font-medium text-slate-600 mb-1">
+          Understand Impact. Control Transmission. Execute Decisions.
+        </p>
+        <p className="text-xs text-slate-400 mb-6" dir="rtl">
+          استشراف الأثر. فهم انتقاله. توجيه القرار.
+        </p>
+
+        {/* Trust strip */}
         <div className="flex items-center justify-center gap-3 mb-10 text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
-          <span>6 Economies</span>
+          <span>Institutional Reference Dataset</span>
           <span className="w-1 h-1 rounded-full bg-slate-300" />
-          <span>15 Scenarios</span>
+          <span>17-Stage Simulation Engine</span>
           <span className="w-1 h-1 rounded-full bg-slate-300" />
-          <span>17-Stage Pipeline</span>
-          <span className="w-1 h-1 rounded-full bg-slate-300" />
-          <span>PDF Export</span>
+          <span>GCC Coverage</span>
         </div>
 
         {/* Start button — navigates to Command Center */}
@@ -84,7 +94,7 @@ export default function DemoPage() {
           className="group inline-flex items-center gap-3 px-8 py-4 bg-io-primary text-white rounded-xl font-semibold text-sm shadow-lg shadow-io-primary/20 hover:bg-io-accent hover:shadow-xl hover:shadow-io-accent/20 transition-all"
         >
           <Play size={18} />
-          Start Executive Demo
+          Enter Executive Briefing
           <ArrowRight
             size={16}
             className="group-hover:translate-x-1 transition-transform"
