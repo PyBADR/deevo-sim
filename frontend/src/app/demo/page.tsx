@@ -63,20 +63,13 @@ export default function DemoPage() {
           for Macro, Financial & Strategic Systems
         </p>
 
-        <p className="text-sm text-slate-500 mb-1.5" dir="rtl">
-          منصة ذكاء القرار لدول الخليج
-        </p>
-
-        <p className="text-xs text-slate-400 mb-3" dir="rtl">
-          للأنظمة الاقتصادية والمالية والاستراتيجية
+        <p className="text-[0.9375rem] leading-[1.7] text-slate-500 mb-4" dir="rtl">
+          تحويل الإشارات الاقتصادية إلى قرارات مؤسسية قابلة للتنفيذ.
         </p>
 
         {/* Value line */}
-        <p className="text-sm font-medium text-slate-600 mb-1">
+        <p className="text-sm font-medium text-slate-600 mb-6">
           Understand Impact. Control Transmission. Execute Decisions.
-        </p>
-        <p className="text-xs text-slate-400 mb-6" dir="rtl">
-          استشراف الأثر. فهم انتقاله. توجيه القرار.
         </p>
 
         {/* Trust strip */}
