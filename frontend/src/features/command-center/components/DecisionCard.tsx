@@ -249,7 +249,7 @@ export function DecisionCard({
                 title={!isLive ? "Connect to live backend to enable actions" : undefined}
                 className="px-3 py-1.5 text-[11px] font-semibold rounded-md bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
-                {isExecuting ? "Submitting..." : !isLive ? "Review (demo)" : "Submit for Review"}
+                {isExecuting ? "Submitting..." : !isLive ? "Review" : "Submit for Review"}
               </button>
             )}
             {confirming && (

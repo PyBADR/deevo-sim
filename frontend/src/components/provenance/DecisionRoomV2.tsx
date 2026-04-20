@@ -466,9 +466,9 @@ export function DecisionRoomV2({
            NARRATIVE FLOW: What happened → What it means → What to do
            ═══════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <NarrativeCard icon="⚡" title={isAr ? "ماذا حدث" : "What happened"} text={narrative.happened} accent="border-red-500/40" />
-        <NarrativeCard icon="📊" title={isAr ? "ماذا يعني" : "What it means"} text={narrative.means} accent="border-amber-500/40" />
-        <NarrativeCard icon="🎯" title={isAr ? "ماذا نفعل" : "What to do"} text={narrative.action} accent="border-emerald-500/40" />
+        <NarrativeCard icon="" title={isAr ? "ماذا حدث" : "What happened"} text={narrative.happened} accent="border-red-500/40" />
+        <NarrativeCard icon="" title={isAr ? "ماذا يعني" : "What it means"} text={narrative.means} accent="border-amber-500/40" />
+        <NarrativeCard icon="" title={isAr ? "ماذا نفعل" : "What to do"} text={narrative.action} accent="border-emerald-500/40" />
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════
