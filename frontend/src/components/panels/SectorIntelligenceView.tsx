@@ -87,9 +87,9 @@ const labels: Record<Language, Record<string, string>> = {
     event: "Event",
     impact: "Impact (USD)",
     no_data: "No data available",
-    no_banking: "No banking stress data for this scenario",
-    no_insurance: "No insurance stress data for this scenario",
-    no_fintech: "No fintech stress data for this scenario",
+    no_banking: "Banking stress breakdown is not available for this scenario — see Intelligence Brief for sector-level signals.",
+    no_insurance: "Insurance stress breakdown is not available for this scenario — see Intelligence Brief for sector-level signals.",
+    no_fintech: "Fintech stress breakdown is not available for this scenario — see Intelligence Brief for sector-level signals.",
     top_decisions: "Top 3 Decisions",
     action: "Action",
     sector_alignment: "Sector Alignment",
@@ -124,9 +124,9 @@ const labels: Record<Language, Record<string, string>> = {
     event: "الحدث",
     impact: "التأثير (دولار)",
     no_data: "لا توجد بيانات متاحة",
-    no_banking: "لا توجد بيانات ضغط بنكي لهذا السيناريو",
-    no_insurance: "لا توجد بيانات ضغط تأمين لهذا السيناريو",
-    no_fintech: "لا توجد بيانات ضغط تقني مالي لهذا السيناريو",
+    no_banking: "تفاصيل ضغط القطاع المصرفي غير متاحة لهذا السيناريو — راجع موجز المعلومات للاطلاع على الإشارات القطاعية.",
+    no_insurance: "تفاصيل ضغط قطاع التأمين غير متاحة لهذا السيناريو — راجع موجز المعلومات للاطلاع على الإشارات القطاعية.",
+    no_fintech: "تفاصيل ضغط قطاع التقنية المالية غير متاحة لهذا السيناريو — راجع موجز المعلومات للاطلاع على الإشارات القطاعية.",
     top_decisions: "أفضل 3 قرارات",
     action: "الإجراء",
     sector_alignment: "المحاذاة القطاعية",
@@ -416,12 +416,14 @@ export function SectorIntelligenceView(props: SectorIntelligenceViewProps) {
   const t = labels[props.locale];
   const isRTL = props.locale === "ar";
 
+  // Subtab readiness: tabs with no scenario-specific data are visually muted
+  const unavailableSuffix = props.locale === "ar" ? " · غير متاح" : " · Unavailable";
   const tabs = [
-    { id: "brief", label: t.intelligence_brief },
-    { id: "banking", label: t.banking_stress },
-    { id: "insurance", label: t.insurance_stress },
-    { id: "fintech", label: t.fintech_stress },
-    { id: "directive", label: t.executive_directive },
+    { id: "brief", label: t.intelligence_brief, available: true },
+    { id: "banking", label: t.banking_stress, available: !!props.bankingStress },
+    { id: "insurance", label: t.insurance_stress, available: !!props.insuranceStress },
+    { id: "fintech", label: t.fintech_stress, available: !!props.fintechStress },
+    { id: "directive", label: t.executive_directive, available: true },
   ] as const;
 
   return (
@@ -431,14 +433,19 @@ export function SectorIntelligenceView(props: SectorIntelligenceViewProps) {
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => tab.available && setActiveTab(tab.id)}
+            disabled={!tab.available}
+            aria-disabled={!tab.available}
+            title={!tab.available ? (props.locale === "ar" ? "التفصيل الخاص بهذا السيناريو غير متاح" : "Scenario-specific breakdown unavailable") : undefined}
             className={`flex-1 min-w-max px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
               activeTab === tab.id
                 ? "bg-io-accent text-white shadow-md"
-                : "text-io-secondary hover:text-io-primary hover:bg-io-bg"
+                : tab.available
+                  ? "text-io-secondary hover:text-io-primary hover:bg-io-bg"
+                  : "text-io-secondary/50 cursor-not-allowed"
             }`}
           >
-            {tab.label}
+            {tab.available ? tab.label : tab.label + unavailableSuffix}
           </button>
         ))}
       </div>

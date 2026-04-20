@@ -306,6 +306,9 @@ function DashboardView(
               label={isAr ? "الخسارة الرئيسية" : "Headline Loss"}
               value={`$${(headline.totalLossUsd / 1e9).toFixed(1)}B`}
               color="text-io-status-severe"
+              caption={isAr
+                ? "إجمالي الخسائر المالية المتوقعة خلال أفق المحاكاة."
+                : "Total expected financial loss across the simulation horizon."}
               source="17-stage simulation engine"
               formula="Σ(node_loss) across 42-node GCC graph"
               assumption="Severity-calibrated; Monte Carlo confidence band ±8-12%"
@@ -314,6 +317,9 @@ function DashboardView(
               label={isAr ? "متوسط الضغط" : "Avg Stress"}
               value={`${(headline.averageStress * 100).toFixed(0)}%`}
               color="text-io-status-elevated"
+              caption={isAr
+                ? "متوسط ضغط النظام عبر الكيانات المتأثرة."
+                : "Mean system stress across impacted entities."}
               source="Graph propagation engine"
               formula="mean(node.stress) for all impacted nodes"
               assumption="Stress range 0-100%; ≥80% = Severe, ≥65% = High"
@@ -322,6 +328,9 @@ function DashboardView(
               label={isAr ? "عمق الانتشار" : "Propagation Depth"}
               value={`${headline.propagationDepth}`}
               color="text-io-accent"
+              caption={isAr
+                ? "عدد طبقات الانتقال الرئيسية في السيناريو."
+                : "Number of major transmission layers in the scenario."}
               source="Causal chain trace"
               formula="Max hop count in transmission path"
               assumption="Deeper propagation = wider systemic exposure"
@@ -330,6 +339,9 @@ function DashboardView(
               label={isAr ? "يوم الذروة" : "Peak Day"}
               value={`${isAr ? "اليوم" : "Day"} ${headline.peakDay}`}
               color="text-io-status-high"
+              caption={isAr
+                ? "يوم أعلى ضغط على النظام منذ بدء السيناريو."
+                : "Day of maximum system pressure from scenario onset."}
               source="Scenario peak_day_offset"
               formula="min(scenario.peak_day_offset, horizon_days)"
               assumption="Assumes no secondary shock after initial event"
@@ -816,10 +828,11 @@ function CountryExposureMatrix({ countryBake, locale }: { countryBake: CountryBa
 }
 
 function MetricCard(
-  { label, value, color, source, formula, assumption }: {
+  { label, value, color, caption, source, formula, assumption }: {
     label: string;
     value: string;
     color: string;
+    caption?: string;
     source?: string;
     formula?: string;
     assumption?: string;
@@ -843,6 +856,9 @@ function MetricCard(
         )}
       </div>
       <p className={`text-xl font-bold ${color}`}>{value}</p>
+      {caption && (
+        <p className="text-[10px] text-slate-500 leading-snug mt-1.5">{caption}</p>
+      )}
       {showDetail && hasProvenance && (
         <div className="absolute z-20 top-full left-0 right-0 mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg p-3 text-[11px] text-slate-600 space-y-1.5">
           {source && <p><span className="font-semibold text-slate-700">Source:</span> {source}</p>}
@@ -1165,7 +1181,7 @@ function DemoDataBanner({ locale, demoContract }: { locale: "en" | "ar"; demoCon
 
   const isSeeded = demoContract.dataSourceType === "seeded_institutional";
   const sourceLabel = isSeeded
-    ? (isAr ? "بيانات مرجعية مؤسسية محملة" : "Reference Demo Dataset Loaded")
+    ? (isAr ? "تم تحميل مجموعة بيانات السيناريو المرجعي" : "Reference Scenario Dataset Loaded")
     : (isAr ? "بيانات مرجعية محملة — الخادم غير متصل" : "Reference Dataset Loaded — No Backend Connected");
 
   // Blue for explicit demo, amber for implicit fallback
@@ -1402,8 +1418,11 @@ function CommandCenterInner() {
         window.scrollTo({ top: 0, behavior: "smooth" });
 
         // ── Phase 6: Show "Simulation Loaded" banner ──
+        // Title-case fallback protects against raw snake_case IDs leaking into UI
+        const humanizeTemplateId = (id: string) =>
+          id.split("_").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
         const scenarioTitle =
-          SCENARIO_LABELS[templateId]?.[locale === "ar" ? "ar" : "en"] ?? templateId;
+          SCENARIO_LABELS[templateId]?.[locale === "ar" ? "ar" : "en"] ?? humanizeTemplateId(templateId);
         setSimulationLoadedLabel(scenarioTitle);
         setIsRunningScenario(false);
 

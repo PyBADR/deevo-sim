@@ -357,7 +357,7 @@ function PriorityCard({
               } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               {!isLive ? (
-                "Review (demo)"
+                "Review"
               ) : isLoss ? (
                 <>
                   <ShieldAlert size={11} /> Review with Caution
