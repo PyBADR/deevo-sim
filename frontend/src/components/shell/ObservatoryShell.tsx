@@ -142,20 +142,25 @@ export function ObservatoryShell({
             </div>
 
             <div className="flex items-center gap-2">
-              {/* Start Demo CTA */}
-              <button
-                onClick={handleStartDemo}
-                className={`inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-colors shadow-sm ${
-                  isDemoMode
-                    ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                    : "bg-io-primary text-white hover:bg-io-accent"
-                }`}
-              >
-                {isDemoMode ? <CheckCircle size={12} /> : <Play size={12} />}
-                {isDemoMode
-                  ? (isArabic ? "العرض نشط" : "Demo Active")
-                  : (isArabic ? "عرض تجريبي" : "Start Demo")}
-              </button>
+              {/* Start Demo CTA — button when inactive, status badge when active */}
+              {isDemoMode ? (
+                <span
+                  role="status"
+                  aria-live="polite"
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-emerald-600 text-white shadow-sm select-none"
+                >
+                  <CheckCircle size={12} />
+                  {isArabic ? "العرض نشط" : "Demo Active"}
+                </span>
+              ) : (
+                <button
+                  onClick={handleStartDemo}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg transition-colors shadow-sm bg-io-primary text-white hover:bg-io-accent"
+                >
+                  <Play size={12} />
+                  {isArabic ? "عرض تجريبي" : "Start Demo"}
+                </button>
+              )}
 
               {/* Language Toggle Button */}
               <button
