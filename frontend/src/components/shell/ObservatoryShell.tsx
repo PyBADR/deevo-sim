@@ -6,6 +6,7 @@ import { useAppStore } from "@/store/app-store";
 import { t, type Locale } from "@/i18n/dictionary";
 import { Globe, ChevronRight, Play } from "lucide-react";
 import Link from "next/link";
+import { ExperienceModeToggle } from "@/features/trace-impact/components/ExperienceModeToggle";
 
 interface ObservatoryShellProps {
   children: React.ReactNode;
@@ -13,6 +14,7 @@ interface ObservatoryShellProps {
   scenarioLabelAr?: string;
   dataSource?: "live" | "mock";
   activeTab?: string;
+  activeMode?: string;
 }
 
 const TABS = [
@@ -44,6 +46,7 @@ export function ObservatoryShell({
   scenarioLabelAr,
   dataSource = "mock",
   activeTab = "dashboard",
+  activeMode,
 }: ObservatoryShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -108,6 +111,9 @@ export function ObservatoryShell({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Experience Mode Toggle */}
+              <ExperienceModeToggle locale={isArabic ? "ar" : "en"} />
+
               {/* Start Demo CTA */}
               <Link
                 href="/demo"
@@ -175,7 +181,8 @@ export function ObservatoryShell({
         </div>
       )}
 
-      {/* Tab Navigation */}
+      {/* Tab Navigation — hidden in experience mode */}
+      {activeMode !== "experience" && (
       <nav className="bg-io-surface border-b border-io-border px-6">
         <div className="max-w-7xl mx-auto flex gap-8 overflow-x-auto">
           {TABS.map((tab) => {
@@ -199,6 +206,7 @@ export function ObservatoryShell({
           })}
         </div>
       </nav>
+      )}
 
       {/* Main Content Area */}
       <main className="flex-1 overflow-auto">

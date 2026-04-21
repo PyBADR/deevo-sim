@@ -180,6 +180,30 @@ const dict: Record<string, { en: string; ar: string }> = {
   "audit.pipeline_record":  { en: "Pipeline Execution",     ar: "سجل المحرك" },
   "audit.breaches":         { en: "Regulatory Breaches",    ar: "الانتهاكات التنظيمية" },
 
+  // ── Trace Impact Experience ──
+  "experience.trace_impact":      { en: "Trace Impact",               ar: "تتبع الأثر" },
+  "experience.guided_walkthrough":{ en: "Guided Scenario Walkthrough", ar: "جولة إرشادية للسيناريو" },
+  "experience.standard_view":     { en: "Standard View",              ar: "العرض التقليدي" },
+  "experience.exit":              { en: "Exit Experience",             ar: "خروج من العرض" },
+  "experience.step_of":           { en: "of",                         ar: "من" },
+  "experience.next":              { en: "Next",                       ar: "التالي" },
+  "experience.prev":              { en: "Previous",                   ar: "السابق" },
+  "experience.finish":            { en: "View Decision Room",         ar: "غرفة القرار" },
+  "experience.keyboard_hint":     { en: "← → to navigate",           ar: "← → للتنقل" },
+  "experience.new_badge":         { en: "New",                        ar: "جديد" },
+
+  // ── Trace Impact Steps ──
+  "trace.step.shock.label":       { en: "Shock Event",                ar: "حدث الصدمة" },
+  "trace.step.shock.title":       { en: "Strait of Hormuz Disruption",ar: "اضطراب مضيق هرمز" },
+  "trace.step.prop.label":        { en: "Transmission",               ar: "مسار الانتقال" },
+  "trace.step.prop.title":        { en: "How the Shock Spreads",      ar: "كيف تنتشر الصدمة" },
+  "trace.step.exposure.label":    { en: "GCC Exposure",               ar: "تعرض دول المجلس" },
+  "trace.step.exposure.title":    { en: "Who Bears the Impact",       ar: "من يتحمل الأثر" },
+  "trace.step.decision.label":    { en: "Decision Point",             ar: "نقطة القرار" },
+  "trace.step.decision.title":    { en: "Act or Absorb",              ar: "التدخل أو الاستيعاب" },
+  "trace.step.outcome.label":     { en: "Outcome",                    ar: "النتيجة" },
+  "trace.step.outcome.title":     { en: "What Coordinated Action Achieves", ar: "ما يحققه التدخل المنسق" },
+
   // ── General ──
   "general.expand":         { en: "Expand",                 ar: "توسيع" },
   "general.collapse":       { en: "Collapse",               ar: "طي" },

@@ -45,6 +45,10 @@ import { RegulatoryAuditView } from "@/components/panels/RegulatoryAuditView";
 // ── Operational Deep-Dive (existing) ──
 import { StatusBar } from "@/features/command-center/components/StatusBar";
 
+// ── Trace Impact Experience ──
+import { TraceImpactExperience } from "@/features/trace-impact/TraceImpactExperience";
+import { TraceImpactCTA } from "@/features/trace-impact/components/TraceImpactCTA";
+
 // ── Loading Skeleton ──
 
 function LoadingSkeleton() {
@@ -252,6 +256,9 @@ function DashboardView(
           </div>
         </div>
       )}
+
+      {/* ── Trace Impact Experience CTA ── */}
+      <TraceImpactCTA variant="hero" locale={locale} />
 
       {/* ── Scenario Library ── */}
       <div>
@@ -612,6 +619,7 @@ function CommandCenterInner() {
 
   const runId = searchParams.get("run");
   const activeTab = searchParams.get("tab") || "dashboard";
+  const activeMode = searchParams.get("mode") ?? undefined;
   const [isRunningScenario, setIsRunningScenario] = useState(false);
 
   const {
@@ -888,12 +896,32 @@ function CommandCenterInner() {
     }
   };
 
+  // ── Experience mode shortcircuit ──
+  if (activeMode === "experience") {
+    return (
+      <ObservatoryShell
+        scenarioLabel={scenario?.label}
+        scenarioLabelAr={scenario?.labelAr ?? undefined}
+        dataSource={dataSource}
+        activeTab={activeTab}
+        activeMode={activeMode}
+      >
+        <TraceImpactExperience
+          locale={locale}
+          runId={runId}
+          headline={headline}
+        />
+      </ObservatoryShell>
+    );
+  }
+
   return (
     <ObservatoryShell
       scenarioLabel={scenario?.label}
       scenarioLabelAr={scenario?.labelAr ?? undefined}
       dataSource={dataSource}
       activeTab={activeTab}
+      activeMode={activeMode}
     >
       {/* Fallback banner (API failed, showing mock) */}
       {error && scenario && (
