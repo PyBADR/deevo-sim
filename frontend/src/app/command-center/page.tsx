@@ -829,19 +829,10 @@ function CommandCenterInner() {
     [executeAction],
   );
 
-  // ── State gates ──
-  if (status === "loading") return <LoadingSkeleton />;
-  if (status === "error" && !scenario) {
-    return (
-      <ErrorState
-        error={error ?? "Unknown error"}
-        onRetry={runId ? () => switchToLive(runId) : undefined}
-        onFallbackMock={switchToMock}
-      />
-    );
-  }
-
   // ── Derive country exposures from impacts for the map ──
+  // NOTE: all derived-state hooks must run BEFORE any early return below, or
+  // React will report "Rendered fewer hooks than expected" when `status`
+  // transitions from "loading" to "ready" mid-scenario-run.
   const countryExposures = useMemo(() => {
     if (!impacts?.length) return undefined;
     const exposures: Record<
@@ -915,6 +906,18 @@ function CommandCenterInner() {
       affected_lines: [],
     };
   }, [impacts, runId]);
+
+  // ── State gates (placed AFTER all hooks to preserve hook order) ──
+  if (status === "loading") return <LoadingSkeleton />;
+  if (status === "error" && !scenario) {
+    return (
+      <ErrorState
+        error={error ?? "Unknown error"}
+        onRetry={runId ? () => switchToLive(runId) : undefined}
+        onFallbackMock={switchToMock}
+      />
+    );
+  }
 
   // ── Render active tab content ──
   const renderTabContent = () => {
