@@ -813,7 +813,7 @@ function CommandCenterInner() {
       } catch {
         // Backend unavailable — load mock data but override the scenario label
         // so all downstream panels show the correct selected scenario name.
-        switchToMock(templateId);
+        switchToMock();
         setScenarioFallbackId(templateId);
       } finally {
         setIsRunningScenario(false);
